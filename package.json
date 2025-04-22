@@ -1,0 +1,31 @@
+{
+  "name": "nestcraft",
+  "version": "0.1.0",
+  "description": "CLI to generate scalable NestJS projects with Clean Architecture and Clean Code",
+  "main": "bin/nestcraft.js",
+  "bin": {
+    "nestcraft": "./bin/nestcraft.js"
+  },
+  "scripts": {
+    "test": "nestcraft test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "nestcraft"
+  },
+  "keywords": [
+    "nestjs",
+    "cli",
+    "starter",
+    "generator",
+    "clean architecture",
+    "ddd",
+    "scaffold"
+  ],
+  "author": "Ablanhou Augustin Selete",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {}
+}

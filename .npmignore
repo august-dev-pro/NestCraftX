@@ -1,0 +1,24 @@
+# Ignore development files
+node_modules/
+.env
+.env.local
+.vscode/
+dist/
+coverage/
+logs/
+.DS_Store
+.git/
+.gitignore
+LICENSE.md
+README-DRAFT.md
+test/
+__tests__/
+
+# Ignore source files you don't want to publish
+setup-dev.js
+*.test.js
+*.spec.js
+*.log
+
+# Keep only what you need
+# (we include only: bin/, commands/, setup.js, package.json, LICENSE, README.md)
