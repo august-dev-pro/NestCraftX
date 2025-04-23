@@ -4,14 +4,14 @@
   "description": "CLI to generate scalable NestJS projects with Clean Architecture and Clean Code",
   "main": "bin/nestcraft.js",
   "bin": {
-    "nestcraftx": "./bin/nestcraft.js"
+    "nestcraftx": "bin/nestcraft.js"
   },
   "scripts": {
     "test": "nestcraftx test"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/august-dev-pro/NestCraftX"
+    "url": "git+https://github.com/august-dev-pro/NestCraftX.git"
   },
   "keywords": [
     "nestjs",

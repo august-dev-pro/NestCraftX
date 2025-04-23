@@ -204,7 +204,8 @@ export async function getUserInputs2() {
   let usedDB = readline.question(
     `Quelle base de donnée voulez-vous utiliser ? (${dataBases
       .map((db) => db.name)
-      .join(", ")}) : `
+      .join(", ")}) : `,
+    { defaultInput: "postgresql" }
   );
 
   let selectedDB = dataBases.find(
