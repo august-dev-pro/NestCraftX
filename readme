@@ -1,9 +1,9 @@
-## 🛠️ NestCraft — Générateur de projet backend NestJS
+## 🛠️ NestCraftX — Générateur de projet backend NestJS
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/node-%3E=16.0.0-green.svg)
 
-Bienvenue dans **NestCraft**, un CLI Node.js puissant pour générer automatiquement une structure de projet backend modulaire, professionnelle et maintenable. Il s’appuie sur les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma**, **TypeORM**, **JWT Auth**, **Swagger**, **Docker**, etc.
+Bienvenue dans **NestCraftX**, un CLI Node.js puissant pour générer automatiquement une structure de projet backend modulaire, professionnelle et maintenable. Il s’appuie sur les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma**, **TypeORM**, **JWT Auth**, **Swagger**, **Docker**, etc.
 
 > 🧠 L’objectif ? Ne plus jamais repartir de zéro pour créer une base de projet solide, évolutive et prête pour la production.
 
@@ -11,14 +11,15 @@ Bienvenue dans **NestCraft**, un CLI Node.js puissant pour générer automatique
 
 ## 📑 Sommaire
 
-    - [✨ Objectif du projet](#-objectif-du-projet)
-    - [📦 Prérequis](#-prérequis)
-    - [🚀 Installation et utilisation](#-installation-et-utilisation)
-    - [🧰 Ce que la commande configure automatiquement](#-Ce-que-la-commande-configure-automatiquement)
-    - [📁 Exemple d’architecture générée](#-exemple-darchitecture-générée)
-    - [📌 À venir](#-à-venir)
-    - [❤️ Contribuer](#️-contribuer)
-    - [📜 Licence](#-licence)
+- [✨ Objectif du projet](#-objectif-du-projet)
+- [📦 Prérequis](#-prérequis)
+- [🚀 Installation et utilisation](#-installation-et-utilisation)
+- [🧰 Ce que la commande configure automatiquement](#-ce-que-la-commande-configure-automatiquement)
+- [📁 Exemple d’architecture générée](#-exemple-darchitecture-générée)
+- [📌 À venir](#-à-venir)
+- [❤️ Contribuer](#️-contribuer)
+- [📜 Licence](#-licence)
+
 
 ---
 
@@ -43,16 +44,54 @@ Bienvenue dans **NestCraft**, un CLI Node.js puissant pour générer automatique
     - **Git** (optionnel pour init un repo)
 
 
----```bash
+---
 
 ## 🚀 Installation et utilisation
 
-    💻 Installation locale (développement ou usage temporaire)
+    📦 Installation via npx (recommandé)
 
-    git clone https://github.com/august-dev-pro/nestcraft
-    cd nestcraft
-    npm install
-    node setup.js
+        ```bash
+
+        npx nestcraftx start
+
+        ```
+
+        Utilise la puissance de NestCraftX sans rien installer globalement. Simple, rapide et efficace.
+
+    🌍 Installation globale (optionnel)
+
+        Tu peux aussi l’installer une fois pour toutes, si tu comptes l’utiliser souvent :
+
+            ```bash
+
+            npm install -g nestcraftx
+
+            ```
+
+        Et ensuite, lance la commande où tu veux :
+
+            ```bash
+
+            nestcraftx start
+
+            ```
+
+    🧪 Installation locale pour développement
+
+        Clone le projet puis utilise npm link :
+
+            ```bash
+
+            git clone https://github.com/august-dev-pro/NestCraftX.git
+            cd NestCraftX
+            npm install
+            npm link
+
+            ```
+
+        Cela te permet d’utiliser nestcraftx en CLI localement pendant que tu développes.
+
+
 ---
 
 ## 🧰 Ce que la commande configure automatiquement :
@@ -74,6 +113,7 @@ Bienvenue dans **NestCraft**, un CLI Node.js puissant pour générer automatique
 ---
 
 ## 📁 Exemple d’architecture générée
+```bash
     my-app/
     ├── src/
     │   ├── auth/
@@ -148,7 +188,7 @@ Bienvenue dans **NestCraft**, un CLI Node.js puissant pour générer automatique
     ├── package.json
     └── README.md
 
-
+```
 ---
 
 ## 📌 À venir
@@ -157,7 +197,7 @@ Bienvenue dans **NestCraft**, un CLI Node.js puissant pour générer automatique
 
     npx nestcraft add:auth → Intègre le système d'auth JWT
 
-    Menu CLI interactif intelligent (choix d'ORM, de Bases de données (    mysql/mariaBD,firebase,mongodb...), modules, options avancées)
+    Menu CLI interactif intelligent (choix d'ORM, base de données : MySQL, MongoDB, Firebase, etc.)
 
     Génération de tests unitaires
 
