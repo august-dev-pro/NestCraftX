@@ -10,13 +10,13 @@ switch (command) {
   case "-h":
   default:
     console.log(`
-🌟 Bienvenue sur NestCraft CLI 🌟
+🌟 Bienvenue sur NestCraftX CLI 🌟
 
 Usage :
-  npx nestcraft start     Génère une structure NestJS Clean Architecture
+  npx nestcraftx start     Génère une structure NestJS Clean Architecture
 
 Exemples :
-  npx nestcraft start
+  npx nestcraftx start
 
 📘 Plus de commandes à venir...
 `);

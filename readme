@@ -39,10 +39,11 @@ Bienvenue dans **NestCraft**, un CLI Node.js puissant pour générer automatique
 
     - **Node.js** v16 ou supérieur
     - **npm** ou **yarn**
-    - **Docker** (pour l'intégration avec la base de données)
+    - **Docker** (pour l intégration avec la base de données)
     - **Git** (optionnel pour init un repo)
 
----
+
+---```bash
 
 ## 🚀 Installation et utilisation
 
