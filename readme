@@ -11,14 +11,14 @@ Bienvenue dans **NestCraftX**, un CLI Node.js puissant pour générer automatiqu
 
 ## 📑 Sommaire
 
-- [✨ Objectif du projet](#-objectif-du-projet)
-- [📦 Prérequis](#-prérequis)
-- [🚀 Installation et utilisation](#-installation-et-utilisation)
-- [🧰 Ce que la commande configure automatiquement](#-ce-que-la-commande-configure-automatiquement)
-- [📁 Exemple d’architecture générée](#-exemple-darchitecture-générée)
-- [📌 À venir](#-à-venir)
-- [❤️ Contribuer](#️-contribuer)
-- [📜 Licence](#-licence)
+- [✨ Objectif du projet](#objectif-du-projet)
+- [📦 Prérequis](#prérequis)
+- [🚀 Installation et utilisation](#installation-et-utilisation)
+- [🧰 Ce que la commande configure automatiquement](#ce-que-la-commande-configure-automatiquement)
+- [📁 Exemple d’architecture générée](#exemple-darchitecture-générée)
+- [📌 À venir](#à-venir)
+- [❤️ Contribuer](#️contribuer)
+- [📜 Licence](#licence)
 
 
 ---
