@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/august-dev-pro/NestCraftX.git"
+    "url": "https://github.com/august-dev-pro/NestCraftX.git"
   },
   "keywords": [
     "nestjs",
