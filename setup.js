@@ -1,3 +1,4 @@
+const { execSync } = require("child_process");
 const { getUserInputs, getUserInputs2 } = require("./utils/userInput");
 const { configureDocker } = require("./utils/configs/configureDocker");
 const {

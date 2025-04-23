@@ -1,3 +1,4 @@
+const { execSync } = require("child_process");
 const path = require("path");
 
 // 🔐 Forcer UTF-8 uniquement sur Windows
