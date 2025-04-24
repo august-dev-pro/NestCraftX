@@ -145,7 +145,7 @@ export class AuthService {
   async sendOtp(email: string) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     this.otps.set(email, otp);
-    console.log(\`[OTP] for ${email} is ${otp}\`);
+    console.log(\`[OTP] for \${email} is \${otp}\`);
     return { message: 'OTP sent' };
   }
 
