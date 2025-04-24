@@ -20,7 +20,6 @@ Bienvenue dans **NestCraftX**, un CLI Node.js puissant pour générer automatiqu
 - [❤️ Contribuer](#️contribuer)
 - [📜 Licence](#licence)
 
-
 ---
 
 ## ✨ Objectif du projet
@@ -42,7 +41,6 @@ Bienvenue dans **NestCraftX**, un CLI Node.js puissant pour générer automatiqu
     - **npm** ou **yarn**
     - **Docker** (pour l intégration avec la base de données)
     - **Git** (optionnel pour init un repo)
-
 
 ---
 
@@ -91,7 +89,6 @@ Bienvenue dans **NestCraftX**, un CLI Node.js puissant pour générer automatiqu
 
         Cela te permet d’utiliser nestcraftx en CLI localement pendant que tu développes.
 
-
 ---
 
 ## 🧰 Ce que la commande configure automatiquement :
@@ -113,6 +110,7 @@ Bienvenue dans **NestCraftX**, un CLI Node.js puissant pour générer automatiqu
 ---
 
 ## 📁 Exemple d’architecture générée
+
 ```bash
     my-app/
     ├── src/
@@ -189,6 +187,7 @@ Bienvenue dans **NestCraftX**, un CLI Node.js puissant pour générer automatiqu
     └── README.md
 
 ```
+
 ---
 
 ## 📌 À venir
@@ -206,12 +205,14 @@ Bienvenue dans **NestCraftX**, un CLI Node.js puissant pour générer automatiqu
     🧪 Intégration CI/CD de base
 
     🌐 Site de documentation officiel
+
 ---
 
 ##❤️ Contribuer
 
     Tu veux améliorer NestCraft ?
     Fork le repo, ajoute tes idées, propose une Pull Request ou ouvre une issue pour en discuter !
+
 ---
 
 ## 📜 Licence

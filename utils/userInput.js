@@ -61,7 +61,7 @@ import * as fs from "fs";
 } */
 
 export async function getUserInputs2() {
-  console.log("\n🔹🔹🔹 Configuration du projet 🔹🔹🔹");
+  console.log("\n🔹🔹🔹 Configuration du projet 🔹🔹🔹\n");
 
   const dataBases = [
     {
