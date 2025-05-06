@@ -13,6 +13,7 @@ const {
   generateDto,
   generateMiddlewares,
   generateRepository,
+  generateController,
 } = require("../utils");
 
 async function setupCleanArchitecture(inputs) {
@@ -21,6 +22,7 @@ async function setupCleanArchitecture(inputs) {
 
   const entitiesData = inputs.entitiesData;
   const dbConfig = inputs.dbConfig;
+  const useSwagger = inputs.useSwagger;
 
   const srcPath = "src";
   const baseFolders = [
@@ -247,7 +249,7 @@ export class ${useCase}${capitalize(entity.name)}UseCase {
       });
 
       // 📌 5. DTOs
-      const DtoFileContent = await generateDto(entity);
+      const DtoFileContent = await generateDto(entity, useSwagger);
       await createFile({
         path: `${entityPath}/application/dtos/${entity.name}.dto.ts`,
         contente: DtoFileContent,
@@ -372,98 +374,45 @@ export class ${entityNameCapitalized}Adapter {
       });
 
       // 📌 10. Controller
+      const controllerContente = await generateController(
+        entity.name,
+        entityPath,
+        useSwagger
+      );
       await createFile({
         path: `${entityPath}/presentation/controllers/${entityNameLower}.controller.ts`,
-        contente: `
-/**
- * ${entityNameCapitalized}Controller gère les endpoints de l'API pour l'entité ${entityNameCapitalized}.
- * Il utilise les cas d'utilisation (Use Cases) pour orchestrer les différentes actions métiers liées à l'entité.
- * Ce contrôleur est responsable des actions HTTP telles que la création, la mise à jour, la récupération, et la suppression de ${entityNameCapitalized}.
- */
-
-import { Controller, Get, Post, Body, Param, Put, Delete, Injectable } from "@nestjs/common";
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
-// Importation des cas d'utilisation (Use Cases) spécifiques à ${entityNameCapitalized}
-import { Create${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/create-${entityNameLower}.use-case";
-import { Update${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/update-${entityNameLower}.use-case";
-import { GetById${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/getById-${entityNameLower}.use-case";
-import { GetAll${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/getAll-${entityNameLower}.use-case";
-import { Delete${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/delete-${entityNameLower}.use-case";
-// Importation des DTOs pour la validation et la transformation des données entrantes
-import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
-
-/**
- * Le contrôleur est annoté avec @ApiTags pour la documentation Swagger.
- * Il regroupe les opérations HTTP relatives à l'entité ${entityNameCapitalized}.
- */
-@Injectable()
-@ApiTags('${entityNameCapitalized}')
-@Controller('${entityNameLower}')
-export class ${entityNameCapitalized}Controller {
-  constructor(
-    private readonly createUseCase: Create${entityNameCapitalized}UseCase,
-    private readonly updateUseCase: Update${entityNameCapitalized}UseCase,
-    private readonly getByIdUseCase: GetById${entityNameCapitalized}UseCase,
-    private readonly getAllUseCase: GetAll${entityNameCapitalized}UseCase,
-    private readonly deleteUseCase: Delete${entityNameCapitalized}UseCase,
-  ) {}
-
-  // 📌 Créer un ${entityNameLower}
-  @Post()
-  @ApiOperation({ summary: 'Create a new ${entityNameLower}' })
-  async create${entityNameCapitalized}(
-    @Body() create${entityNameCapitalized}Dto: Create${entityNameCapitalized}Dto,
-  ) {
-    return this.createUseCase.execute(create${entityNameCapitalized}Dto);
-  }
-
-  // 📌 Mettre à jour un ${entityNameLower}
-  @Put(':id')
-  @ApiOperation({ summary: 'Update a ${entityNameLower}' })
-  async update${entityNameCapitalized}(
-    @Param('id') id: string,
-    @Body() update${entityNameCapitalized}Dto: Update${entityNameCapitalized}Dto,
-  ) {
-    return this.updateUseCase.execute(id, update${entityNameCapitalized}Dto);
-  }
-
-  // 📌 Récupérer un ${entityNameLower} par ID
-  @Get(':id')
-  @ApiOperation({ summary: 'Get a ${entityNameLower} by ID' })
-  async getById${entityNameCapitalized}(@Param('id') id: string) {
-    return this.getByIdUseCase.execute(id);
-  }
-
-  // 📌 Récupérer tous les ${entityNameLower}s
-  @Get()
-  @ApiOperation({ summary: 'Get all ${entityNameLower}s' })
-  async getAll${entityNameCapitalized}() {
-    return this.getAllUseCase.execute();
-  }
-
-  // 📌 Supprimer un ${entityNameLower}
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete a ${entityNameLower} by ID' })
-  async delete${entityNameCapitalized}(@Param('id') id: string) {
-    return this.deleteUseCase.execute(id);
-  }
-}
-`,
+        contente: controllerContente,
       });
 
       // 📌 11. Module
-      let Import = "";
-      let prismaProvider = "";
-      let importTormM = `imports: [
-  TypeOrmModule.forFeature([${entityNameCapitalized}]), // Injection de l'entité
-  ],`;
+      let importsBlock = [];
+      let providersBlock = [];
+      let extraImports = "";
 
       if (dbConfig.orm === "prisma") {
-        prismaImport = `import { PrismaService } from 'src/prisma/prisma.service';`;
-        prismaProvider = `    PrismaService,`;
+        extraImports = `import { PrismaService } from 'src/prisma/prisma.service';`;
+        providersBlock.push("PrismaService");
       } else if (dbConfig.orm === "typeorm") {
-        Import = `import { ${entityNameCapitalized} } from 'src/entities/${entityNameCapitalized}.entity';`;
+        extraImports = `import { ${entityNameCapitalized} } from 'src/entities/${entityNameCapitalized}.entity';\nimport { TypeOrmModule } from '@nestjs/typeorm';`;
+        importsBlock.push(
+          `TypeOrmModule.forFeature([${entityNameCapitalized}])`
+        );
       }
+
+      // Always necessary providers
+      providersBlock.push(
+        `{
+    provide: 'I${entityNameCapitalized}Repository',
+    useClass: ${entityNameCapitalized}Repository,
+  }`,
+        `${entityNameCapitalized}Repository`,
+        `Create${entityNameCapitalized}UseCase`,
+        `Update${entityNameCapitalized}UseCase`,
+        `GetById${entityNameCapitalized}UseCase`,
+        `GetAll${entityNameCapitalized}UseCase`,
+        `Delete${entityNameCapitalized}UseCase`,
+        `${entityNameCapitalized}Mapper`
+      );
 
       await createFile({
         path: `${entityPath}/${entityNameLower}.module.ts`,
@@ -472,12 +421,12 @@ export class ${entityNameCapitalized}Controller {
  * ${entityNameCapitalized}Module est le module principal qui gère l'entité ${entityNameCapitalized}.
  * Il regroupe tous les composants nécessaires pour traiter cette entité :
  * - Contrôleur
- * - Répository
+ * - Repository
  * - Use Cases
  * - Mapper
  */
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+${extraImports}
 import { ${entityNameCapitalized}Controller } from '${entityPath}/presentation/controllers/${entityNameLower}.controller';
 import { ${entityNameCapitalized}Repository } from '${entityPath}/infrastructure/repositories/${entityNameLower}.repository';
 import { Create${entityNameCapitalized}UseCase } from '${entityPath}/application/use-cases/create-${entityNameLower}.use-case';
@@ -486,51 +435,18 @@ import { GetById${entityNameCapitalized}UseCase } from '${entityPath}/applicatio
 import { GetAll${entityNameCapitalized}UseCase } from '${entityPath}/application/use-cases/getAll-${entityNameLower}.use-case';
 import { Delete${entityNameCapitalized}UseCase } from '${entityPath}/application/use-cases/delete-${entityNameLower}.use-case';
 import { ${entityNameCapitalized}Mapper } from '${entityPath}/domain/mappers/${entityNameLower}.mapper';
-${Import}
 
 @Module({
-
-  ${importTormM}
-
-  /**
-   * Déclare le contrôleur qui gère les requêtes HTTP relatives à ${entityNameCapitalized}.
-   * Ce contrôleur contient les actions d'API pour manipuler l'entité ${entityNameCapitalized}.
-   */
-  controllers: [${entityNameCapitalized}Controller],
-
-  /**
-   * Liste des providers nécessaires à la gestion de ${entityNameCapitalized}.
-   * Cela inclut :
-   * - Repository : Fournisseur pour accéder aux données de ${entityNameCapitalized}.
-   * - Use Cases : Logique métier pour la gestion de ${entityNameCapitalized}.
-   * - Mapper : Permet la transformation entre les DTOs et les entités.
-   */
+  imports: [
+    ${importsBlock.join(",\n    ")}
+  ],
+  controllers: [
+    ${entityNameCapitalized}Controller
+  ],
   providers: [
-    ${prismaProvider}
-
-    // Repository : Permet d'interagir avec la base de données
-    {
-      provide: 'I${entityNameCapitalized}Repository',  // Interface du repository
-      useClass: ${entityNameCapitalized}Repository,  // Classe qui implémente l'interface
-    },
-    ${entityNameCapitalized}Repository,  // Fournisseur pour l'accès aux données
-
-    // Use Cases : Logique métier pour la gestion de ${entityNameCapitalized}
-    Create${entityNameCapitalized}UseCase,  // Use Case pour créer un ${entityNameLower}
-    Update${entityNameCapitalized}UseCase,  // Use Case pour mettre à jour un ${entityNameLower}
-    GetById${entityNameCapitalized}UseCase,  // Use Case pour récupérer un ${entityNameLower} par son ID
-    GetAll${entityNameCapitalized}UseCase,  // Use Case pour récupérer tous les ${entityNameLower}s
-    Delete${entityNameCapitalized}UseCase,  // Use Case pour supprimer un ${entityNameLower}
-
-    // Mapper : Convertit entre les entités et les DTOs
-    ${entityNameCapitalized}Mapper,  // Mapper pour la transformation des données
+    ${providersBlock.join(",\n    ")}
   ],
 })
-/**
- * Le module ${entityNameCapitalized} est une unité logique regroupant toutes les dépendances nécessaires
- * pour le bon fonctionnement de l'entité ${entityNameCapitalized}.
- * Il gère l'injection des services, les actions métier, ainsi que la transformation des données.
- */
 export class ${entityNameCapitalized}Module {}
 `.trim(),
       });
@@ -561,8 +477,6 @@ import { APP_INTERCEPTOR } from '@nestjs/core';`,
     useClass: ResponseInterceptor,
   },`,
     });
-
-    logSuccess("structure Clean Architecture générée avec succès !");
   } catch (error) {
     logError(`process currency have error: ${error}`);
   }

@@ -10,6 +10,7 @@ const { createProject } = require("./utils/setups/projectSetup");
 const { setupAuth } = require("./utils/setups/setupAuth");
 const { setupSwagger } = require("./utils/setups/setupSwagger");
 const { setupDatabase } = require("./utils/setups/setupDatabase");
+const { setupBootstrapLogger } = require("./utils/setups/setupLogger");
 
 async function main() {
   const inputs = await getUserInputs2();
@@ -17,8 +18,12 @@ async function main() {
   await createProject(inputs);
   await setupCleanArchitecture(inputs);
 
-  if (inputs.useAuth) await setupAuth();
-  if (inputs.useSwagger) await setupSwagger(inputs.swaggerInputs);
+  if (inputs.useAuth) await setupAuth(inputs);
+  if (inputs.useSwagger) {
+    await setupSwagger(inputs.swaggerInputs);
+  } else {
+    setupBootstrapLogger();
+  }
   if (inputs.useDocker) await configureDocker(inputs);
 
   // await setupPrisma(inputs);

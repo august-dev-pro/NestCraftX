@@ -45,14 +45,15 @@ async function setupSwagger(inputs) {
       .setTitle('${inputs.title}')
       .setDescription('${inputs.description}')
       .setVersion('${inputs.version}')
-      .addBearerAuth(
-        { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
-        'access-token'
-      )
+      .addBearerAuth()
       .build();
 
     const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('${inputs.endpoint}', app, document);
+    SwaggerModule.setup('${inputs.endpoint}', app, document,{
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
 
     const configService = app.get(ConfigService);
     const port = configService.get<number>('PORT', 3000);

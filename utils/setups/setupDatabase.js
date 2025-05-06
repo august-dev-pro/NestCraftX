@@ -37,7 +37,7 @@ async function setupDatabase(inputs) {
 async function setupMongoDB(inputs) {
   logInfo("Configuration de MongoDB...");
   // Appelle un script spécifique à MongoDB
-  await setupMongoDBConfig(inputs);
+  // await setupMongoDBConfig(inputs);
 }
 async function setupSQLite(inputs) {
   logInfo("Configuration de SQLite...");

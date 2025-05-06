@@ -154,31 +154,32 @@ export class ${entityName}Mapper {
 `;
 }
 
-export async function generateDto(entity) {
+/* export async function generateDto(entity, useSwagger) {
   const entityName = capitalize(entity.name);
 
   const getExampleForField = (f) => {
-    // Dynamique et plus réaliste, basé sur le type de champ et des exemples courants
     switch (f.type) {
       case "string":
-        return `"${f.name}_example"`; // Exemple générique basé sur le nom du champ
+        return `"${f.name}_example"`;
       case "number":
-        return f.name === "price" ? 199.99 : 123; // Exemple spécifique pour 'price'
+        return f.name === "price" ? 199.99 : 123;
       case "boolean":
-        return true; // Exemple générique pour les booléens
+        return true;
       case "Date":
       case "date":
-        return `"2024-01-01T00:00:00Z"`; // Exemple générique pour les dates
+        return `"2024-01-01T00:00:00Z"`;
       case "role":
-        return `"user"`; // Exemple pour les rôles, par défaut 'user'
+        return `"user"`;
       case "discount":
-        return 10; // Exemple pour une valeur de type discount
+        return 10;
       case "account":
-        return `"acc_${f.name}_12345"`; // Exemple pour un compte
+        return `"acc_${f.name}_12345"`;
       case "amount":
-        return 500.75; // Exemple pour un montant
+        return 500.75;
+      case "email":
+        return "user@example.com";
       default:
-        return `"sample_${f.name}"`; // Fallback générique pour les autres types
+        return `"sample_${f.name}"`;
     }
   };
 
@@ -191,17 +192,19 @@ export async function generateDto(entity) {
         date: "IsDate",
       }[f.type] || "IsString";
 
-    const apiPropertyDecorator = f.optional
-      ? `@ApiPropertyOptional({ example: ${getExampleForField(f)}, type: '${
-          f.type
-        }' })`
-      : `@ApiProperty({ example: ${getExampleForField(f)}, type: '${
-          f.type
-        }' })`;
+    const swaggerDecorator = useSwagger
+      ? f.optional
+        ? `@ApiPropertyOptional({ example: ${getExampleForField(f)}, type: '${
+            f.type
+          }' })\n`
+        : `@ApiProperty({ example: ${getExampleForField(f)}, type: '${
+            f.type
+          }' })\n`
+      : "";
 
-    return `${apiPropertyDecorator}
-  @${typeDecorator}()
-  ${f.name}${f.optional ? "?" : ""}: ${f.type};`;
+    return `${swaggerDecorator}  @${typeDecorator}()\n  ${f.name}${
+      f.optional ? "?" : ""
+    }: ${f.type};`;
   };
 
   const dtoFields = entity.fields
@@ -213,8 +216,12 @@ export async function generateDto(entity) {
     .join("\n\n");
 
   return `
-import { IsOptional, IsString, IsInt, IsBoolean, IsDate } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, IsEnum, IsInt, IsBoolean, IsDate, MinLength } from 'class-validator';
+${
+  useSwagger
+    ? "import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';"
+    : ""
+}
 
 // Vous pouvez décommenter ce champ si vous voulez gérer le rôle de l'utilisateur.
 // import { Role } from 'src/modules/user/domain/enums/role.enum';
@@ -222,19 +229,284 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class Create${entityName}Dto {
 ${dtoFields}
 
-  // Décommentez et ajustez le rôle si nécessaire.
-  // @ApiProperty({ example: 'admin', type: 'string' })
-  // @IsString()
-  // role: Role;
+   // Ajustez le rôle si nécessaire.
+   ${
+     useSwagger && entityName == "User"
+       ? "@ApiPropertyOptional({ example: 'admin', type: 'string' })\n  "
+       : ""
+   }${
+    useSwagger && entityName == "User"
+      ? `@IsEnum(Role)
+  role?: Role.ADMIN;
+    `
+      : ""
+  }
 }
 
 export class Update${entityName}Dto {
 ${updateDtoFields}
 
-  // Décommentez et ajustez le rôle si nécessaire.
-  // @ApiPropertyOptional({ example: 'admin', type: 'string' })
-  // @IsString()
-  // role?: Role;
+   ${
+     useSwagger && entityName == "User"
+       ? "@ApiPropertyOptional({ example: 'admin', type: 'string' })\n  "
+       : ""
+   }${
+    useSwagger && entityName == "User"
+      ? `@IsEnum(Role)
+  role?: Role.ADMIN;
+    `
+      : ""
+  }
+}
+`;
+} */
+
+export async function generateDto(entity, useSwagger, isAuthDto = false) {
+  const entityName = capitalize(entity.name);
+
+  const getExampleForField = (f) => {
+    const fieldName = f.name.toLowerCase();
+
+    // 🚀 Cas spécifiques pour AUTH DTO (exemples réalistes)
+    if (isAuthDto) {
+      if (fieldName.includes("newpassword")) {
+        return `"NewStrongPass123!"`;
+      }
+      if (fieldName.includes("otp")) {
+        return `"123456"`;
+      }
+      if (fieldName.includes("token")) {
+        return `"eyJhbGciOiJIUzI1NiIsInR5cCI6..."`;
+      }
+    }
+
+    if (fieldName.includes("email")) {
+      return `"user@example.com"`;
+    }
+    if (fieldName.includes("password")) {
+      return `"StrongPassword123!"`;
+    }
+    // 🌐 Cas génériques applicables à tout
+    if (fieldName.includes("price")) {
+      return 199.99;
+    }
+    if (fieldName.includes("amount")) {
+      return 500.75;
+    }
+    if (fieldName.includes("role")) {
+      return `"user"`;
+    }
+    if (fieldName.includes("date")) {
+      return `"2024-01-01T00:00:00Z"`;
+    }
+    if (fieldName.includes("account")) {
+      return `"acc_${f.name}_12345"`;
+    }
+    if (fieldName.includes("discount")) {
+      return 10;
+    }
+
+    // 🛠 Sinon fallback basique selon le type
+    switch (f.type) {
+      case "string":
+        return `"${f.name}_example"`;
+      case "number":
+        return 123;
+      case "boolean":
+        return true;
+      case "Date":
+      case "date":
+        return `"2024-01-01T00:00:00Z"`;
+      default:
+        return `"sample_${f.name}"`;
+    }
+  };
+
+  const generateFieldLine = (f) => {
+    const typeDecorator =
+      {
+        string: "IsString",
+        number: "IsInt",
+        boolean: "IsBoolean",
+        date: "IsDate",
+      }[f.type] || "IsString";
+
+    const swaggerDecorator = useSwagger
+      ? f.optional
+        ? `@ApiPropertyOptional({ example: ${getExampleForField(f)}, type: '${
+            f.type
+          }' })\n`
+        : `@ApiProperty({ example: ${getExampleForField(f)}, type: '${
+            f.type
+          }' })\n`
+      : "";
+
+    return `${swaggerDecorator}  @${typeDecorator}()\n  ${f.name}${
+      f.optional ? "?" : ""
+    }: ${f.type};`;
+  };
+
+  const dtoFields = entity.fields
+    .map((f) => generateFieldLine({ ...f, optional: false }))
+    .join("\n\n");
+
+  const updateDtoFields = entity.fields
+    .map((f) => generateFieldLine({ ...f, optional: true }))
+    .join("\n\n");
+
+  const commonImports = `import { IsOptional, IsString, IsEnum, IsInt, IsBoolean, IsDate, MinLength } from 'class-validator';
+${
+  useSwagger
+    ? "import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';"
+    : ""
+}
+`;
+
+  // ✅ Cas AUTH DTO : une seule classe + nom déjà donné (pas de Create/Update)
+  if (isAuthDto) {
+    return `
+${commonImports}
+
+export class ${entityName}Dto {
+${dtoFields}
+}
+`;
+  }
+
+  // ✅ Cas général : Create + Update
+  return `
+${commonImports}
+
+// Vous pouvez décommenter ce champ si vous voulez gérer le rôle de l'utilisateur.
+import { Role } from 'src/user/domain/enums/role.enum';
+
+export class Create${entityName}Dto {
+${dtoFields}
+
+   // Ajustez le rôle si nécessaire.
+   ${
+     useSwagger && entityName == "User"
+       ? "@ApiPropertyOptional({ example: 'admin', type: 'string' })\n  "
+       : ""
+   }${
+    useSwagger && entityName == "User"
+      ? `@IsEnum(Role)
+  role?: Role.ADMIN;
+    `
+      : ""
+  }
+}
+
+export class Update${entityName}Dto {
+${updateDtoFields}
+
+   ${
+     useSwagger && entityName == "User"
+       ? "@ApiPropertyOptional({ example: 'admin', type: 'string' })\n  "
+       : ""
+   }${
+    useSwagger && entityName == "User"
+      ? `@IsEnum(Role)
+  role?: Role.ADMIN;
+    `
+      : ""
+  }
+}
+`;
+}
+
+export async function generateController(entityName, entityPath, useSwagger) {
+  const entityNameLower = decapitalize(entityName);
+  const entityNameCapitalized = capitalize(entityName);
+
+  const swaggerImports = useSwagger
+    ? `import { ApiTags, ApiOperation } from '@nestjs/swagger';`
+    : "";
+
+  const swaggerClassDecorator = useSwagger
+    ? `@ApiTags('${entityNameCapitalized}')`
+    : "";
+
+  const swaggerMethodDecorator = (summary) =>
+    useSwagger ? `@ApiOperation({ summary: '${summary}' })\n  ` : "";
+
+  return `
+/**
+ * ${entityNameCapitalized}Controller gère les endpoints de l'API pour l'entité ${entityNameCapitalized}.
+ * Il utilise les cas d'utilisation (Use Cases) pour orchestrer les différentes actions métiers liées à l'entité.
+ */
+
+import { Controller, Get, Post, Body, Param, Put, Delete, Injectable } from "@nestjs/common";
+${swaggerImports}
+// Importation des cas d'utilisation
+import { Create${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/create-${entityNameLower}.use-case";
+import { Update${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/update-${entityNameLower}.use-case";
+import { GetById${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/getById-${entityNameLower}.use-case";
+import { GetAll${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/getAll-${entityNameLower}.use-case";
+import { Delete${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/delete-${entityNameLower}.use-case";
+// DTOs
+import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
+
+@Injectable()
+${swaggerClassDecorator}
+@Controller('${entityNameLower}')
+export class ${entityNameCapitalized}Controller {
+  constructor(
+    private readonly createUseCase: Create${entityNameCapitalized}UseCase,
+    private readonly updateUseCase: Update${entityNameCapitalized}UseCase,
+    private readonly getByIdUseCase: GetById${entityNameCapitalized}UseCase,
+    private readonly getAllUseCase: GetAll${entityNameCapitalized}UseCase,
+    private readonly deleteUseCase: Delete${entityNameCapitalized}UseCase,
+  ) {}
+
+  ${
+    entityNameLower != "user"
+      ? `// 📌 Créer un ${entityNameLower}
+  @Post()
+  ${swaggerMethodDecorator(
+    `Create a new ${entityNameLower}`
+  )}async create${entityNameCapitalized}(
+    @Body() create${entityNameCapitalized}Dto: Create${entityNameCapitalized}Dto,
+  ) {
+    return this.createUseCase.execute(create${entityNameCapitalized}Dto);
+  }`
+      : ""
+  }
+
+  // 📌 Mettre à jour un ${entityNameLower}
+  @Put(':id')
+  ${swaggerMethodDecorator(
+    `Update a ${entityNameLower}`
+  )}async update${entityNameCapitalized}(
+    @Param('id') id: string,
+    @Body() update${entityNameCapitalized}Dto: Update${entityNameCapitalized}Dto,
+  ) {
+    return this.updateUseCase.execute(id, update${entityNameCapitalized}Dto);
+  }
+
+  // 📌 Récupérer un ${entityNameLower} par ID
+  @Get(':id')
+  ${swaggerMethodDecorator(
+    `Get a ${entityNameLower} by ID`
+  )}async getById${entityNameCapitalized}(@Param('id') id: string) {
+    return this.getByIdUseCase.execute(id);
+  }
+
+  // 📌 Récupérer tous les ${entityNameLower}s
+  @Get()
+  ${swaggerMethodDecorator(
+    `Get all ${entityNameLower}s`
+  )}async getAll${entityNameCapitalized}() {
+    return this.getAllUseCase.execute();
+  }
+
+  // 📌 Supprimer un ${entityNameLower}
+  @Delete(':id')
+  ${swaggerMethodDecorator(
+    `Delete a ${entityNameLower} by ID`
+  )}async delete${entityNameCapitalized}(@Param('id') id: string) {
+    return this.deleteUseCase.execute(id);
+  }
 }
 `;
 }
@@ -435,8 +707,6 @@ export async function generateRepository(entityName, orm) {
   const entityNameCapitalized = capitalize(entityName);
   const entityNameLower = entityName.toLowerCase();
   const entityPath = `src/${entityNameLower}`;
-
-  console.log(`entity name: ${entityNameLower} \n omr selected: ${orm}`);
 
   // Gère le switch en fonction de l'ORM choisi
   switch (orm) {

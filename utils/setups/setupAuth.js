@@ -3,9 +3,14 @@ const { logInfo } = require("../loggers/logInfo");
 const { runCommand } = require("../shell");
 const { createDirectory, createFile, updateFile } = require("../userInput");
 const { logSuccess } = require("../loggers/logSuccess");
+const { generateDto } = require("../utils");
 
-async function setupAuth() {
+async function setupAuth(inputs) {
   logInfo("Ajout de l'authentification avec JWT et Passport...");
+
+  const dbConfig = inputs.dbConfig;
+  const useSwagger = inputs.useSwagger;
+
   await runCommand(
     `npm install @nestjs/jwt @nestjs/passport passport passport-jwt bcrypt`,
     "Échec de l'installation des dépendances d'authentification"
@@ -29,26 +34,53 @@ async function setupAuth() {
     await createDirectory(path);
   });
 
-  // 📌 Auth Module
+  const importsArray = [
+    dbConfig.orm === "typeorm" ? `TypeOrmModule.forFeature([User])` : null,
+    `PassportModule`,
+    `JwtModule.register({ secret: 'your-secret-key', signOptions: { expiresIn: '1h' } })`,
+  ]
+    .filter(Boolean)
+    .join(",\n          ");
+
+  const typeormImports =
+    dbConfig.orm === "typeorm"
+      ? `import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from 'src/entities/User.entity';`
+      : "";
+
   await createFile({
     path: `${authPath}/auth.module.ts`,
     contente: `import { Module } from '@nestjs/common';
-      import { JwtModule } from '@nestjs/jwt';
-      import { PassportModule } from '@nestjs/passport';
-      import { AuthService } from '${authPaths.authServicesPath}/auth.service';
-      import { AuthController } from '${authPaths.authControllersPath}/auth.controller';
-      import { JwtStrategy } from '${authPaths.authStrategyPath}/jwt.strategy';
-      import { AuthGuard } from '${authPaths.authGuardsPath}/auth.guard';
-      @Module({
-        imports: [
-          PassportModule,
-          JwtModule.register({ secret: 'your-secret-key', signOptions: { expiresIn: '1h' } }),
-        ],
-        controllers: [AuthController],
-        providers: [AuthService, JwtStrategy, AuthGuard],
-        exports: [AuthService],
-      })
-      export class AuthModule {}`,
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { UserMapper } from 'src/user/domain/mappers/user.mapper';
+${typeormImports}
+import { AuthService } from '${authPaths.authServicesPath}/auth.service';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { AuthController } from '${authPaths.authControllersPath}/auth.controller';
+import { JwtStrategy } from '${authPaths.authStrategyPath}/jwt.strategy';
+import { AuthGuard } from '${authPaths.authGuardsPath}/auth.guard';
+import { UserRepository } from 'src/user/infrastructure/repositories/user.repository';
+
+@Module({
+  imports: [
+    ${importsArray}
+  ],
+  controllers: [AuthController],
+  providers: [
+    PrismaService,
+    UserMapper,
+    {
+      provide: 'IUserRepository',
+      useClass: UserRepository,
+    },
+    AuthService,
+    JwtStrategy,
+    AuthGuard
+  ],
+  exports: [AuthService],
+})
+export class AuthModule {}`,
   });
 
   // 📌 Auth Service
@@ -63,10 +95,16 @@ async function setupAuth() {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { CreateUserDto } from 'src/user/application/dtos/user.dto';
-import { IUserRepository } from 'src/user/application/interfaces/user.repository.interface';
-import { UserEntity } from 'src/user/domain/entities/user.entity';
 import { v4 as uuidv4 } from 'uuid';
+
+import { IUserRepository } from 'src/user/application/interfaces/user.repository.interface';
+import { CreateUserDto } from 'src/user/application/dtos/user.dto';
+import { LoginCredentialDto } from 'src/user/application/dtos/loginCredential.dto';
+import { RefreshTokenDto } from 'src/user/application/dtos/refreshToken.dto';
+import { SendOtpDto } from 'src/user/application/dtos/sendOtp.dto';
+import { VerifyOtpDto } from 'src/user/application/dtos/verifyOtp.dto';
+import { ForgotPasswordDto } from 'src/user/application/dtos/forgotPassword.dto';
+import { ResetPasswordDto } from 'src/user/application/dtos/resetPassword.dto';
 
 @Injectable()
 export class AuthService {
@@ -75,19 +113,21 @@ export class AuthService {
 
   constructor(
     private readonly jwtService: JwtService,
-    @Inject('UserRepository') private readonly userRepository: IUserRepository,
+    @Inject('IUserRepository')
+    private readonly userRepository: IUserRepository,
   ) {}
 
-  // ✅ Hash & verify
+  // 🔒 Hasher le mot de passe utilisateur
   async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, 10);
   }
 
+  // 🧪 Comparer un mot de passe en clair avec un hash
   async comparePassword(password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash);
   }
 
-  // 🧾 Register
+  // 🧾 Inscription (register)
   async register(dto: CreateUserDto): Promise<{ message: string }> {
     const existing = await this.userRepository.findAll();
     if (existing.find((user) => user.getEmail() === dto.email)) {
@@ -100,11 +140,11 @@ export class AuthService {
     return { message: 'Registration successful' };
   }
 
-  // 🔑 Login
-  async login({ email, password }: { email: string; password: string }) {
+  // 🔑 Connexion (login)
+  async login(dto: LoginCredentialDto) {
     const users = await this.userRepository.findAll();
-    const user = users.find((u) => u.getEmail() === email);
-    if (!user || !(await this.comparePassword(password, user.getPassword()))) {
+    const user = users.find((u) => u.getEmail() === dto.email);
+    if (!user || !(await this.comparePassword(dto.password, user.getPassword()))) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -117,12 +157,12 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  // 🔁 Refresh token
-  async refreshToken(refreshToken: string) {
+  // 🔁 Rafraîchir un token d'accès
+  async refreshToken(dto: RefreshTokenDto) {
     try {
-      const payload = this.jwtService.verify(refreshToken);
+      const payload = this.jwtService.verify(dto.refreshToken);
       const stored = this.refreshTokens.get(payload.sub);
-      if (stored !== refreshToken) throw new UnauthorizedException();
+      if (stored !== dto.refreshToken) throw new UnauthorizedException();
 
       const accessToken = this.jwtService.sign(
         { sub: payload.sub, email: payload.email },
@@ -134,135 +174,146 @@ export class AuthService {
     }
   }
 
-  // 🚪 Logout
-  async logout(refreshToken: string) {
-    const payload = this.jwtService.verify(refreshToken);
+  // 🚪 Déconnexion
+  async logout(dto: RefreshTokenDto) {
+    const payload = this.jwtService.verify(dto.refreshToken);
     this.refreshTokens.delete(payload.sub);
     return { message: 'Logged out successfully' };
   }
 
-  // 📲 Send OTP
-  async sendOtp(email: string) {
+  // 📲 Envoyer un OTP
+  async sendOtp(dto: SendOtpDto) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    this.otps.set(email, otp);
-    console.log(\`[OTP] for \${email} is \${otp}\`);
+    this.otps.set(dto.email, otp);
+    console.log(\`[OTP] for \${dto.email} is \${otp}\`);
     return { message: 'OTP sent' };
   }
 
-  // ✅ Verify OTP
-  async verifyOtp(email: string, otp: string) {
-    const valid = this.otps.get(email);
-    if (valid === otp) {
-      this.otps.delete(email);
+  // ✅ Vérifier un OTP
+  async verifyOtp(dto: VerifyOtpDto) {
+    const valid = this.otps.get(dto.email);
+    if (valid === dto.otp) {
+      this.otps.delete(dto.email);
       return { message: 'OTP verified' };
     }
     throw new UnauthorizedException('Invalid OTP');
   }
 
-  // 🔐 Forgot password
-  async forgotPassword(email: string) {
+  // 📬 Mot de passe oublié
+  async forgotPassword(dto: ForgotPasswordDto) {
     const users = await this.userRepository.findAll();
-    const user = users.find((u) => u.getEmail() === email);
+    const user = users.find((u) => u.getEmail() === dto.email);
     if (!user) throw new NotFoundException('User not found');
 
     const token = uuidv4();
-    // await this.userRepository.update(user.getId(), {});
-    console.log(\`[ResetToken] for ${email} is ${token}\`);
-
+    console.log(\`[ResetToken] for \${dto.email} is \${token}\`);
     return { message: 'Reset token sent' };
   }
 
-  // 🔐 Reset password
-  async resetPassword({
-    email,
-    newPassword,
-  }: {
-    email: string;
-    newPassword: string;
-  }) {
+  // 🔄 Réinitialiser le mot de passe
+  async resetPassword(dto: ResetPasswordDto) {
     const users = await this.userRepository.findAll();
-    const user = users.find((u) => u.getEmail() === email);
+    const user = users.find((u) => u.getEmail() === dto.email);
     if (!user) throw new UnauthorizedException('Invalid reset token');
 
-    const password = await this.hashPassword(newPassword);
+    const password = await this.hashPassword(dto.newPassword);
     await this.userRepository.update(user.getId(), { password });
 
     return { message: 'Password reset successful' };
   }
 
-  // 👤 Profile
-  async getProfile(user: UserEntity) {
-    const found = await this.userRepository.findById(user.getId());
+    // 👤 Obtenir le profil
+  async getProfile(user: any) {
+    const found = await this.userRepository.findById(user.userId);
     if (!found) throw new NotFoundException('User not found');
-    return found;
+    const email = found.getEmail();
+    return { email: email };
   }
 
-  // Token utils
+  // 🔧 Générer un token manuellement
   generateToken(payload: any) {
     return this.jwtService.sign(payload);
   }
 }
 `,
   });
-
   // 📌 Auth Controller
   await createFile({
     path: `${authPaths.authControllersPath}/auth.controller.ts`,
     contente: `import { Controller, Post, Body, UseGuards, Get, Req } from '@nestjs/common';
 import { Request } from 'express';
-import { AuthService } from '${authPaths.authServicesPath}/auth.service';
-import { JwtAuthGuard } from '${authPaths.authGuardsPath}/jwt-auth.guard';
+import { AuthService } from "${authPaths.authServicesPath}/auth.service";
+import { JwtAuthGuard } from "${authPaths.authGuardsPath}/jwt-auth.guard";
+import { CreateUserDto } from 'src/user/application/dtos/user.dto';
+import { LoginCredentialDto } from 'src/user/application/dtos/loginCredential.dto';
+import { RefreshTokenDto } from 'src/user/application/dtos/refreshToken.dto';
+import { SendOtpDto } from 'src/user/application/dtos/sendOtp.dto';
+import { VerifyOtpDto } from 'src/user/application/dtos/verifyOtp.dto';
+import { ForgotPasswordDto } from 'src/user/application/dtos/forgotPassword.dto';
+import { ResetPasswordDto } from 'src/user/application/dtos/resetPassword.dto';
+${useSwagger ? "import { ApiBearerAuth } from '@nestjs/swagger';" : ""}
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // 📝 Créer un compte utilisateur (👤)
   @Post('register')
-  async register(@Body() body: any) {
+  async register(@Body() body: CreateUserDto) {
     return this.authService.register(body);
   }
 
+  // 🔐 Connexion utilisateur (🔑)
   @Post('login')
-  async login(@Body() body: any) {
+  async login(@Body() body: LoginCredentialDto) {
     return this.authService.login(body);
   }
 
+  // ♻️ Rafraîchir le token d'accès (🔁)
   @Post('refresh')
-  async refreshToken(@Body() body: any) {
-    return this.authService.refreshToken(body.refreshToken);
+  async refreshToken(@Body() body: RefreshTokenDto) {
+    return this.authService.refreshToken(body);
   }
 
+  // 🚪 Déconnexion utilisateur (🚫)
   @Post('logout')
-  async logout(@Body() body: any) {
-    return this.authService.logout(body.refreshToken);
+  async logout(@Body() body: RefreshTokenDto) {
+    return this.authService.logout(body);
   }
 
+  // 📤 Envoyer un OTP au mail (📧)
   @Post('send-otp')
-  async sendOtp(@Body() body: any) {
+  async sendOtp(@Body() body: SendOtpDto) {
     return this.authService.sendOtp(body);
   }
 
+  // ✅ Vérifier l'OTP envoyé (✔️)
   @Post('verify-otp')
-  async verifyOtp(@Body() body: { email: string; otp: string }) {
-    return this.authService.verifyOtp(body.email, body.otp);
+  async verifyOtp(@Body() body: VerifyOtpDto) {
+    return this.authService.verifyOtp(body);
   }
 
+  // 🔁 Mot de passe oublié (📨)
   @Post('forgot-password')
-  async forgotPassword(@Body() body: any) {
-    return this.authService.forgotPassword(body.email);
+  async forgotPassword(@Body() body: ForgotPasswordDto) {
+    return this.authService.forgotPassword(body);
   }
 
+  // 🔄 Réinitialiser le mot de passe (🔓)
   @Post('reset-password')
-  async resetPassword(@Body() body: any) {
+  async resetPassword(@Body() body: ResetPasswordDto) {
     return this.authService.resetPassword(body);
   }
 
+  // 👤 Obtenir le profil utilisateur connecté (🧑‍💼)
+  ${useSwagger ? "@ApiBearerAuth()" : ""}
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getProfile(@Req() req: Request) {
     if (req.user) return this.authService.getProfile(req.user);
   }
 }
+
 `,
   });
 
@@ -282,8 +333,10 @@ export class AuthController {
           });
         }
         async validate(payload: any) {
-          return { userId: payload.sub, username: payload.username };
-        }
+          return {
+            userId: payload.sub,
+            email: payload.email,
+          };        }
       }`,
   });
 
@@ -399,6 +452,70 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 }
 `,
   });
+
+  // 📌 auth DTOs in user entity
+  const dtos = [
+    {
+      name: "loginCredential",
+      fields: [
+        { name: "email", type: "string", swaggerExample: "user@example.com" },
+        {
+          name: "password",
+          type: "string",
+          swaggerExample: "StrongPassword123!",
+        },
+      ],
+    },
+    {
+      name: "refreshToken",
+      fields: [
+        {
+          name: "refreshToken",
+          type: "string",
+          swaggerExample: "eyJhbGciOiJIUzI1NiIsInR5cCI6...",
+        },
+      ],
+    },
+    {
+      name: "sendOtp",
+      fields: [
+        { name: "email", type: "string", swaggerExample: "user@example.com" },
+      ],
+    },
+    {
+      name: "verifyOtp",
+      fields: [
+        { name: "email", type: "string", swaggerExample: "user@example.com" },
+        { name: "otp", type: "string", swaggerExample: "123456" },
+      ],
+    },
+    {
+      name: "forgotPassword",
+      fields: [
+        { name: "email", type: "string", swaggerExample: "user@example.com" },
+      ],
+    },
+    {
+      name: "resetPassword",
+      fields: [
+        { name: "email", type: "string", swaggerExample: "user@example.com" },
+        {
+          name: "newPassword",
+          type: "string",
+          swaggerExample: "NewStrongPass123!",
+        },
+      ],
+    },
+  ];
+
+  // ✅ Génération de chaque DTO
+  for (const dto of dtos) {
+    const DtoFileContent = await generateDto(dto, useSwagger, true); // tu dois adapter ta fonction generateDto pour recevoir un dto avec `name` et `fields`
+    await createFile({
+      path: `src/user/application/dtos/${dto.name}.dto.ts`,
+      contente: DtoFileContent,
+    });
+  }
 
   // modification de AppModule
   const appModulePath = "src/app.module.ts";
