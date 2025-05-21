@@ -14,6 +14,7 @@ const {
   generateMiddlewares,
   generateRepository,
   generateController,
+  generateMongooseSchemaFileContent,
 } = require("../utils");
 
 async function setupCleanArchitecture(inputs) {
@@ -83,6 +84,16 @@ export class AppModule {}`,
         await createDirectory(`${entityPath}/${folder}`);
       }
 
+      if (dbConfig.orm === "mongoose") {
+        const mongooseSchemaContent = await generateMongooseSchemaFileContent(
+          entity
+        );
+        await createFile({
+          path: `src/${entity.name}/domain/entities/${entity.name}.schema.ts`,
+          contente: mongooseSchemaContent,
+        });
+      }
+
       // 📌 1. Entité
       const entityContent = await generateEntityFileContent(entity);
       await createFile({
@@ -107,136 +118,168 @@ export interface I${entityNameCapitalized}Repository {
 
       // 📌 3. Repository Implémentation
       await generateRepository(entity.name, dbConfig.orm);
-      /* await createFile({
-        path: `${entityPath}/infrastructure/repositories/${entityNameLower}.repository.ts`,
-        contente: repositoryContent,
-      }); */
 
       // 📌 4. Use Cases
       const useCases = ["Create", "GetById", "GetAll", "Update", "Delete"];
       useCases.forEach(async (useCase) => {
         let content = "";
+        const entityName = capitalize(entity.name);
+        const entityNameLower = decapitalize(entity.name);
 
         switch (useCase) {
           case "Create":
             content = `/**
- * Use Case pour créer un ${capitalize(entity.name)}.
+ * Use Case pour créer un ${entityName}.
  */
-import { Inject } from '@nestjs/common';
-import { Create${capitalize(entity.name)}Dto } from 'src/${
-              entity.name
-            }/application/dtos/${entity.name}.dto';
-import { I${capitalize(entity.name)}Repository } from 'src/${
-              entity.name
-            }/application/interfaces/${entity.name}.repository.interface';
+import { Inject, Logger } from '@nestjs/common';
+import { Create${entityName}Dto } from 'src/${entity.name}/application/dtos/${entity.name}.dto';
+import { I${entityName}Repository } from 'src/${entity.name}/application/interfaces/${entity.name}.repository.interface';
+import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
-export class ${useCase}${capitalize(entity.name)}UseCase {
+export class Create${entityName}UseCase {
+  private readonly logger = new Logger(Create${entityName}UseCase.name);
+
   constructor(
-    @Inject("I${capitalize(entity.name)}Repository")
-    private readonly ${decapitalize(entity.name)}Repository: I${capitalize(
-              entity.name
-            )}Repository,
+    @Inject("I${entityName}Repository")
+    private readonly ${entityNameLower}Repository: I${entityName}Repository,
   ) {}
 
-  execute(data: Create${capitalize(entity.name)}Dto) {
-    return this.${decapitalize(entity.name)}Repository.create(data);
+  async execute(data: Create${entityName}Dto): Promise<${entityName}Entity> {
+    this.logger.log('Début création ${entityName}');
+    try {
+      const result = await this.${entityNameLower}Repository.create(data);
+      this.logger.log('Création réussie');
+      return result;
+    } catch (error) {
+      this.logger.error('Erreur lors de la création', error.stack);
+      throw error;
+    }
   }
-}`;
+}
+`;
             break;
 
           case "GetById":
             content = `/**
- * Use Case pour récupérer un ${capitalize(entity.name)} par son ID.
+ * Use Case pour récupérer un ${entityName} par son ID.
  */
-import { Inject } from '@nestjs/common';
-import { I${capitalize(entity.name)}Repository } from 'src/${
-              entity.name
-            }/application/interfaces/${entity.name}.repository.interface';
+import { Inject, Logger } from '@nestjs/common';
+import { I${entityName}Repository } from 'src/${entity.name}/application/interfaces/${entity.name}.repository.interface';
+import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
-export class ${useCase}${capitalize(entity.name)}UseCase {
+export class GetById${entityName}UseCase {
+  private readonly logger = new Logger(GetById${entityName}UseCase.name);
+
   constructor(
-    @Inject("I${capitalize(entity.name)}Repository")
-    private readonly ${decapitalize(entity.name)}Repository: I${capitalize(
-              entity.name
-            )}Repository,
+    @Inject("I${entityName}Repository")
+    private readonly ${entityNameLower}Repository: I${entityName}Repository,
   ) {}
 
-  execute(id: string) {
-    return this.${decapitalize(entity.name)}Repository.findById(id);
+  async execute(id: string): Promise<${entityName}Entity | null> {
+    this.logger.log(\`Recherche de ${entityName} par id: \${id}\`);
+    try {
+      const result = await this.${entityNameLower}Repository.findById(id);
+      this.logger.log('Recherche réussie');
+      return result;
+    } catch (error) {
+      this.logger.error('Erreur lors de la recherche', error.stack);
+      throw error;
+    }
   }
-}`;
+}
+`;
             break;
 
           case "GetAll":
             content = `/**
- * Use Case pour récupérer tous les ${capitalize(entity.name)}s.
+ * Use Case pour récupérer tous les ${entityName}s.
  */
-import { Inject } from '@nestjs/common';
-import { I${capitalize(entity.name)}Repository } from 'src/${
-              entity.name
-            }/application/interfaces/${entity.name}.repository.interface';
+import { Inject, Logger } from '@nestjs/common';
+import { I${entityName}Repository } from 'src/${entity.name}/application/interfaces/${entity.name}.repository.interface';
+import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
-export class ${useCase}${capitalize(entity.name)}UseCase {
+export class GetAll${entityName}UseCase {
+  private readonly logger = new Logger(GetAll${entityName}UseCase.name);
+
   constructor(
-    @Inject("I${capitalize(entity.name)}Repository")
-    private readonly ${decapitalize(entity.name)}Repository: I${capitalize(
-              entity.name
-            )}Repository,
+    @Inject("I${entityName}Repository")
+    private readonly ${entityNameLower}Repository: I${entityName}Repository,
   ) {}
 
-  execute() {
-    return this.${decapitalize(entity.name)}Repository.findAll();
+  async execute(): Promise<${entityName}Entity[]> {
+    this.logger.log('Récupération de tous les ${entityName}s');
+    try {
+      const result = await this.${entityNameLower}Repository.findAll();
+      this.logger.log('Récupération réussie');
+      return result;
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération', error.stack);
+      throw error;
+    }
   }
-}`;
+}
+`;
             break;
 
           case "Update":
             content = `/**
- * Use Case pour mettre à jour un ${capitalize(entity.name)} existant.
+ * Use Case pour mettre à jour un ${entityName} existant.
  */
-import { Inject } from '@nestjs/common';
-import { Update${capitalize(entity.name)}Dto } from 'src/${
-              entity.name
-            }/application/dtos/${entity.name}.dto';
-import { I${capitalize(entity.name)}Repository } from 'src/${
-              entity.name
-            }/application/interfaces/${entity.name}.repository.interface';
+import { Inject, Logger } from '@nestjs/common';
+import { Update${entityName}Dto } from 'src/${entity.name}/application/dtos/${entity.name}.dto';
+import { I${entityName}Repository } from 'src/${entity.name}/application/interfaces/${entity.name}.repository.interface';
+import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
-export class ${useCase}${capitalize(entity.name)}UseCase {
+export class Update${entityName}UseCase {
+  private readonly logger = new Logger(Update${entityName}UseCase.name);
+
   constructor(
-    @Inject("I${capitalize(entity.name)}Repository")
-    private readonly ${decapitalize(entity.name)}Repository: I${capitalize(
-              entity.name
-            )}Repository,
+    @Inject("I${entityName}Repository")
+    private readonly ${entityNameLower}Repository: I${entityName}Repository,
   ) {}
 
-  execute(id: string, data: Update${capitalize(entity.name)}Dto) {
-    return this.${decapitalize(entity.name)}Repository.update(id, data);
+  async execute(id: string, data: Update${entityName}Dto): Promise<${entityName}Entity | null> {
+    this.logger.log(\`Mise à jour de ${entityName} id: \${id}\`);
+    try {
+      const result = await this.${entityNameLower}Repository.update(id, data);
+      this.logger.log('Mise à jour réussie');
+      return result;
+    } catch (error) {
+      this.logger.error('Erreur lors de la mise à jour', error.stack);
+      throw error;
+    }
   }
-}`;
+}
+`;
             break;
 
           case "Delete":
             content = `/**
- * Use Case pour supprimer un ${capitalize(entity.name)}.
+ * Use Case pour supprimer un ${entityName}.
  */
-import { Inject } from '@nestjs/common';
-import { I${capitalize(entity.name)}Repository } from 'src/${
-              entity.name
-            }/application/interfaces/${entity.name}.repository.interface';
+import { Inject, Logger } from '@nestjs/common';
+import { I${entityName}Repository } from 'src/${entity.name}/application/interfaces/${entity.name}.repository.interface';
 
-export class ${useCase}${capitalize(entity.name)}UseCase {
+export class Delete${entityName}UseCase {
+  private readonly logger = new Logger(Delete${entityName}UseCase.name);
+
   constructor(
-    @Inject("I${capitalize(entity.name)}Repository")
-    private readonly ${decapitalize(entity.name)}Repository: I${capitalize(
-              entity.name
-            )}Repository,
+    @Inject("I${entityName}Repository")
+    private readonly ${entityNameLower}Repository: I${entityName}Repository,
   ) {}
 
-  execute(id: string) {
-    return this.${decapitalize(entity.name)}Repository.delete(id);
+  async execute(id: string): Promise<void> {
+    this.logger.log(\`Suppression de ${entityName} id: \${id}\`);
+    try {
+      await this.${entityNameLower}Repository.delete(id);
+      this.logger.log('Suppression réussie');
+    } catch (error) {
+      this.logger.error('Erreur lors de la suppression', error.stack);
+      throw error;
+    }
   }
-}`;
+}
+`;
             break;
         }
 
@@ -285,7 +328,7 @@ export enum Role {
       // 📌 7. Mapper
       const mapperFileContent = await generateMapper(entity);
       await createFile({
-        path: `${entityPath}/domain/mappers/${entity.name}.mapper.ts`,
+        path: `${entityPath}/domain/mappers/${entityNameLower}.mapper.ts`,
         contente: mapperFileContent,
       });
 
@@ -293,53 +336,42 @@ export enum Role {
       await createFile({
         path: `${entityPath}/infrastructure/services/${entityNameLower}.service.ts`,
         contente: `
-// Le service est responsable de la logique métier de l'application. Il agit comme un orchestrateur entre
-// différents composants tels que les repositories, les use cases et les adaptateurs.
+import { Injectable } from '@nestjs/common';
+import { Create${entityNameCapitalized}UseCase } from 'src/${entityNameLower}/application/use-cases/create-${entityNameLower}.use-case';
+import { Update${entityNameCapitalized}UseCase } from 'src/${entityNameLower}/application/use-cases/update-${entityNameLower}.use-case';
+import { GetById${entityNameCapitalized}UseCase } from 'src/${entityNameLower}/application/use-cases/getById-${entityNameLower}.use-case';
+import { GetAll${entityNameCapitalized}UseCase } from 'src/${entityNameLower}/application/use-cases/getAll-${entityNameLower}.use-case';
+import { Delete${entityNameCapitalized}UseCase } from 'src/${entityNameLower}/application/use-cases/delete-${entityNameLower}.use-case';
+import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
+import { ${entityNameCapitalized}Entity } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.entity';
 
-import { Inject } from '@nestjs/common';
-import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/application/interfaces/${entityNameLower}.repository.interface';
-
+@Injectable()
 export class ${entityNameCapitalized}Service {
   constructor(
-    @Inject("I${entityNameCapitalized}Repository")
-    private readonly repository: I${entityNameCapitalized}Repository,
+    private readonly createUseCase: Create${entityNameCapitalized}UseCase,
+    private readonly updateUseCase: Update${entityNameCapitalized}UseCase,
+    private readonly getByIdUseCase: GetById${entityNameCapitalized}UseCase,
+    private readonly getAllUseCase: GetAll${entityNameCapitalized}UseCase,
+    private readonly deleteUseCase: Delete${entityNameCapitalized}UseCase,
   ) {}
 
-  // La méthode 'process' prend en charge la logique pour traiter les données.
-  async process(data: any) {
-    if (!data || !data.id) {
-      throw new Error('Données invalides, ID requis');
-    }
-
-    const entityFromDb = await this.repository.findById(data.id);
-
-    if (!entityFromDb) {
-      throw new Error('Entité non trouvée avec cet ID');
-    }
-
-    const processedData = {
-      ...entityFromDb,
-      updatedAt: new Date(),
-      processedBy: 'System',
-    };
-
-    return processedData;
+  async create(dto: Create${entityNameCapitalized}Dto): Promise<${entityNameCapitalized}Entity> {
+    return await this.createUseCase.execute(dto);
   }
-
-  // Vous pouvez ajouter d'autres méthodes métier ici si nécessaire.
-  async create(data: any) {
-    // Logique pour créer une nouvelle entité
+  async update(id: string, dto: Update${entityNameCapitalized}Dto): Promise<${entityNameCapitalized}Entity | null> {
+    return await this.updateUseCase.execute(id, dto);
   }
-
-  async update(id: string, data: any) {
-    // Logique pour mettre à jour une entité existante
+  async getById(id: string): Promise<${entityNameCapitalized}Entity | null> {
+    return await this.getByIdUseCase.execute(id);
   }
-
-  async delete(id: string) {
-    // Logique pour supprimer une entité
+  async getAll(): Promise<${entityNameCapitalized}Entity[]> {
+    return await this.getAllUseCase.execute();
+  }
+  async delete(id: string): Promise<void> {
+    return await this.deleteUseCase.execute(id);
   }
 }
-`,
+`.trim(),
       });
 
       // 📌 9. Adapter
@@ -397,14 +429,24 @@ export class ${entityNameCapitalized}Adapter {
         importsBlock.push(
           `TypeOrmModule.forFeature([${entityNameCapitalized}])`
         );
+      } else if (dbConfig.orm === "mongoose") {
+        extraImports = `import { MongooseModule } from '@nestjs/mongoose';
+import { ${entityNameCapitalized}, ${entityNameCapitalized}Schema } from '${entityPath}/domain/entities/${entityNameLower}.schema';`;
+        importsBlock.push(
+          `MongooseModule.forFeature([{ name: ${entityNameCapitalized}.name, schema: ${entityNameCapitalized}Schema }])`
+        );
       }
+
+      // Ajoute l'import du service
+      extraImports += `\nimport { ${entityNameCapitalized}Service } from '${entityPath}/infrastructure/services/${entityNameLower}.service';`;
 
       // Always necessary providers
       providersBlock.push(
         `{
-    provide: 'I${entityNameCapitalized}Repository',
-    useClass: ${entityNameCapitalized}Repository,
-  }`,
+        provide: 'I${entityNameCapitalized}Repository',
+        useClass: ${entityNameCapitalized}Repository,
+        }`,
+        `${entityNameCapitalized}Service`,
         `${entityNameCapitalized}Repository`,
         `Create${entityNameCapitalized}UseCase`,
         `Update${entityNameCapitalized}UseCase`,
@@ -424,6 +466,7 @@ export class ${entityNameCapitalized}Adapter {
  * - Repository
  * - Use Cases
  * - Mapper
+ * - Service
  */
 import { Module } from '@nestjs/common';
 ${extraImports}
@@ -446,6 +489,9 @@ import { ${entityNameCapitalized}Mapper } from '${entityPath}/domain/mappers/${e
   providers: [
     ${providersBlock.join(",\n    ")}
   ],
+  exports: [
+    ${entityNameCapitalized}Service
+  ]
 })
 export class ${entityNameCapitalized}Module {}
 `.trim(),
@@ -477,6 +523,8 @@ import { APP_INTERCEPTOR } from '@nestjs/core';`,
     useClass: ResponseInterceptor,
   },`,
     });
+
+    logSuccess(`structure generé avec succes !`);
   } catch (error) {
     logError(`process currency have error: ${error}`);
   }

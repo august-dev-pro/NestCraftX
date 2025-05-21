@@ -210,8 +210,12 @@ function mapTypeToPrisma(type) {
   switch (type.toLowerCase()) {
     case "string":
       return "String";
+    case "int":
+      return "Int";
+    case "float":
+      return "Float";
     case "number":
-      return "Float"; // Tu peux aussi choisir Int si tu veux
+      return "Float"; // ou "Int" selon le besoin
     case "boolean":
       return "Boolean";
     case "date":

@@ -1,65 +1,6 @@
 import * as readline from "readline-sync";
 import * as fs from "fs";
 
-/* export async function getUserInputs() {
-  console.log("\n🔹🔹🔹 Configuration du projet 🔹🔹🔹");
-
-  // Collecte des inputs principaux
-  const projectName = readline.question("Nom du projet: ");
-  const databaseName = readline.question("Nom de la base de données: ");
-  const dbUser = readline.question(
-    "Nom d’utilisateur PostgreSQL [postgres]: ",
-    {
-      defaultInput: "postgres",
-    }
-  );
-  const dbPassword = readline.question("Mot de passe PostgreSQL: ", {
-    hideEchoBack: true,
-  });
-  const useYarn = readline.question("Voulez-vous utiliser npm ou Yarn ?: ", {
-    defaultInput: "npm",
-  });
-  const useDocker = readline.keyInYNStrict(
-    "Voulez-vous générer un fichier Docker?"
-  );
-  const useAuth = readline.keyInYNStrict(
-    "Voulez-vous ajouter une authentification JWT?"
-  );
-
-  const entities = readline
-    .question("Noms des entités (séparés par une virgule): ")
-    .split(",")
-    .map((e) => e.trim());
-
-  const packageManager = readline.keyInYNStrict("Utiliser Yarn?")
-    ? "yarn"
-    : "npm";
-
-  const useSwagger = readline.keyInYNStrict("Voulez-vous installer Swagger?");
-
-  let swaggerInputs;
-
-  // Récupération des inputs Swagger si l'utilisateur souhaite l'installer
-  if (useSwagger) {
-    swaggerInputs = getUserInputsSwagger();
-  }
-
-  // Retourne tous les inputs utilisateur
-  return {
-    projectName,
-    databaseName,
-    dbUser,
-    dbPassword,
-    useYarn,
-    useDocker,
-    useAuth,
-    useSwagger,
-    swaggerInputs,
-    entities,
-    packageManager,
-  };
-} */
-
 export async function getUserInputs2() {
   console.log("\n🔹🔹🔹 Configuration du projet 🔹🔹🔹\n");
 
@@ -67,7 +8,7 @@ export async function getUserInputs2() {
     {
       name: "postgresql",
       label: "PostgreSQL",
-      ormOptions: ["prisma", "typeorm"], // Choix des ORM supportés
+      ormOptions: ["prisma", "typeorm"],
       required: [
         {
           title: "Nom d’utilisateur PostgreSQL",
@@ -101,47 +42,10 @@ export async function getUserInputs2() {
         },
       ],
     },
-    /* {
-      name: "mysql",
-      label: "MySQL / MariaDB",
-      ormOptions: ["prisma", "typeorm"], // Choix des ORM supportés
-      required: [
-        {
-          title: "Nom d’utilisateur MySQL",
-          envVar: "MYSQL_USER",
-          defaultValue: "root",
-          hideEchoBack: false,
-        },
-        {
-          title: "Mot de passe MySQL",
-          envVar: "MYSQL_PASSWORD",
-          defaultValue: null,
-          hideEchoBack: true,
-        },
-        {
-          title: "Nom de la base de données",
-          envVar: "MYSQL_DB",
-          defaultValue: "mydb",
-          hideEchoBack: false,
-        },
-        {
-          title: "Hôte MySQL",
-          envVar: "MYSQL_HOST",
-          defaultValue: "localhost",
-          hideEchoBack: false,
-        },
-        {
-          title: "Port MySQL",
-          envVar: "MYSQL_PORT",
-          defaultValue: "3306",
-          hideEchoBack: false,
-        },
-      ],
-    },
     {
       name: "mongodb",
       label: "MongoDB",
-      ormOptions: ["mongoose"], // Choix d'ORM pour MongoDB
+      ormOptions: ["mongoose"],
       required: [
         {
           title: "URL de connexion MongoDB",
@@ -157,105 +61,72 @@ export async function getUserInputs2() {
         },
       ],
     },
-    {
-      name: "sqlite",
-      label: "SQLite",
-      ormOptions: ["prisma", "sequelize"], // Choix des ORM supportés
-      required: [
-        {
-          title: "Chemin du fichier SQLite",
-          envVar: "SQLITE_PATH",
-          defaultValue: "./data/sqlite.db",
-          hideEchoBack: false,
-        },
-      ],
-    },
-    {
-      name: "firebase",
-      label: "Firebase Firestore",
-      ormOptions: ["firebase"], // Firebase n'a pas d'ORM traditionnel
-      required: [
-        {
-          title: "Chemin vers le fichier de configuration Firebase (JSON)",
-          envVar: "FIREBASE_CONFIG_PATH",
-          defaultValue: "./firebase-config.json",
-          hideEchoBack: false,
-        },
-      ],
-    },
-    {
-      name: "redis",
-      label: "Redis",
-      ormOptions: ["redis"], // Redis n'a pas d'ORM traditionnel
-      required: [
-        {
-          title: "URL de connexion Redis",
-          envVar: "REDIS_URL",
-          defaultValue: "redis://localhost:6379",
-          hideEchoBack: false,
-        },
-      ],
-    }, */
   ];
 
-  const projectName = readline.question("Nom du projet: ");
-  // const databaseName = readline.question("Nom de la base de données: ");
+  // Validation du nom du projet
+  let projectName;
+  while (true) {
+    projectName = readline.question("Nom du projet: ");
+    if (/^[A-Za-z][A-Za-z0-9_-]*$/.test(projectName)) break;
+    console.log(
+      "❌ Nom de projet invalide. Lettres, chiffres, _ ou - uniquement, commencez par une lettre."
+    );
+  }
 
+  // Sélection de la base de données avec validation
   let usedDB = readline.question(
     `Quelle base de donnée voulez-vous utiliser ? (${dataBases
       .map((db) => db.name)
       .join(", ")}) : `,
     { defaultInput: "postgresql" }
   );
-
   let selectedDB = dataBases.find(
     (db) => db.name.toLowerCase() === usedDB.toLowerCase()
   );
-
   while (!selectedDB) {
     console.log("❌ Base de données non reconnue.");
-
     usedDB = readline.question(
       `Quelle base de donnée voulez-vous utiliser ? (${dataBases
         .map((db) => db.name)
         .join(", ")}) : `
     );
-
     selectedDB = dataBases.find(
       (db) => db.name.toLowerCase() === usedDB.toLowerCase()
     );
   }
 
   const dbConfig = {};
-
-  // Configuration de la base de données (champ utilisateur)
   selectedDB.required.forEach((field) => {
-    const answer = readline.question(
-      `${field.title} (par défaut: ${field.defaultValue}) : `,
-      { hideEchoBack: field.hideEchoBack }
-    );
+    let answer;
+    while (true) {
+      answer = readline.question(
+        `${field.title} (par défaut: ${field.defaultValue}) : `,
+        { hideEchoBack: field.hideEchoBack }
+      );
+      if (answer || field.defaultValue !== null) break;
+      console.log("❌ Ce champ est requis.");
+    }
     dbConfig[field.envVar] = answer || field.defaultValue;
   });
 
-  // Ajout du choix de l'ORM dans la configuration
+  // Choix de l'ORM avec validation
   if (selectedDB.ormOptions && selectedDB.ormOptions.length > 0) {
-    const ormChoice = readline.question(
-      `Choisissez un ORM pour ${selectedDB.label} (${selectedDB.ormOptions.join(
-        ", "
-      )}): `
-    );
-    dbConfig.orm = ormChoice || selectedDB.ormOptions[0]; // Par défaut, choisir le premier ORM
-  }
-
-  /* const dbUser = readline.question(
-    "Nom d’utilisateur PostgreSQL [postgres]: ",
-    {
-      defaultInput: "postgres",
+    let ormChoice;
+    while (true) {
+      ormChoice = readline.question(
+        `Choisissez un ORM pour ${
+          selectedDB.label
+        } (${selectedDB.ormOptions.join(", ")}): `
+      );
+      if (!ormChoice) ormChoice = selectedDB.ormOptions[0];
+      if (selectedDB.ormOptions.includes(ormChoice.toLowerCase())) break;
+      console.log(
+        "❌ ORM non reconnu. Choix possibles :",
+        selectedDB.ormOptions.join(", ")
+      );
     }
-  );
-  const dbPassword = readline.question("Mot de passe PostgreSQL: ", {
-    hideEchoBack: true,
-  }); */
+    dbConfig.orm = ormChoice.toLowerCase();
+  }
 
   const useYarn = readline.keyInYNStrict("Utiliser Yarn ?");
   const useDocker = readline.keyInYNStrict(
@@ -267,7 +138,7 @@ export async function getUserInputs2() {
   const useSwagger = readline.keyInYNStrict("Voulez-vous installer Swagger?");
   const packageManager = useYarn ? "yarn" : "npm";
 
-  // 🧱 Saisie des entités et champs
+  // 🧱 Saisie des entités et champs avec validation
   const entitiesData = {
     entities: [],
     relations: [],
@@ -275,7 +146,6 @@ export async function getUserInputs2() {
 
   if (useAuth) {
     console.log("🔐 Auth activé : ajout automatique de l'entité 'User'");
-
     entitiesData.entities.push({
       name: "user",
       fields: [
@@ -286,64 +156,87 @@ export async function getUserInputs2() {
     });
   }
 
-  const nbEntities = parseInt(
-    readline.question(
-      "Combien d'entités veux-tu créer (sans compter le user) ? "
-    ),
-    10
-  );
-
-  for (let i = 0; i < nbEntities; i++) {
-    const name = readline.question(`Nom de l'entité #${i + 1} : `);
-    const fields = [];
-
+  let addEntity = readline.keyInYNStrict("Voulez-vous ajouter une entité ?");
+  while (addEntity) {
+    // Validation du nom d'entité
+    let name;
     while (true) {
-      const fname = readline.question(
-        `  ➤ Nom du champ (vide pour terminer) : `
+      name = readline.question("Nom de l'entité (lettres, chiffres, _): ");
+      if (/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) break;
+      console.log(
+        "❌ Nom invalide. Utilisez uniquement lettres, chiffres, _ et commencez par une lettre."
       );
+    }
+
+    // Saisie des champs avec validation
+    const fields = [];
+    while (true) {
+      let fname = readline.question("  ➤ Nom du champ (vide pour terminer) : ");
       if (!fname) break;
-
-      const ftype = readline.question(
-        `    Type du champ "${fname}" (ex: string, number, boolean, Date, enum, etc.) : `
-      );
-
+      if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(fname)) {
+        console.log(
+          "❌ Nom de champ invalide. Lettres, chiffres, _ uniquement, commencez par une lettre."
+        );
+        continue;
+      }
+      let ftype;
+      while (true) {
+        ftype = readline.question(
+          `    Type du champ "${fname}" (string, number, boolean, Date, enum, etc.) : `
+        );
+        if (ftype) break;
+        console.log("❌ Type de champ requis.");
+      }
       fields.push({ name: fname, type: ftype });
     }
 
     entitiesData.entities.push({ name, fields });
+
+    addEntity = readline.keyInYNStrict(
+      "Voulez-vous ajouter une autre entité ?"
+    );
   }
 
-  // 🔗 Gestion des relations
+  // 🔗 Gestion des relations avec validation
   const wantsRelation = readline.keyInYNStrict(
     "Souhaites-tu ajouter des relations entre les entités ?"
   );
-
-  if (wantsRelation) {
+  if (wantsRelation && entitiesData.entities.length > 1) {
     while (true) {
       console.log("\n🧩 Entités disponibles :");
       entitiesData.entities.forEach((ent, index) =>
         console.log(`  [${index}] ${ent.name}`)
       );
 
-      const fromIndex = parseInt(
-        readline.question("Depuis quelle entité ? (index) : "),
-        10
-      );
-      const toIndex = parseInt(
-        readline.question("Vers quelle entité ? (index) : "),
-        10
-      );
-      const relType = readline.question(
-        "Type de relation ? (1-1 / 1-n / n-n) : "
-      );
+      let fromIndex, toIndex;
+      while (true) {
+        fromIndex = parseInt(
+          readline.question("Depuis quelle entité ? (index) : "),
+          10
+        );
+        if (!isNaN(fromIndex) && entitiesData.entities[fromIndex]) break;
+        console.log("❌ Indice invalide, réessaye !");
+      }
+      while (true) {
+        toIndex = parseInt(
+          readline.question("Vers quelle entité ? (index) : "),
+          10
+        );
+        if (!isNaN(toIndex) && entitiesData.entities[toIndex]) break;
+        console.log("❌ Indice invalide, réessaye !");
+      }
+
+      let relType;
+      while (true) {
+        relType = readline.question("Type de relation ? (1-1 / 1-n / n-n) : ");
+        if (["1-1", "1-n", "n-n"].includes(relType)) break;
+        console.log(
+          "❌ Type de relation invalide. Choix possibles : 1-1, 1-n, n-n"
+        );
+      }
 
       const from = entitiesData.entities[fromIndex];
       const to = entitiesData.entities[toIndex];
-
-      if (!from || !to) {
-        console.log("❌ Indice invalide, réessaye !");
-        continue;
-      }
 
       entitiesData.relations.push({
         from: from.name,
@@ -354,6 +247,8 @@ export async function getUserInputs2() {
       const again = readline.keyInYNStrict("Ajouter une autre relation ?");
       if (!again) break;
     }
+  } else if (wantsRelation) {
+    console.log("❌ Il faut au moins deux entités pour créer une relation.");
   }
 
   // Swagger (facultatif)
@@ -364,9 +259,6 @@ export async function getUserInputs2() {
 
   return {
     projectName: projectName,
-    /* databaseName,
-    dbUser,
-    dbPassword, */
     useYarn: useYarn,
     useDocker: useDocker,
     useAuth: useAuth,
@@ -374,24 +266,8 @@ export async function getUserInputs2() {
     swaggerInputs: swaggerInputs,
     packageManager: packageManager,
     entitiesData: entitiesData,
-    selectedDB: selectedDB.name, // ex: "postgresql"
-    dbConfig: dbConfig, // toutes les réponses liées à la BDD choisie (clé = envVar)
-  };
-}
-
-export async function getTestInputs() {
-  console.log("\n🔹🔹🔹 Configuration du projet 🔹🔹🔹");
-
-  const projectName = readline.question("Nom du projet: ");
-  const entities = readline
-    .question("Noms des entités (séparés par une virgule): ")
-    .split(",")
-    .map((e) => e.trim());
-
-  // Retourne tous les inputs utilisateur
-  return {
-    projectName,
-    entities,
+    selectedDB: selectedDB.name,
+    dbConfig: dbConfig,
   };
 }
 

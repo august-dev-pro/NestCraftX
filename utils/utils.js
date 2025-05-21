@@ -154,113 +154,6 @@ export class ${entityName}Mapper {
 `;
 }
 
-/* export async function generateDto(entity, useSwagger) {
-  const entityName = capitalize(entity.name);
-
-  const getExampleForField = (f) => {
-    switch (f.type) {
-      case "string":
-        return `"${f.name}_example"`;
-      case "number":
-        return f.name === "price" ? 199.99 : 123;
-      case "boolean":
-        return true;
-      case "Date":
-      case "date":
-        return `"2024-01-01T00:00:00Z"`;
-      case "role":
-        return `"user"`;
-      case "discount":
-        return 10;
-      case "account":
-        return `"acc_${f.name}_12345"`;
-      case "amount":
-        return 500.75;
-      case "email":
-        return "user@example.com";
-      default:
-        return `"sample_${f.name}"`;
-    }
-  };
-
-  const generateFieldLine = (f) => {
-    const typeDecorator =
-      {
-        string: "IsString",
-        number: "IsInt",
-        boolean: "IsBoolean",
-        date: "IsDate",
-      }[f.type] || "IsString";
-
-    const swaggerDecorator = useSwagger
-      ? f.optional
-        ? `@ApiPropertyOptional({ example: ${getExampleForField(f)}, type: '${
-            f.type
-          }' })\n`
-        : `@ApiProperty({ example: ${getExampleForField(f)}, type: '${
-            f.type
-          }' })\n`
-      : "";
-
-    return `${swaggerDecorator}  @${typeDecorator}()\n  ${f.name}${
-      f.optional ? "?" : ""
-    }: ${f.type};`;
-  };
-
-  const dtoFields = entity.fields
-    .map((f) => generateFieldLine({ ...f, optional: false }))
-    .join("\n\n");
-
-  const updateDtoFields = entity.fields
-    .map((f) => generateFieldLine({ ...f, optional: true }))
-    .join("\n\n");
-
-  return `
-import { IsOptional, IsString, IsEnum, IsInt, IsBoolean, IsDate, MinLength } from 'class-validator';
-${
-  useSwagger
-    ? "import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';"
-    : ""
-}
-
-// Vous pouvez décommenter ce champ si vous voulez gérer le rôle de l'utilisateur.
-// import { Role } from 'src/modules/user/domain/enums/role.enum';
-
-export class Create${entityName}Dto {
-${dtoFields}
-
-   // Ajustez le rôle si nécessaire.
-   ${
-     useSwagger && entityName == "User"
-       ? "@ApiPropertyOptional({ example: 'admin', type: 'string' })\n  "
-       : ""
-   }${
-    useSwagger && entityName == "User"
-      ? `@IsEnum(Role)
-  role?: Role.ADMIN;
-    `
-      : ""
-  }
-}
-
-export class Update${entityName}Dto {
-${updateDtoFields}
-
-   ${
-     useSwagger && entityName == "User"
-       ? "@ApiPropertyOptional({ example: 'admin', type: 'string' })\n  "
-       : ""
-   }${
-    useSwagger && entityName == "User"
-      ? `@IsEnum(Role)
-  role?: Role.ADMIN;
-    `
-      : ""
-  }
-}
-`;
-} */
-
 export async function generateDto(entity, useSwagger, isAuthDto = false) {
   const entityName = capitalize(entity.name);
 
@@ -314,7 +207,7 @@ export async function generateDto(entity, useSwagger, isAuthDto = false) {
         return 123;
       case "boolean":
         return true;
-      case "Date":
+      case "date":
       case "date":
         return `"2024-01-01T00:00:00Z"`;
       default:
@@ -333,12 +226,8 @@ export async function generateDto(entity, useSwagger, isAuthDto = false) {
 
     const swaggerDecorator = useSwagger
       ? f.optional
-        ? `@ApiPropertyOptional({ example: ${getExampleForField(f)}, type: '${
-            f.type
-          }' })\n`
-        : `@ApiProperty({ example: ${getExampleForField(f)}, type: '${
-            f.type
-          }' })\n`
+        ? `@ApiPropertyOptional({ example: ${getExampleForField(f)} })\n`
+        : `@ApiProperty({ example: ${getExampleForField(f)}})\n`
       : "";
 
     return `${swaggerDecorator}  @${typeDecorator}()\n  ${f.name}${
@@ -438,74 +327,56 @@ export async function generateController(entityName, entityPath, useSwagger) {
 
 import { Controller, Get, Post, Body, Param, Put, Delete, Injectable } from "@nestjs/common";
 ${swaggerImports}
-// Importation des cas d'utilisation
-import { Create${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/create-${entityNameLower}.use-case";
-import { Update${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/update-${entityNameLower}.use-case";
-import { GetById${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/getById-${entityNameLower}.use-case";
-import { GetAll${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/getAll-${entityNameLower}.use-case";
-import { Delete${entityNameCapitalized}UseCase } from "${entityPath}/application/use-cases/delete-${entityNameLower}.use-case";
-// DTOs
+import { ${entityNameCapitalized}Service } from '${entityPath}/infrastructure/services/${entityNameLower}.service';
 import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
 
 @Injectable()
 ${swaggerClassDecorator}
 @Controller('${entityNameLower}')
 export class ${entityNameCapitalized}Controller {
-  constructor(
-    private readonly createUseCase: Create${entityNameCapitalized}UseCase,
-    private readonly updateUseCase: Update${entityNameCapitalized}UseCase,
-    private readonly getByIdUseCase: GetById${entityNameCapitalized}UseCase,
-    private readonly getAllUseCase: GetAll${entityNameCapitalized}UseCase,
-    private readonly deleteUseCase: Delete${entityNameCapitalized}UseCase,
-  ) {}
+  constructor(private readonly service: ${entityNameCapitalized}Service) {}
 
   ${
     entityNameLower != "user"
       ? `// 📌 Créer un ${entityNameLower}
   @Post()
-  ${swaggerMethodDecorator(
-    `Create a new ${entityNameLower}`
-  )}async create${entityNameCapitalized}(
-    @Body() create${entityNameCapitalized}Dto: Create${entityNameCapitalized}Dto,
+  ${swaggerMethodDecorator(`Create a new ${entityNameLower}`)}async create(
+    @Body() dto: Create${entityNameCapitalized}Dto,
   ) {
-    return this.createUseCase.execute(create${entityNameCapitalized}Dto);
+    return await this.service.create(dto);
   }`
       : ""
   }
 
   // 📌 Mettre à jour un ${entityNameLower}
   @Put(':id')
-  ${swaggerMethodDecorator(
-    `Update a ${entityNameLower}`
-  )}async update${entityNameCapitalized}(
+  ${swaggerMethodDecorator(`Update a ${entityNameLower}`)}async update(
     @Param('id') id: string,
-    @Body() update${entityNameCapitalized}Dto: Update${entityNameCapitalized}Dto,
+    @Body() dto: Update${entityNameCapitalized}Dto,
   ) {
-    return this.updateUseCase.execute(id, update${entityNameCapitalized}Dto);
+    return await this.service.update(id, dto);
   }
 
   // 📌 Récupérer un ${entityNameLower} par ID
   @Get(':id')
   ${swaggerMethodDecorator(
     `Get a ${entityNameLower} by ID`
-  )}async getById${entityNameCapitalized}(@Param('id') id: string) {
-    return this.getByIdUseCase.execute(id);
+  )}async getById(@Param('id') id: string) {
+    return await this.service.getById(id);
   }
 
   // 📌 Récupérer tous les ${entityNameLower}s
   @Get()
-  ${swaggerMethodDecorator(
-    `Get all ${entityNameLower}s`
-  )}async getAll${entityNameCapitalized}() {
-    return this.getAllUseCase.execute();
+  ${swaggerMethodDecorator(`Get all ${entityNameLower}s`)}async getAll() {
+    return await this.service.getAll();
   }
 
   // 📌 Supprimer un ${entityNameLower}
   @Delete(':id')
   ${swaggerMethodDecorator(
     `Delete a ${entityNameLower} by ID`
-  )}async delete${entityNameCapitalized}(@Param('id') id: string) {
-    return this.deleteUseCase.execute(id);
+  )}async delete(@Param('id') id: string) {
+    return await this.service.delete(id);
   }
 }
 `;
@@ -846,16 +717,17 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
         contente: `import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { UserEntity } from '${entityPath}/domain/entities/${entityNameLower}.entity';
 import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
 import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/application/interfaces/${entityNameLower}.repository.interface';
-import { ${entityNameCapitalized}Entity } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.entity';
+import { ${entityNameCapitalized} } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.schema';
 import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/domain/mappers/${entityNameLower}.mapper';
 
 @Injectable()
 export class ${entityNameCapitalized}Repository implements I${entityNameCapitalized}Repository {
   constructor(
-    @InjectModel(${entityNameCapitalized}Entity.name)
-    private readonly model: Model<${entityNameCapitalized}Entity>,
+    @InjectModel(${entityNameCapitalized}.name)
+    private readonly model: Model<${entityNameCapitalized}>,
     private readonly mapper: ${entityNameCapitalized}Mapper,
   ) {}
 
@@ -965,9 +837,28 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
   }
 }
 
+export async function generateMongooseSchemaFileContent(entity) {
+  const entityName = capitalize(entity.name);
+  const fields = entity.fields
+    .map((f) => `  @Prop()\n  ${f.name}: ${formatType(f.type)};`)
+    .join("\n");
+  return `
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
+
+@Schema()
+export class ${entityName} extends Document {
+${fields}
+}
+
+export const ${entityName}Schema = SchemaFactory.createForClass(${entityName});
+`.trim();
+}
+
 function capitalize(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
 function decapitalize(str) {
   return str.charAt(0).toLowerCase() + str.slice(1);
 }

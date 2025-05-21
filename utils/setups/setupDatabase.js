@@ -1,6 +1,7 @@
 const { logInfo } = require("../loggers/logInfo");
 const { runCommand } = require("../shell");
 const { setupTypeORM } = require("./orms/typeOrmSetup");
+const { setupMongoose } = require("./setupMongoose");
 const { setupPrisma } = require("./setupPrisma");
 
 async function setupDatabase(inputs) {
@@ -36,8 +37,7 @@ async function setupDatabase(inputs) {
 }
 async function setupMongoDB(inputs) {
   logInfo("Configuration de MongoDB...");
-  // Appelle un script spécifique à MongoDB
-  // await setupMongoDBConfig(inputs);
+  await setupMongoose(inputs);
 }
 async function setupSQLite(inputs) {
   logInfo("Configuration de SQLite...");

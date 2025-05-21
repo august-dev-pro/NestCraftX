@@ -34,53 +34,64 @@ async function setupAuth(inputs) {
     await createDirectory(path);
   });
 
-  const importsArray = [
-    dbConfig.orm === "typeorm" ? `TypeOrmModule.forFeature([User])` : null,
-    `PassportModule`,
-    `JwtModule.register({ secret: 'your-secret-key', signOptions: { expiresIn: '1h' } })`,
-  ]
-    .filter(Boolean)
-    .join(",\n          ");
+  let ormImports = "";
+  let ormModuleImport = "";
+  let prismaProvider = ""; // Pour n'ajouter PrismaService que si besoin
 
-  const typeormImports =
-    dbConfig.orm === "typeorm"
-      ? `import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from 'src/entities/User.entity';`
-      : "";
+  if (dbConfig.orm === "typeorm") {
+    ormImports = `import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from 'src/entities/User.entity';`;
+    ormModuleImport = `TypeOrmModule.forFeature([User]),`;
+    prismaProvider = "PrismaService,";
+  } else if (dbConfig.orm === "mongoose") {
+    ormImports = `import { MongooseModule } from '@nestjs/mongoose';
+import { User, UserSchema } from 'src/user/domain/entities/user.schema';`;
+    ormModuleImport = `MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),`;
+    prismaProvider = ""; // Ne pas ajouter PrismaService
+  } else if (dbConfig.orm === "prisma") {
+    ormImports = "";
+    ormModuleImport = "";
+    prismaProvider = "PrismaService,";
+  }
 
   await createFile({
     path: `${authPath}/auth.module.ts`,
-    contente: `import { Module } from '@nestjs/common';
+    contente: `
+import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { UserMapper } from 'src/user/domain/mappers/user.mapper';
-${typeormImports}
+${ormImports}
 import { AuthService } from '${authPaths.authServicesPath}/auth.service';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { AuthController } from '${authPaths.authControllersPath}/auth.controller';
+${
+  dbConfig.orm === "prisma"
+    ? "import { PrismaService } from 'src/prisma/prisma.service';"
+    : ""
+}
+import { AuthController } from '${
+      authPaths.authControllersPath
+    }/auth.controller';
 import { JwtStrategy } from '${authPaths.authStrategyPath}/jwt.strategy';
 import { AuthGuard } from '${authPaths.authGuardsPath}/auth.guard';
 import { UserRepository } from 'src/user/infrastructure/repositories/user.repository';
 
 @Module({
   imports: [
-    ${importsArray}
+    ${ormModuleImport}
+    PassportModule,
+    JwtModule.register({ secret: 'your-secret-key', signOptions: { expiresIn: '1h' } }),
   ],
   controllers: [AuthController],
   providers: [
-    PrismaService,
-    UserMapper,
-    {
-      provide: 'IUserRepository',
-      useClass: UserRepository,
-    },
+    ${prismaProvider}
     AuthService,
     JwtStrategy,
     AuthGuard
   ],
   exports: [AuthService],
 })
-export class AuthModule {}`,
+export class AuthModule {}
+`.trim(),
   });
 
   // 📌 Auth Service
