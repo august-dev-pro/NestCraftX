@@ -1,6 +1,6 @@
 {
   "name": "nestcraftx",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "CLI to generate scalable NestJS projects with Clean Architecture and Clean Code",
   "main": "bin/nestcraft.js",
   "bin": {
