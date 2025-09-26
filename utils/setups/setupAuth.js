@@ -12,11 +12,11 @@ async function setupAuth(inputs) {
   const useSwagger = inputs.useSwagger;
 
   await runCommand(
-    `npm install @nestjs/jwt @nestjs/passport passport passport-jwt bcrypt`,
+    `npm install @nestjs/jwt @nestjs/passport passport passport-jwt bcrypt uuid`,
     "Échec de l'installation des dépendances d'authentification"
   );
   await runCommand(
-    `npm install -D @types/passport-jwt @types/bcrypt`,
+    `npm install -D @types/passport-jwt @types/bcrypt @types/uuid`,
     "Échec de l'installation des dépendances de dev"
   );
 
@@ -41,12 +41,11 @@ async function setupAuth(inputs) {
   if (dbConfig.orm === "typeorm") {
     ormImports = `import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/entities/User.entity';`;
-    ormModuleImport = `TypeOrmModule.forFeature([User]),`;
-    prismaProvider = "PrismaService,";
+    ormModuleImport = `TypeOrmModule.forFeature([User])`;
   } else if (dbConfig.orm === "mongoose") {
     ormImports = `import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from 'src/user/domain/entities/user.schema';`;
-    ormModuleImport = `MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),`;
+    ormModuleImport = `MongooseModule.forFeature([{ name: User.name, schema: UserSchema }])`;
     prismaProvider = ""; // Ne pas ajouter PrismaService
   } else if (dbConfig.orm === "prisma") {
     ormImports = "";
@@ -58,9 +57,9 @@ import { User, UserSchema } from 'src/user/domain/entities/user.schema';`;
     path: `${authPath}/auth.module.ts`,
     contente: `
 import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
+import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { UserMapper } from 'src/user/domain/mappers/user.mapper';
+// import { UserMapper } from 'src/user/domain/mappers/user.mapper';
 ${ormImports}
 import { AuthService } from '${authPaths.authServicesPath}/auth.service';
 ${
@@ -71,13 +70,14 @@ ${
 import { AuthController } from '${
       authPaths.authControllersPath
     }/auth.controller';
+import { UserModule } from 'src/user/user.module';
 import { JwtStrategy } from '${authPaths.authStrategyPath}/jwt.strategy';
 import { AuthGuard } from '${authPaths.authGuardsPath}/auth.guard';
-import { UserRepository } from 'src/user/infrastructure/repositories/user.repository';
 
 @Module({
   imports: [
-    ${ormModuleImport}
+   UserModule,
+    ${ormModuleImport},
     PassportModule,
     JwtModule.register({ secret: 'your-secret-key', signOptions: { expiresIn: '1h' } }),
   ],
@@ -86,7 +86,8 @@ import { UserRepository } from 'src/user/infrastructure/repositories/user.reposi
     ${prismaProvider}
     AuthService,
     JwtStrategy,
-    AuthGuard
+    AuthGuard,
+    JwtService
   ],
   exports: [AuthService],
 })

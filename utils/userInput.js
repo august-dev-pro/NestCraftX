@@ -244,6 +244,33 @@ export async function getUserInputs2() {
         type: relType,
       });
 
+      if (relType === "1-1") {
+        from.fields.push({
+          name: `${to.name.toLowerCase()}Id`,
+          type: "string",
+        });
+        to.fields.push({
+          name: `${from.name.toLowerCase()}Id`,
+          type: "string",
+        });
+      } else if (relType === "1-n") {
+        to.fields.push({
+          name: `${from.name.toLowerCase()}Id`,
+          type: "string",
+        }); // ex: video.userId
+        // pas de champ inverse dans from (user)
+      } else if (relType === "n-n") {
+        // pour n-n tu peux gérer ça plus tard avec une table pivot
+        from.fields.push({
+          name: `${to.name.toLowerCase()}Ids`,
+          type: "string[]",
+        });
+        to.fields.push({
+          name: `${from.name.toLowerCase()}Ids`,
+          type: "string[]",
+        });
+      }
+
       const again = readline.keyInYNStrict("Ajouter une autre relation ?");
       if (!again) break;
     }

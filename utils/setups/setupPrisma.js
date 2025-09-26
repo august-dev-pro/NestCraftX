@@ -110,29 +110,117 @@ model ${entity.name} {
         new RegExp(`model ${from} \\{`),
         (match) => {
           if (type === "1-n") {
-            return `${match}\n  ${to}s ${to}[]`;
-          } else if (type === "1-1") {
-            /*             return `${match}\n  ${to} ${to}? @relation(fields: [${to}Id], references: [id])\n  ${to}Id String?`;
-             */
-            return `${match}\n  ${to} ${to}? @relation(fields: [${to}Id], references: [id])\n  ${to}Id String? @unique`;
-          } else if (type === "n-n") {
-            return `${match}\n  ${to}s ${to}[]`;
+            // Côté "one" (source) : ajoute la liste
+            schemaContent = schemaContent.replace(
+              new RegExp(`model ${from} {([\\s\\S]*?)}`),
+              (match) => {
+                const fieldLine = `${to}s ${to}[]`;
+                return match.includes(fieldLine)
+                  ? match
+                  : `${match}\n  ${fieldLine}`;
+              }
+            );
+            // Côté "many" (cible) : ajoute la relation et la clé étrangère si absente
+            schemaContent = schemaContent.replace(
+              new RegExp(`model ${to} {([\\s\\S]*?)}`),
+              (match) => {
+                const relationLine = `${from} ${from} @relation(fields: [${from}Id], references: [id])`;
+                const fkLine = `${from}Id String`;
+                let result = match.includes(relationLine)
+                  ? match
+                  : `${match}\n  ${relationLine}`;
+                result = result.includes(fkLine)
+                  ? result
+                  : `${result}\n  ${fkLine}`;
+                return result;
+              }
+            );
           }
-          return match;
-        }
-      );
 
-      // Mise à jour du modèle cible
-      schemaContent = schemaContent.replace(
-        new RegExp(`model ${to} \\{`),
-        (match) => {
-          if (type === "1-n") {
-            return `${match}\n  ${from} ${from} @relation(fields: [${from}Id], references: [id])\n  ${from}Id String`;
-          } else if (type === "1-1") {
-            return `${match}\n  ${from} ${from}?`;
-          } else if (type === "n-n") {
-            return `${match}\n  ${from}s ${from}[]`;
+          if (type === "n-1") {
+            // Côté "many" (source) : ajoute la relation et la clé étrangère si absente
+            schemaContent = schemaContent.replace(
+              new RegExp(`model ${from} {([\\s\\S]*?)}`),
+              (match) => {
+                const relationLine = `${to} ${to} @relation(fields: [${to}Id], references: [id])`;
+                const fkLine = `${to}Id String`;
+                let result = match.includes(relationLine)
+                  ? match
+                  : `${match}\n  ${relationLine}`;
+                result = result.includes(fkLine)
+                  ? result
+                  : `${result}\n  ${fkLine}`;
+                return result;
+              }
+            );
+            // Côté "one" (cible) : ajoute la liste
+            schemaContent = schemaContent.replace(
+              new RegExp(`model ${to} {([\\s\\S]*?)}`),
+              (match) => {
+                const fieldLine = `${from}s ${from}[]`;
+                return match.includes(fieldLine)
+                  ? match
+                  : `${match}\n  ${fieldLine}`;
+              }
+            );
           }
+
+          if (type === "1-1") {
+            // Côté A
+            schemaContent = schemaContent.replace(
+              new RegExp(`model ${from} {([\\s\\S]*?)}`),
+              (match) => {
+                const relationLine = `${to} ${to} @relation(fields: [${to}Id], references: [id])`;
+                const fkLine = `${to}Id String @unique`;
+                let result = match.includes(relationLine)
+                  ? match
+                  : `${match}\n  ${relationLine}`;
+                result = result.includes(fkLine)
+                  ? result
+                  : `${result}\n  ${fkLine}`;
+                return result;
+              }
+            );
+            // Côté B
+            schemaContent = schemaContent.replace(
+              new RegExp(`model ${to} {([\\s\\S]*?)}`),
+              (match) => {
+                const relationLine = `${from} ${from}? @relation(fields: [${from}Id], references: [id])`;
+                const fkLine = `${from}Id String? @unique`;
+                let result = match.includes(relationLine)
+                  ? match
+                  : `${match}\n  ${relationLine}`;
+                result = result.includes(fkLine)
+                  ? result
+                  : `${result}\n  ${fkLine}`;
+                return result;
+              }
+            );
+          }
+
+          if (type === "n-n" || type === "m-n") {
+            // Pour n-n, généralement, il faut créer une table de jointure à la main.
+            // Ici, on ajoute juste les listes de chaque côté si absentes.
+            schemaContent = schemaContent.replace(
+              new RegExp(`model ${from} {([\\s\\S]*?)}`),
+              (match) => {
+                const fieldLine = `${to}s ${to}[]`;
+                return match.includes(fieldLine)
+                  ? match
+                  : `${match}\n  ${fieldLine}`;
+              }
+            );
+            schemaContent = schemaContent.replace(
+              new RegExp(`model ${to} {([\\s\\S]*?)}`),
+              (match) => {
+                const fieldLine = `${from}s ${from}[]`;
+                return match.includes(fieldLine)
+                  ? match
+                  : `${match}\n  ${fieldLine}`;
+              }
+            );
+          }
+
           return match;
         }
       );

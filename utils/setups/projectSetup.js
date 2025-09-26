@@ -21,7 +21,7 @@ async function createProject(inputs) {
   // installation des dependances
   logInfo("Installation des dépendances...");
   await runCommand(
-    `${inputs.packageManager} add @nestjs/config @nestjs/typeorm typeorm pg class-validator class-transformer`,
+    `${inputs.packageManager} add @nestjs/config class-validator class-transformer`,
     "Échec de l'installation des dépendances"
   );
 }

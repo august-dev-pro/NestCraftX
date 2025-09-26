@@ -148,7 +148,7 @@ export class Create${entityName}UseCase {
     this.logger.log('Début création ${entityName}');
     try {
       const result = await this.${entityNameLower}Repository.create(data);
-      this.logger.log('Création réussie');
+      this.logger.log('Création réussie: ', result.getId());
       return result;
     } catch (error) {
       this.logger.error('Erreur lors de la création', error.stack);
@@ -176,7 +176,7 @@ export class GetById${entityName}UseCase {
   ) {}
 
   async execute(id: string): Promise<${entityName}Entity | null> {
-    this.logger.log(\`Recherche de ${entityName} par id: \${id}\`);
+    // this.logger.log(\`Recherche de ${entityName} par id: \${id}\`);
     try {
       const result = await this.${entityNameLower}Repository.findById(id);
       this.logger.log('Recherche réussie');
@@ -207,7 +207,7 @@ export class GetAll${entityName}UseCase {
   ) {}
 
   async execute(): Promise<${entityName}Entity[]> {
-    this.logger.log('Récupération de tous les ${entityName}s');
+    // this.logger.log('Récupération de tous les ${entityName}s');
     try {
       const result = await this.${entityNameLower}Repository.findAll();
       this.logger.log('Récupération réussie');
@@ -239,8 +239,15 @@ export class Update${entityName}UseCase {
   ) {}
 
   async execute(id: string, data: Update${entityName}Dto): Promise<${entityName}Entity | null> {
-    this.logger.log(\`Mise à jour de ${entityName} id: \${id}\`);
+    // this.logger.log(\`Mise à jour de ${entityName} id: \${id}\`);
+
     try {
+      // Vérifier l'existence de l'élément
+      const existing = await this.${entityNameLower}Repository.findById(id);
+      if (!existing) {
+        this.logger.warn(\`${entityName} avec l'id \${id} non trouvé pour la mise à jour\`);
+        throw new Error('${entityName} non trouvé');
+      }
       const result = await this.${entityNameLower}Repository.update(id, data);
       this.logger.log('Mise à jour réussie');
       return result;
@@ -269,8 +276,14 @@ export class Delete${entityName}UseCase {
   ) {}
 
   async execute(id: string): Promise<void> {
-    this.logger.log(\`Suppression de ${entityName} id: \${id}\`);
+    // this.logger.log(\`Suppression de ${entityName} id: \${id}\`);
     try {
+      // Vérifier l'existence de l'élément
+      const existing = await this.${entityNameLower}Repository.findById(id);
+      if (!existing) {
+        this.logger.warn(\`${entityName} avec l'id \${id} non trouvé !\`);
+        throw new Error('${entityName} non trouvé');
+      }
       await this.${entityNameLower}Repository.delete(id);
       this.logger.log('Suppression réussie');
     } catch (error) {
@@ -490,7 +503,7 @@ import { ${entityNameCapitalized}Mapper } from '${entityPath}/domain/mappers/${e
     ${providersBlock.join(",\n    ")}
   ],
   exports: [
-    ${entityNameCapitalized}Service
+    ${entityNameCapitalized}Service, 'I${entityNameCapitalized}Repository'
   ]
 })
 export class ${entityNameCapitalized}Module {}
@@ -499,7 +512,8 @@ export class ${entityNameCapitalized}Module {}
 
       await safeUpdateAppModule(entityNameLower);
     }
-    await generateMiddlewares();
+
+    await generateMiddlewares(dbConfig.orm);
 
     // modification de AppModule
     const appModulePath = "src/app.module.ts";

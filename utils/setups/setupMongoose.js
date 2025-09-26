@@ -34,7 +34,7 @@ MONGO_DB=${inputs.dbConfig.MONGO_DB}
     pattern: importsPattern,
     replacement: (match) =>
       `${match}
-    MongooseModule.forRoot(process.env.MONGO_URI, {
+    MongooseModule.forRoot(process.env.MONGO_URI || " ", {
       dbName: process.env.MONGO_DB,
     }),`,
   });

@@ -198,6 +198,9 @@ export async function generateDto(entity, useSwagger, isAuthDto = false) {
     if (fieldName.includes("discount")) {
       return 10;
     }
+    if (fieldName.includes("Id")) {
+      return "UID-exemple-4f06-bd56-f4021b541c57";
+    }
 
     // 🛠 Sinon fallback basique selon le type
     switch (f.type) {
@@ -249,6 +252,11 @@ ${
     ? "import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';"
     : ""
 }
+${
+  entityName == "User"
+    ? "import { Role } from 'src/user/domain/enums/role.enum';"
+    : ""
+}
 `;
 
   // ✅ Cas AUTH DTO : une seule classe + nom déjà donné (pas de Create/Update)
@@ -266,8 +274,6 @@ ${dtoFields}
   return `
 ${commonImports}
 
-// Vous pouvez décommenter ce champ si vous voulez gérer le rôle de l'utilisateur.
-import { Role } from 'src/user/domain/enums/role.enum';
 
 export class Create${entityName}Dto {
 ${dtoFields}
@@ -382,7 +388,7 @@ export class ${entityNameCapitalized}Controller {
 `;
 }
 
-export async function generateMiddlewares() {
+export async function generateMiddlewares(orm = "global") {
   logInfo(
     "\u2728 G\u00e9n\u00e9ration des middlewares, interceptors, guards et filters personnalis\u00e9s..."
   );
@@ -409,8 +415,13 @@ export function LoggerMiddleware(
 `,
   });
 
-  // Error Handling Filter
+  // Error Handling Filter (personnalisé selon l'ORM)
   await createFile({
+    path: `${basePath}/filters/all-exceptions.filter.ts`,
+    contente: getExceptionFilterContent(orm),
+  });
+  // Error Handling Filter
+  /*  await createFile({
     path: `${basePath}/filters/all-exceptions.filter.ts`,
     contente: `import {
   ExceptionFilter,
@@ -418,29 +429,118 @@ export function LoggerMiddleware(
   ArgumentsHost,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const status = exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    const message = exception instanceof HttpException ? exception.getResponse() : 'Internal server error';
-    console.log('exception: ', exception);
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string | string[] = 'Internal server error';
+    let errorDetails: any = null;
 
+    // Handle NestJS HttpExceptions (BadRequest, NotFound, etc.)
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const res = exception.getResponse();
+
+      if (typeof res === 'string') {
+        message = res;
+      } else if (typeof res === 'object' && res !== null) {
+        const resObj = res as any;
+        message = resObj.message || resObj.error || 'HttpException';
+        errorDetails = resObj;
+      }
+    }
+
+    // Handle Prisma errors dynamiquement (sans import bloquant)
+    else if (
+      typeof exception === 'object' &&
+      exception &&
+      exception.constructor &&
+      (
+        exception.constructor.name === 'PrismaClientKnownRequestError' ||
+        exception.constructor.name === 'PrismaClientValidationError'
+      )
+    ) {
+      status = HttpStatus.BAD_REQUEST;
+      message = (exception as any).message || 'Prisma error';
+      errorDetails = exception;
+    }
+
+    // Handle Mongoose/Mongo errors dynamiquement
+    else if (
+      typeof exception === 'object' &&
+      exception &&
+      'name' in exception &&
+      (
+        (exception as any).name === 'MongoError' ||
+        (exception as any).name === 'MongooseError'
+      )
+    ) {
+      status = HttpStatus.BAD_REQUEST;
+      message = (exception as any).message || 'MongoDB error';
+      errorDetails = exception;
+    }
+
+    // Handle Sequelize errors dynamiquement
+    else if (
+      typeof exception === 'object' &&
+      exception &&
+      exception.constructor &&
+      (
+        exception.constructor.name === 'SequelizeDatabaseError' ||
+        exception.constructor.name === 'SequelizeValidationError'
+      )
+    ) {
+      status = HttpStatus.BAD_REQUEST;
+      message = (exception as any).message || 'Sequelize error';
+      errorDetails = exception;
+    }
+
+    // Handle unknown errors
+    else if (exception instanceof Error) {
+      message = exception.message;
+      errorDetails = {
+        name: exception.name,
+        stack: exception.stack,
+      };
+    } else {
+      message = 'Une erreur inattendue est survenue';
+      errorDetails = exception;
+    }
+
+    // Log the full exception on the server
+    this.logger.error(
+      \`Exception on \${request.method} \${request.url}\`,
+      JSON.stringify({
+        message,
+        status,
+        errorDetails,
+        exception,
+      }),
+    );
+
+    // Send clean error to client
     response.status(status).json({
       statusCode: status,
       timestamp: new Date().toISOString(),
       path: request.url,
-      message: message,
+      method: request.method,
+      message,
+      error: errorDetails,
     });
   }
-}`,
-  });
+}
+`,
+  }); */
 
   // Response Interceptor
   await createFile({
@@ -521,18 +621,19 @@ export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
 
   // ✅ 1. Mise à jour des imports
   const importPattern = "import { AppModule } from './app.module';";
-  const importReplacer = `import { AppModule } from 'src/app.module';
-import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter';
-import { ResponseInterceptor } from 'src/common/interceptors/response.interceptor';
-import { LoggerMiddleware } from 'src/common/middlewares/logger.middleware';
+  const importReplacer = `import { AppModule } from 'src/app.module'
+import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter'
+import { ResponseInterceptor } from 'src/common/interceptors/response.interceptor'
+import { LoggerMiddleware } from 'src/common/middlewares/logger.middleware'
 import { ValidationPipe } from '@nestjs/common';`;
 
   // ✅ 2. Injection dans le contenu de bootstrap()
   const contentPattern = `const app = await NestFactory.create(AppModule);`;
-  const contentReplacer = `const app = await NestFactory.create(AppModule);
+
+  const contentReplacer = `
 
   // 🔒 Global filter pour gérer toutes les exceptions
-  app.useGlobalFilters(new AllExceptionsFilter());
+  app.useGlobalFilters(new AllExceptionsFilter())
 
   // 🔁 Global interceptor pour structurer les réponses
   // app.useGlobalInterceptors(new ResponseInterceptor()); //deja appliquer dans le app.module.ts par convention (ne choisir que l'un des deux)
@@ -717,7 +818,7 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
         contente: `import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { UserEntity } from '${entityPath}/domain/entities/${entityNameLower}.entity';
+import { ${entityNameCapitalized}Entity } from '${entityPath}/domain/entities/${entityNameLower}.entity';
 import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
 import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/application/interfaces/${entityNameLower}.repository.interface';
 import { ${entityNameCapitalized} } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.schema';
@@ -881,4 +982,418 @@ function getFormattedType(field) {
     return "Role"; // 🔁 Remplacer le type string par Role
   }
   return formatType(field.type);
+}
+
+// Génère le contenu du filtre d'exception selon l'ORM
+function getExceptionFilterContent(orm) {
+  if (orm === "prisma") {
+    return `
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+
+@Catch()
+export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name);
+
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string | string[] = 'Internal server error';
+    let errorDetails: any = null;
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const res = exception.getResponse();
+      if (typeof res === 'string') {
+        message = res;
+      } else if (typeof res === 'object' && res !== null) {
+        const resObj = res as any;
+        message = resObj.message || resObj.error || 'HttpException';
+        errorDetails = resObj;
+      }
+    } else if (
+      typeof exception === 'object' &&
+      exception &&
+      exception.constructor &&
+      (
+        exception.constructor.name === 'PrismaClientKnownRequestError' ||
+        exception.constructor.name === 'PrismaClientValidationError'
+      )
+    ) {
+      status = HttpStatus.BAD_REQUEST;
+      message = (exception as any).message || 'Prisma error';
+      errorDetails = exception;
+    } else if (exception instanceof Error) {
+      message = exception.message;
+      errorDetails = {
+        name: exception.name,
+        stack: exception.stack,
+      };
+    } else {
+      message = 'Une erreur inattendue est survenue';
+      errorDetails = exception;
+    }
+
+    this.logger.error(
+      \`Exception on \${request.method} \${request.url}\`,
+      JSON.stringify({ message, status, errorDetails, exception }),
+    );
+
+    response.status(status).json({
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      method: request.method,
+      message,
+      error: errorDetails,
+    });
+  }
+}
+`.trim();
+  }
+
+  if (orm === "mongoose") {
+    return `
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+
+@Catch()
+export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name);
+
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string | string[] = 'Internal server error';
+    let errorDetails: any = null;
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const res = exception.getResponse();
+      if (typeof res === 'string') {
+        message = res;
+      } else if (typeof res === 'object' && res !== null) {
+        const resObj = res as any;
+        message = resObj.message || resObj.error || 'HttpException';
+        errorDetails = resObj;
+      }
+    } else if (
+      typeof exception === 'object' &&
+      exception &&
+      'name' in exception &&
+      (
+        (exception as any).name === 'MongoError' ||
+        (exception as any).name === 'MongooseError'
+      )
+    ) {
+      status = HttpStatus.BAD_REQUEST;
+      message = (exception as any).message || 'MongoDB error';
+      errorDetails = exception;
+    } else if (exception instanceof Error) {
+      message = exception.message;
+      errorDetails = {
+        name: exception.name,
+        stack: exception.stack,
+      };
+    } else {
+      message = 'Une erreur inattendue est survenue';
+      errorDetails = exception;
+    }
+
+    this.logger.error(
+      \`Exception on \${request.method} \${request.url}\`,
+      JSON.stringify({ message, status, errorDetails, exception }),
+    );
+
+    response.status(status).json({
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      method: request.method,
+      message,
+      error: errorDetails,
+    });
+  }
+}
+`.trim();
+  }
+
+  if (orm === "typeorm") {
+    return `
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+
+@Catch()
+export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name);
+
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string | string[] = 'Internal server error';
+    let errorDetails: any = null;
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const res = exception.getResponse();
+      if (typeof res === 'string') {
+        message = res;
+      } else if (typeof res === 'object' && res !== null) {
+        const resObj = res as any;
+        message = resObj.message || resObj.error || 'HttpException';
+        errorDetails = resObj;
+      }
+    } else if (
+      typeof exception === 'object' &&
+      exception &&
+      'name' in exception &&
+      (
+        (exception as any).name === 'QueryFailedError' ||
+        (exception as any).name === 'EntityNotFoundError' ||
+        (exception as any).name === 'CannotCreateEntityIdMapError'
+      )
+    ) {
+      status = HttpStatus.BAD_REQUEST;
+      message = (exception as any).message || 'TypeORM error';
+      errorDetails = exception;
+    } else if (exception instanceof Error) {
+      message = exception.message;
+      errorDetails = {
+        name: exception.name,
+        stack: exception.stack,
+      };
+    } else {
+      message = 'Une erreur inattendue est survenue';
+      errorDetails = exception;
+    }
+
+    this.logger.error(
+      \`Exception on \${request.method} \${request.url}\`,
+      JSON.stringify({ message, status, errorDetails, exception }),
+    );
+
+    response.status(status).json({
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      method: request.method,
+      message,
+      error: errorDetails,
+    });
+  }
+}
+`.trim();
+  }
+
+  if (orm === "sequelize") {
+    return `
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+
+@Catch()
+export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name);
+
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string | string[] = 'Internal server error';
+    let errorDetails: any = null;
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const res = exception.getResponse();
+      if (typeof res === 'string') {
+        message = res;
+      } else if (typeof res === 'object' && res !== null) {
+        const resObj = res as any;
+        message = resObj.message || resObj.error || 'HttpException';
+        errorDetails = resObj;
+      }
+    } else if (
+      typeof exception === 'object' &&
+      exception &&
+      exception.constructor &&
+      (
+        exception.constructor.name === 'SequelizeDatabaseError' ||
+        exception.constructor.name === 'SequelizeValidationError'
+      )
+    ) {
+      status = HttpStatus.BAD_REQUEST;
+      message = (exception as any).message || 'Sequelize error';
+      errorDetails = exception;
+    } else if (exception instanceof Error) {
+      message = exception.message;
+      errorDetails = {
+        name: exception.name,
+        stack: exception.stack,
+      };
+    } else {
+      message = 'Une erreur inattendue est survenue';
+      errorDetails = exception;
+    }
+
+    this.logger.error(
+      \`Exception on \${request.method} \${request.url}\`,
+      JSON.stringify({ message, status, errorDetails, exception }),
+    );
+
+    response.status(status).json({
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      method: request.method,
+      message,
+      error: errorDetails,
+    });
+  }
+}
+`.trim();
+  }
+
+  // Version universelle (multi-ORM)
+  return `
+import {
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+
+@Catch()
+export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger(AllExceptionsFilter.name);
+
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<Request>();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message: string | string[] = 'Internal server error';
+    let errorDetails: any = null;
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const res = exception.getResponse();
+      if (typeof res === 'string') {
+        message = res;
+      } else if (typeof res === 'object' && res !== null) {
+        const resObj = res as any;
+        message = resObj.message || resObj.error || 'HttpException';
+        errorDetails = resObj;
+      }
+    }
+    // Prisma
+    else if (
+      typeof exception === 'object' &&
+      exception &&
+      exception.constructor &&
+      (
+        exception.constructor.name === 'PrismaClientKnownRequestError' ||
+        exception.constructor.name === 'PrismaClientValidationError'
+      )
+    ) {
+      status = HttpStatus.BAD_REQUEST;
+      message = (exception as any).message || 'Prisma error';
+      errorDetails = exception;
+    }
+    // Mongoose/Mongo
+    else if (
+      typeof exception === 'object' &&
+      exception &&
+      'name' in exception &&
+      (
+        (exception as any).name === 'MongoError' ||
+        (exception as any).name === 'MongooseError'
+      )
+    ) {
+      status = HttpStatus.BAD_REQUEST;
+      message = (exception as any).message || 'MongoDB error';
+      errorDetails = exception;
+    }
+    // Sequelize
+    else if (
+      typeof exception === 'object' &&
+      exception &&
+      exception.constructor &&
+      (
+        exception.constructor.name === 'SequelizeDatabaseError' ||
+        exception.constructor.name === 'SequelizeValidationError'
+      )
+    ) {
+      status = HttpStatus.BAD_REQUEST;
+      message = (exception as any).message || 'Sequelize error';
+      errorDetails = exception;
+    }
+    else if (exception instanceof Error) {
+      message = exception.message;
+      errorDetails = {
+        name: exception.name,
+        stack: exception.stack,
+      };
+    } else {
+      message = 'Une erreur inattendue est survenue';
+      errorDetails = exception;
+    }
+
+    this.logger.error(
+      \`Exception on \${request.method} \${request.url}\`,
+      JSON.stringify({ message, status, errorDetails, exception }),
+    );
+
+    response.status(status).json({
+      statusCode: status,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+      method: request.method,
+      message,
+      error: errorDetails,
+    });
+  }
+}
+`.trim();
 }
