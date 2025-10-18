@@ -1,7 +1,7 @@
 {
   "name": "nestcraftx",
-  "version": "0.1.9",
-  "description": "CLI to generate scalable NestJS projects with Clean Architecture and Clean Code",
+  "version": "0.2.0-beta",
+  "description": "CLI to generate scalable NestJS projects with Clean Architecture and Clean Code - Beta version with enhanced CLI",
   "main": "bin/nestcraft.js",
   "bin": {
     "nestcraftx": "bin/nestcraft.js"
@@ -20,7 +20,14 @@
     "generator",
     "clean architecture",
     "ddd",
-    "scaffold"
+    "scaffold",
+    "prisma",
+    "typeorm",
+    "mongoose",
+    "jwt",
+    "swagger",
+    "docker",
+    "nestjs-cli"
   ],
   "author": "Ablanhou Augustin Selete",
   "license": "MIT",

@@ -1,118 +1,248 @@
-## 🛠️ NestCraftX — Générateur de projet backend NestJS
+## 🛠️ NestCraftX — Clean Architecture Generator for NestJS
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Node.js](https://img.shields.io/badge/node-%3E=16.0.0-green.svg)
+![Node.js](https://img.shields.io/badge/node-%3E=14.0.0-green.svg)
+![Version](https://img.shields.io/badge/version-0.2.0--beta-orange.svg)
 
-Bienvenue dans **NestCraftX**, un CLI Node.js puissant pour générer automatiquement une structure de projet backend modulaire, professionnelle et maintenable. Il s’appuie sur les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma**, **TypeORM**, **JWT Auth**, **Swagger**, **Docker**, etc.
+**NestCraftX** est un CLI Node.js puissant pour générer automatiquement des projets NestJS avec une architecture propre et maintenable. Il implémente les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma/TypeORM/Mongoose**, **JWT Auth**, **Swagger**, **Docker**, et plus encore.
 
-> 🧠 L’objectif ? Ne plus jamais repartir de zéro pour créer une base de projet solide, évolutive et prête pour la production.
+> 🚀 **Version Beta** : Nouvelle interface CLI avec commandes avancées et mode Light pour un démarrage ultra-rapide !
 
 ---
 
 ## 📑 Sommaire
 
-- [✨ Objectif du projet](#objectif-du-projet)
+- [✨ Nouveautés v0.2.0-beta](#nouveautés-v020-beta)
+- [🎯 Objectif du projet](#objectif-du-projet)
 - [📦 Prérequis](#prérequis)
-- [🚀 Installation et utilisation](#installation-et-utilisation)
-- [🧰 Ce que la commande configure automatiquement](#ce-que-la-commande-configure-automatiquement)
-- [📁 Exemple d’architecture générée](#exemple-darchitecture-générée)
-- [📌 À venir](#à-venir)
-- [❤️ Contribuer](#️contribuer)
+- [🚀 Installation](#installation)
+- [💻 Commandes disponibles](#commandes-disponibles)
+- [🧰 Fonctionnalités](#fonctionnalités)
+- [📁 Architecture générée](#architecture-générée)
+- [📚 Guide d'utilisation](#guide-dutilisation)
+- [📌 Roadmap](#roadmap)
+- [❤️ Contribuer](#contribuer)
 - [📜 Licence](#licence)
 
 ---
 
-## ✨ Objectif du projet
+## ✨ Nouveautés v0.2.0-beta
 
-    L’idée est simple : au lieu de réinventer la roue à chaque projet, ce CLI vous génère une base de code solide, bien organisée et évolutive en quelques minutes. Cela vous permet de :
+### 🎉 Nouvelles commandes CLI
 
-    - Démarrer un nouveau projet rapidement
-    - Avoir une structure claire dès le départ
-    - Uniformiser vos projets
-    - Se concentrer sur la logique métier sans perdre de temps sur la configuration
+```bash
+nestcraftx new <project-name> [options]  # Créer un projet avec options
+nestcraftx demo                          # Projet de démo complet
+nestcraftx test                          # Vérifier l'environnement
+nestcraftx info                          # Informations sur le CLI
+```
+
+### ⚡ Mode Light
+
+Démarrez un projet en quelques secondes avec des options en ligne de commande :
+
+```bash
+nestcraftx new my-app --light --orm prisma --auth --swagger
+```
+
+### 🎯 Mode Full
+
+Configuration complète et interactive pour un contrôle total :
+
+```bash
+nestcraftx new my-app
+# Interface interactive pour configurer chaque aspect
+```
+
+### 🎪 Projet Demo
+
+Générez instantanément un projet de blog complet pour voir NestCraftX en action :
+
+```bash
+nestcraftx demo
+```
 
 ---
+
+## 🎯 Objectif du projet
+
+Ne perdez plus de temps à configurer votre architecture backend. NestCraftX vous permet de :
+
+- ✅ Démarrer un projet en quelques minutes au lieu de quelques jours
+- ✅ Avoir une architecture Clean dès le départ
+- ✅ Uniformiser vos projets avec les mêmes bonnes pratiques
+- ✅ Vous concentrer sur la logique métier
+- ✅ Choisir entre configuration rapide (Light) ou complète (Full)
 
 ## 📦 Prérequis
 
-    Assurez-vous d’avoir :
+Assurez-vous d'avoir :
 
-    - **Node.js** v16 ou supérieur
-    - **npm** ou **yarn**
-    - **Docker** (pour l intégration avec la base de données)
-    - **Git** (optionnel pour init un repo)
+- **Node.js** v14 ou supérieur
+- **npm** ou **yarn**
+- **Nest CLI** (optionnel, sera utilisé via npx)
+- **Docker** (optionnel, pour la containerisation)
+- **Git** (optionnel, pour la gestion de version)
 
----
-
-## 🚀 Installation et utilisation
-
-    📦 Installation via npx (recommandé)
-
-        ```bash
-
-        npx nestcraftx start
-
-        ```
-
-        Utilise la puissance de NestCraftX sans rien installer globalement. Simple, rapide et efficace.
-
-    🌍 Installation globale (optionnel)
-
-        Tu peux aussi l’installer une fois pour toutes, si tu comptes l’utiliser souvent :
-
-            ```bash
-
-            npm install -g nestcraftx
-
-            ```
-
-        Et ensuite, lance la commande où tu veux :
-
-            ```bash
-
-            nestcraftx start
-
-            ```
-
-    🧪 Installation locale pour développement
-
-        Clone le projet puis utilise npm link :
-
-            ```bash
-
-            git clone https://github.com/august-dev-pro/NestCraftX.git
-            cd NestCraftX
-            npm install
-            npm link
-
-            ```
-
-        Cela te permet d’utiliser nestcraftx en CLI localement pendant que tu développes.
-
----
-
-## 🧰 Ce que la commande configure automatiquement :
-
-    ✅ Structure Clean Architecture (domain/usecases/infra)
-
-    ✅ Swagger (documentation automatique)
-
-    ✅ Authentification JWT (optionnelle)
-
-    ✅ Prisma ou TypeORM
-
-    ✅ Docker + docker-compose
-
-    ✅ Logger personnalisés (logSuccess, logError, etc.)
-
-    ✅ Setup .env, Prisma schema, et plus encore...
-
----
-
-## 📁 Exemple d’architecture générée
+Vérifiez votre environnement avec :
 
 ```bash
-    my-app/
+nestcraftx test
+```
+
+---
+
+## 🚀 Installation
+
+### 📦 Via npx (recommandé)
+
+Utilisez NestCraftX sans installation globale :
+
+```bash
+npx nestcraftx new my-app
+```
+
+### 🌍 Installation globale
+
+Pour une utilisation fréquente :
+
+```bash
+npm install -g nestcraftx
+nestcraftx new my-app
+```
+
+### 🧪 Installation pour développement
+
+```bash
+git clone https://github.com/august-dev-pro/NestCraftX.git
+cd NestCraftX
+npm install
+npm link
+```
+
+---
+
+## 💻 Commandes disponibles
+
+### `nestcraftx new <project-name> [options]`
+
+Crée un nouveau projet NestJS avec Clean Architecture.
+
+**Options :**
+
+- `--light` : Mode configuration rapide
+- `--orm <prisma|typeorm|mongoose>` : Choix de l'ORM
+- `--auth` : Ajouter l'authentification JWT
+- `--swagger` : Ajouter Swagger UI
+- `--docker` : Générer les fichiers Docker
+
+**Exemples :**
+
+```bash
+# Mode interactif complet
+nestcraftx new my-app
+
+# Mode rapide avec options
+nestcraftx new blog-api --light --orm prisma --auth --swagger
+
+# Configuration personnalisée
+nestcraftx new shop --orm typeorm --auth
+```
+
+### `nestcraftx demo`
+
+Génère un projet de démonstration complet avec :
+
+- 3 entités (User, Post, Comment)
+- Relations entre entités
+- Auth JWT intégrée
+- Swagger activé
+- Docker configuré
+
+```bash
+nestcraftx demo
+```
+
+### `nestcraftx test`
+
+Vérifie que votre environnement est prêt :
+
+```bash
+nestcraftx test
+```
+
+Affiche le statut de Node, npm, Nest CLI, Docker, Git, etc.
+
+### `nestcraftx info`
+
+Affiche les informations sur le CLI :
+
+```bash
+nestcraftx info
+```
+
+### `nestcraftx start`
+
+Lance le générateur en mode legacy (interactive) :
+
+```bash
+nestcraftx start
+```
+
+---
+
+## 🧰 Fonctionnalités
+
+### Architecture
+
+✅ **Clean Architecture** avec séparation domain/application/infrastructure/presentation
+✅ **Domain-Driven Design** avec entités, use cases et repositories
+✅ **Repository Pattern** pour l'abstraction de la persistance
+✅ **Use Cases Pattern** pour la logique métier isolée
+✅ **Mapper Pattern** pour la transformation des données
+
+### Base de données
+
+✅ **Prisma** - ORM moderne et type-safe (recommandé)
+✅ **TypeORM** - ORM complet avec decorateurs
+✅ **Mongoose** - ODM pour MongoDB
+✅ Configuration automatique du schéma
+✅ Support PostgreSQL et MongoDB
+
+### Sécurité
+
+✅ **JWT Authentication** avec guards et strategies
+✅ **Role-based Access Control** (RBAC)
+✅ **Password hashing** avec bcrypt
+✅ **Public routes** avec decorators
+
+### Documentation
+
+✅ **Swagger UI** automatique
+✅ Décorateurs ApiProperty sur les DTOs
+✅ Documentation des endpoints
+✅ Interface interactive d'API
+
+### DevOps
+
+✅ **Docker** et **Docker Compose**
+✅ Configuration des variables d'environnement
+✅ Logging structuré
+✅ Error handling centralisé
+
+### Qualité du code
+
+✅ Validation des DTOs avec class-validator
+✅ Transformation des données avec class-transformer
+✅ Intercepteurs de réponse standardisés
+✅ Filtres d'exceptions globaux
+
+---
+
+## 📁 Architecture générée
+
+```
+my-app/
     ├── src/
     │   ├── auth/
     │   │   ├── auth.module.ts
@@ -190,33 +320,133 @@ Bienvenue dans **NestCraftX**, un CLI Node.js puissant pour générer automatiqu
 
 ---
 
-## 📌 À venir
+## 📚 Guide d'utilisation
 
-    npx nestcraft generate [nom de l'entité] → Génère un module complet automatiquement
+### Démarrage rapide (Mode Light)
 
-    npx nestcraft add:auth → Intègre le système d'auth JWT
+```bash
+# 1. Créer un projet simple
+npx nestcraftx new my-api --light --orm prisma
 
-    Menu CLI interactif intelligent (choix d'ORM, base de données : MySQL, MongoDB, Firebase, etc.)
+# 2. Naviguer dans le projet
+cd my-api
 
-    Génération de tests unitaires
+# 3. Démarrer l'application
+npm run start:dev
+```
 
-    Déploiement Docker simplifié
+### Configuration complète (Mode Full)
 
-    🧪 Intégration CI/CD de base
+```bash
+# 1. Lancer la création avec interface interactive
+npx nestcraftx new my-project
 
-    🌐 Site de documentation officiel
+# 2. Répondre aux questions :
+#    - Nom du projet
+#    - Choix de la base de données
+#    - Configuration ORM
+#    - Entités et relations
+#    - Auth et Swagger
+
+# 3. Démarrer
+cd my-project
+npm run start:dev
+```
+
+### Projet de démonstration
+
+```bash
+# Générer un projet blog complet
+nestcraftx demo
+
+# Naviguer et démarrer
+cd blog-demo
+npm run start:dev
+
+# Accéder à Swagger UI
+open http://localhost:3000/api/docs
+```
 
 ---
 
-##❤️ Contribuer
+## 📌 Roadmap
 
-    Tu veux améliorer NestCraft ?
-    Fork le repo, ajoute tes idées, propose une Pull Request ou ouvre une issue pour en discuter !
+### Version 0.3.0
+
+- [ ] Commande `generate` pour ajouter des entités à un projet existant
+- [ ] Support MySQL et SQLite
+- [ ] Génération de tests unitaires automatiques
+- [ ] Templates de CI/CD (GitHub Actions, GitLab CI)
+- [ ] Support GraphQL
+
+### Version 0.4.0
+
+- [ ] Interface web pour configurer les projets
+- [ ] Génération de seeds pour les bases de données
+- [ ] Support des microservices
+- [ ] Intégration Redis
+- [ ] WebSocket support
+
+### Version 1.0.0
+
+- [ ] Documentation complète en ligne
+- [ ] Support d'autres frameworks (Express, Fastify)
+- [ ] Marketplace de templates communautaires
+- [ ] CLI plugins system
+
+---
+
+## ❤️ Contribuer
+
+Vous voulez améliorer NestCraftX ? Les contributions sont les bienvenues !
+
+### Comment contribuer
+
+1. Fork le projet
+2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/AmazingFeature`)
+3. Committez vos changements (`git commit -m 'Add some AmazingFeature'`)
+4. Push vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrez une Pull Request
+
+### Ouvrir une issue
+
+Des bugs ? Des idées ? Ouvrez une issue sur GitHub !
+
+### Développeurs
+
+Pour développer localement :
+
+```bash
+git clone https://github.com/august-dev-pro/NestCraftX.git
+cd NestCraftX
+npm install
+npm link
+```
 
 ---
 
 ## 📜 Licence
 
-    MIT © [Augustin_Selete] — libre d’usage, mais le mérite te revient 😉
+MIT © [Ablanhou Augustin Selete](https://github.com/august-dev-pro)
+
+Libre d'usage pour projets personnels et commerciaux.
 
 ---
+
+## 🙏 Remerciements
+
+Merci à tous les contributeurs et à la communauté NestJS !
+
+**Fait avec ❤️ pour la communauté des développeurs backend**
+
+---
+
+## 📞 Contact & Support
+
+- 📧 GitHub Issues : [Ouvrir une issue](https://github.com/august-dev-pro/NestCraftX/issues)
+- 🌐 Repository : [NestCraftX sur GitHub](https://github.com/august-dev-pro/NestCraftX)
+- ⭐ Si ce projet vous aide, pensez à lui donner une étoile !
+
+---
+
+**NestCraftX v0.2.0-beta** - Clean Architecture Made Simple
