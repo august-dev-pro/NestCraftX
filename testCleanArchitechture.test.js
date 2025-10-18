@@ -9,7 +9,7 @@ const {
 } = require("./utils/userInput");
 
 async function setupCleanArchitecturetest() {
-  logInfo("teste script");
+  logInfo("test script");
 
   const inputs = await getUserInputs2();
 

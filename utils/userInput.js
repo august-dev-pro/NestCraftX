@@ -138,7 +138,7 @@ export async function getUserInputs2() {
   const useSwagger = readline.keyInYNStrict("Voulez-vous installer Swagger?");
   const packageManager = useYarn ? "yarn" : "npm";
 
-  // 🧱 Saisie des entités et champs avec validation
+  // Saisie des entités et champs avec validation
   const entitiesData = {
     entities: [],
     relations: [],
@@ -197,7 +197,7 @@ export async function getUserInputs2() {
     );
   }
 
-  // 🔗 Gestion des relations avec validation
+  // Gestion des relations avec validation
   const wantsRelation = readline.keyInYNStrict(
     "Souhaites-tu ajouter des relations entre les entités ?"
   );
@@ -380,7 +380,7 @@ export async function safeUpdateAppModule(entity) {
   const filePath = "src/app.module.ts";
   const moduleName = `${capitalize(entity)}Module`;
 
-  const content = await fs.readFileSync(filePath, "utf-8");
+  const content = fs.readFileSync(filePath, "utf-8");
 
   const importLine = `import {${moduleName}} from 'src/${entity}/${entity}.module';`;
 
