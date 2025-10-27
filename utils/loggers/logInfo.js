@@ -1,4 +1,7 @@
+const { info } = require('../colors');
+
 function logInfo(message) {
-  console.log(`\n \x1b[34m[INFO] ${message}\x1b[0m`);
+  console.log(`\n${info('[INFO]')} ${message}`);
 }
+
 module.exports = { logInfo };

@@ -2,17 +2,17 @@
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/node-%3E=14.0.0-green.svg)
-![Version](https://img.shields.io/badge/version-0.2.0--beta-orange.svg)
+![Version](https://img.shields.io/badge/version-0.2.0-brightgreen.svg)
 
-**NestCraftX** est un CLI Node.js puissant pour générer automatiquement des projets NestJS avec une architecture propre et maintenable. Il implémente les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma/TypeORM/Mongoose**, **JWT Auth**, **Swagger**, **Docker**, et plus encore.
+**NestCraftX** est un CLI Node.js moderne et puissant pour generer automatiquement des projets NestJS avec une architecture propre et maintenable. Il implemente les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma/TypeORM/Mongoose**, **JWT Auth avec secrets auto-generes**, **Swagger**, **Docker**, et plus encore.
 
-> 🚀 **Version Beta** : Nouvelle interface CLI avec commandes avancées et mode Light pour un démarrage ultra-rapide !
+> Version 0.2.0 : CLI moderne avec 2 modes d'architecture (FULL/LIGHT), generation automatique de secrets JWT securises, et UX amelioree avec couleurs et spinners !
 
 ---
 
 ## 📑 Sommaire
 
-- [✨ Nouveautés v0.2.0-beta](#nouveautés-v020-beta)
+- [Nouveautes v0.2.0](#nouveautes-v020)
 - [🎯 Objectif du projet](#objectif-du-projet)
 - [📦 Prérequis](#prérequis)
 - [🚀 Installation](#installation)
@@ -26,40 +26,59 @@
 
 ---
 
-## ✨ Nouveautés v0.2.0-beta
+## Nouveautes v0.2.0
 
-### 🎉 Nouvelles commandes CLI
+### Deux Modes d'Architecture
+
+**Mode FULL - Architecture Complete**
+- Clean Architecture avec use-cases, mappers, adapters
+- Separation stricte domain/application/infrastructure/presentation
+- Ideal pour projets complexes et scalables
+
+**Mode LIGHT - Architecture MVP**
+- Structure simplifiee : controllers → services → repositories
+- Demarrage rapide pour prototypes
+- Parfait pour petits projets et MVPs
+
+### CLI Moderne avec Flags
 
 ```bash
-nestcraftx new <project-name> [options]  # Créer un projet avec options
-nestcraftx demo                          # Projet de démo complet
-nestcraftx test                          # Vérifier l'environnement
-nestcraftx info                          # Informations sur le CLI
+nestcraftx new <project-name> [options]
+
+Options:
+  --light              Mode architecture simplifiee
+  --full               Mode architecture complete (defaut)
+  --orm=<orm>          Choix ORM: prisma|typeorm|mongoose
+  --auth               Active authentification JWT
+  --swagger            Active documentation Swagger
+  --docker             Active Docker (defaut: true)
 ```
 
-### ⚡ Mode Light
+### Generation Automatique de Secrets
 
-Démarrez un projet en quelques secondes avec des options en ligne de commande :
+- Secrets JWT auto-generes (64 caracteres securises)
+- Fichier .env pret a l'emploi
+- DATABASE_URL configure automatiquement
+- Fichier .env.example sanitise
 
-```bash
-nestcraftx new my-app --light --orm prisma --auth --swagger
-```
+### UX Amelioree
 
-### 🎯 Mode Full
+- Messages avec couleurs (info, success, error)
+- Spinners animes pour operations longues
+- Resume detaille post-generation
+- Validation des options en temps reel
 
-Configuration complète et interactive pour un contrôle total :
-
-```bash
-nestcraftx new my-app
-# Interface interactive pour configurer chaque aspect
-```
-
-### 🎪 Projet Demo
-
-Générez instantanément un projet de blog complet pour voir NestCraftX en action :
+### Exemples Rapides
 
 ```bash
-nestcraftx demo
+# Projet LIGHT avec Prisma et Auth
+nestcraftx new mon-api --light --orm=prisma --auth
+
+# Projet FULL avec TypeORM et Swagger
+nestcraftx new mon-projet --full --orm=typeorm --swagger
+
+# Projet MongoDB minimal
+nestcraftx new mon-api --light --orm=mongoose
 ```
 
 ---
@@ -449,4 +468,9 @@ Merci à tous les contributeurs et à la communauté NestJS !
 
 ---
 
-**NestCraftX v0.2.0-beta** - Clean Architecture Made Simple
+**NestCraftX v0.2.0** - Clean Architecture Made Simple
+
+Pour plus d'informations:
+- [Guide d'utilisation complet](./CLI_USAGE.md)
+- [Guide de migration](./MIGRATION_GUIDE.md)
+- [Changelog detaille](./CHANGELOG.md)

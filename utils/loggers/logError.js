@@ -1,5 +1,7 @@
+const { error } = require('../colors');
+
 function logError(message) {
-  console.error(`\n \x1b[31m[ERROR] ${message}\x1b[0m`);
+  console.error(`\n${error('[ERROR]')} ${message}`);
 }
 
 module.exports = { logError };

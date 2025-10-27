@@ -1,4 +1,7 @@
+const { success } = require('../colors');
+
 function logSuccess(message) {
-  console.log(`\n \x1b[32m[SUCCESS] ${message}\x1b[0m`);
+  console.log(`\n${success('[SUCCESS]')} ${message}`);
 }
+
 module.exports = { logSuccess };
