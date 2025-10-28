@@ -1,4 +1,6 @@
 const { getUserInputs2 } = require('../utils/userInput');
+const { getFullModeInputs } = require('../utils/fullModeInput');
+const { getLightModeInputs } = require('../utils/lightModeInput');
 const { createProject } = require('../utils/setups/projectSetup');
 const { setupCleanArchitecture } = require('../utils/configs/setupCleanArchitecture');
 const { setupLightArchitecture } = require('../utils/configs/setupLightArchitecture');
@@ -15,13 +17,13 @@ const { generateEnvFile, writeEnvFile } = require('../utils/envGenerator');
 async function newCommand(projectName, flags = {}) {
   if (!projectName) {
     console.log('\n  Bienvenue sur NestCraftX CLI  \n');
-    const inputs = await getUserInputs2();
+    const inputs = await getFullModeInputs();
     return executeProjectSetup(inputs);
   }
 
   const mode = determineMode(flags);
   const inputs = mode === 'light'
-    ? buildLightModeInputs(projectName, flags)
+    ? await buildLightModeInputs(projectName, flags)
     : await buildFullModeInputs(projectName, flags);
 
   return executeProjectSetup(inputs);
@@ -34,9 +36,22 @@ function determineMode(flags) {
   return 'full';
 }
 
-function buildLightModeInputs(projectName, flags) {
-  console.log('  Mode LIGHT - Configuration rapide\n');
+async function buildLightModeInputs(projectName, flags) {
+  const hasAllRequiredFlags = hasAllLightModeFlags(flags);
 
+  if (hasAllRequiredFlags) {
+    console.log('  Mode LIGHT - Configuration rapide (via flags)\n');
+    return buildLightModeFromFlags(projectName, flags);
+  }
+
+  return getLightModeInputs(projectName, flags);
+}
+
+function hasAllLightModeFlags(flags) {
+  return flags.orm !== undefined;
+}
+
+function buildLightModeFromFlags(projectName, flags) {
   const orm = flags.orm || 'prisma';
   const validOrms = ['prisma', 'typeorm', 'mongoose'];
 
@@ -93,10 +108,7 @@ function buildLightModeInputs(projectName, flags) {
 }
 
 async function buildFullModeInputs(projectName, flags) {
-  console.log('  Mode FULL - Configuration complete');
-  console.log(`  Nom du projet: ${projectName}\n`);
-
-  const inputs = await getUserInputs2();
+  const inputs = await getFullModeInputs();
   inputs.projectName = projectName;
   inputs.mode = 'full';
 
