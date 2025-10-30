@@ -139,28 +139,143 @@ export class ${entityName}Repository {
 
   constructor(private readonly prisma: PrismaService) {}
 
+  private toEntity(raw: any): ${entityName}Entity {
+    return new ${entityName}Entity(
+      raw.id,
+      raw.createdAt,
+      raw.updatedAt,
+      ...Object.keys(raw).filter(k => !['id', 'createdAt', 'updatedAt'].includes(k)).map(k => raw[k])
+    );
+  }
+
   async create(data: Create${entityName}Dto): Promise<${entityName}Entity> {
     const result = await this.prisma.${entityLower}.create({ data });
-    return new ${entityName}Entity(result);
+    return this.toEntity(result);
   }
 
   async findById(id: string): Promise<${entityName}Entity | null> {
     const result = await this.prisma.${entityLower}.findUnique({ where: { id } });
-    return result ? new ${entityName}Entity(result) : null;
+    return result ? this.toEntity(result) : null;
   }
 
   async findAll(): Promise<${entityName}Entity[]> {
     const results = await this.prisma.${entityLower}.findMany();
-    return results.map(r => new ${entityName}Entity(r));
+    return results.map(r => this.toEntity(r));
   }
 
   async update(id: string, data: Update${entityName}Dto): Promise<${entityName}Entity | null> {
     const result = await this.prisma.${entityLower}.update({ where: { id }, data });
-    return new ${entityName}Entity(result);
+    return this.toEntity(result);
   }
 
   async delete(id: string): Promise<void> {
     await this.prisma.${entityLower}.delete({ where: { id } });
+  }
+}`;
+  }
+
+  if (orm === 'typeorm') {
+    return `import { Injectable, Logger } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { ${entityName} } from 'src/entities/${entityName}.entity';
+import { Create${entityName}Dto, Update${entityName}Dto } from '../dto/${entityLower}.dto';
+import { ${entityName}Entity } from '../entities/${entityLower}.entity';
+
+@Injectable()
+export class ${entityName}Repository {
+  private readonly logger = new Logger(${entityName}Repository.name);
+
+  constructor(
+    @InjectRepository(${entityName})
+    private readonly repository: Repository<${entityName}>
+  ) {}
+
+  private toEntity(raw: any): ${entityName}Entity {
+    return new ${entityName}Entity(
+      raw.id,
+      raw.createdAt,
+      raw.updatedAt,
+      ...Object.keys(raw).filter(k => !['id', 'createdAt', 'updatedAt'].includes(k)).map(k => raw[k])
+    );
+  }
+
+  async create(data: Create${entityName}Dto): Promise<${entityName}Entity> {
+    const result = await this.repository.save(data);
+    return this.toEntity(result);
+  }
+
+  async findById(id: string): Promise<${entityName}Entity | null> {
+    const result = await this.repository.findOne({ where: { id } });
+    return result ? this.toEntity(result) : null;
+  }
+
+  async findAll(): Promise<${entityName}Entity[]> {
+    const results = await this.repository.find();
+    return results.map(r => this.toEntity(r));
+  }
+
+  async update(id: string, data: Update${entityName}Dto): Promise<${entityName}Entity | null> {
+    await this.repository.update(id, data);
+    const result = await this.repository.findOne({ where: { id } });
+    return result ? this.toEntity(result) : null;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.repository.delete(id);
+  }
+}`;
+  }
+
+  if (orm === 'mongoose') {
+    return `import { Injectable, Logger } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { ${entityName} } from '../entities/${entityLower}.schema';
+import { Create${entityName}Dto, Update${entityName}Dto } from '../dto/${entityLower}.dto';
+import { ${entityName}Entity } from '../entities/${entityLower}.entity';
+
+@Injectable()
+export class ${entityName}Repository {
+  private readonly logger = new Logger(${entityName}Repository.name);
+
+  constructor(
+    @InjectModel(${entityName}.name)
+    private readonly model: Model<${entityName}>
+  ) {}
+
+  private toEntity(raw: any): ${entityName}Entity {
+    const obj = raw.toObject ? raw.toObject() : raw;
+    return new ${entityName}Entity(
+      obj._id.toString(),
+      obj.createdAt,
+      obj.updatedAt,
+      ...Object.keys(obj).filter(k => !['_id', 'createdAt', 'updatedAt', '__v'].includes(k)).map(k => obj[k])
+    );
+  }
+
+  async create(data: Create${entityName}Dto): Promise<${entityName}Entity> {
+    const result = await this.model.create(data);
+    return this.toEntity(result);
+  }
+
+  async findById(id: string): Promise<${entityName}Entity | null> {
+    const result = await this.model.findById(id);
+    return result ? this.toEntity(result) : null;
+  }
+
+  async findAll(): Promise<${entityName}Entity[]> {
+    const results = await this.model.find();
+    return results.map(r => this.toEntity(r));
+  }
+
+  async update(id: string, data: Update${entityName}Dto): Promise<${entityName}Entity | null> {
+    const result = await this.model.findByIdAndUpdate(id, data, { new: true });
+    return result ? this.toEntity(result) : null;
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.model.findByIdAndDelete(id);
   }
 }`;
   }

@@ -10,6 +10,7 @@ async function setupAuth(inputs) {
 
   const dbConfig = inputs.dbConfig;
   const useSwagger = inputs.useSwagger;
+  const mode = inputs.mode || 'full';
 
   await runCommand(
     `npm install @nestjs/jwt @nestjs/passport passport passport-jwt bcrypt uuid`,
@@ -37,6 +38,8 @@ async function setupAuth(inputs) {
   let ormImports = "";
   let ormModuleImport = "";
   let prismaProvider = ""; // Pour n'ajouter PrismaService que si besoin
+  let userModulePath = mode === 'light' ? 'src/user/user.module' : 'src/user/user.module';
+  let userSchemaPath = mode === 'light' ? 'src/user/entities/user.schema' : 'src/user/domain/entities/user.schema';
 
   if (dbConfig.orm === "typeorm") {
     ormImports = `import { TypeOrmModule } from '@nestjs/typeorm';
@@ -44,7 +47,7 @@ import { User } from 'src/entities/User.entity';`;
     ormModuleImport = `TypeOrmModule.forFeature([User])`;
   } else if (dbConfig.orm === "mongoose") {
     ormImports = `import { MongooseModule } from '@nestjs/mongoose';
-import { User, UserSchema } from 'src/user/domain/entities/user.schema';`;
+import { User, UserSchema } from '${userSchemaPath}';`;
     ormModuleImport = `MongooseModule.forFeature([{ name: User.name, schema: UserSchema }])`;
     prismaProvider = ""; // Ne pas ajouter PrismaService
   } else if (dbConfig.orm === "prisma") {
@@ -96,6 +99,10 @@ export class AuthModule {}
   });
 
   // 📌 Auth Service
+  const userDtoPath = mode === 'light' ? 'src/user/dto/user.dto' : 'src/user/application/dtos/user.dto';
+  const userRepoPath = mode === 'light' ? 'src/user/repositories/user.repository' : 'src/user/application/interfaces/user.repository.interface';
+  const userRepoType = mode === 'light' ? 'UserRepository' : 'IUserRepository';
+
   await createFile({
     path: `${authPaths.authServicesPath}/auth.service.ts`,
     contente: `import {
@@ -109,8 +116,9 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
-import { IUserRepository } from 'src/user/application/interfaces/user.repository.interface';
-import { CreateUserDto } from 'src/user/application/dtos/user.dto';
+${mode === 'light' ? `import { UserRepository } from 'src/user/repositories/user.repository';
+import { CreateUserDto } from '${userDtoPath}';` : `import { IUserRepository } from '${userRepoPath}';
+import { CreateUserDto } from '${userDtoPath}';`}
 import { LoginCredentialDto } from 'src/user/application/dtos/loginCredential.dto';
 import { RefreshTokenDto } from 'src/user/application/dtos/refreshToken.dto';
 import { SendOtpDto } from 'src/user/application/dtos/sendOtp.dto';
@@ -125,8 +133,10 @@ export class AuthService {
 
   constructor(
     private readonly jwtService: JwtService,
-    @Inject('IUserRepository')
-    private readonly userRepository: IUserRepository,
+    ${mode === 'light' ?
+      `private readonly userRepository: UserRepository,` :
+      `@Inject('IUserRepository')
+    private readonly userRepository: IUserRepository,`}
   ) {}
 
   // 🔒 Hasher le mot de passe utilisateur
@@ -521,10 +531,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   ];
 
   // ✅ Génération de chaque DTO
+  const dtosPath = mode === 'light' ? 'src/user/dto' : 'src/user/application/dtos';
   for (const dto of dtos) {
     const DtoFileContent = await generateDto(dto, useSwagger, true); // tu dois adapter ta fonction generateDto pour recevoir un dto avec `name` et `fields`
     await createFile({
-      path: `src/user/application/dtos/${dto.name}.dto.ts`,
+      path: `${dtosPath}/${dto.name}.dto.ts`,
       contente: DtoFileContent,
     });
   }

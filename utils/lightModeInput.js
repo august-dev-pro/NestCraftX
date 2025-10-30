@@ -93,6 +93,15 @@ function getLightModeInputs(projectName, flags) {
     addCustomEntities(inputs.entitiesData);
   }
 
+  // Demander les relations entre entités
+  if (inputs.entitiesData.entities.length > 1) {
+    const wantsRelation = readline.keyInYNStrict('Voulez-vous ajouter des relations entre entites ?');
+    if (wantsRelation) {
+      console.log(`\n${info('[INFO]')} Configuration des relations`);
+      addRelations(inputs.entitiesData);
+    }
+  }
+
   return inputs;
 }
 
@@ -179,6 +188,54 @@ function addCustomEntities(entitiesData) {
     }
 
     const addMore = readline.keyInYNStrict('Ajouter une autre entite ?');
+    if (!addMore) break;
+  }
+}
+
+function addRelations(entitiesData) {
+  while (true) {
+    console.log("\n  Entites disponibles :");
+    entitiesData.entities.forEach((ent, index) =>
+      console.log(`    [${index}] ${ent.name}`)
+    );
+
+    let fromIndex, toIndex;
+    while (true) {
+      fromIndex = parseInt(
+        readline.question("  Depuis quelle entite ? (index) : "),
+        10
+      );
+      if (!isNaN(fromIndex) && entitiesData.entities[fromIndex]) break;
+      console.log(`${warning('[WARNING]')} Indice invalide.`);
+    }
+    while (true) {
+      toIndex = parseInt(
+        readline.question("  Vers quelle entite ? (index) : "),
+        10
+      );
+      if (!isNaN(toIndex) && entitiesData.entities[toIndex]) break;
+      console.log(`${warning('[WARNING]')} Indice invalide.`);
+    }
+
+    let relType;
+    while (true) {
+      relType = readline.question("  Type de relation (1-1 / 1-n / n-n) : ");
+      if (["1-1", "1-n", "n-1", "n-n"].includes(relType)) break;
+      console.log(`${warning('[WARNING]')} Type invalide. Choisissez : 1-1, 1-n, n-1, n-n`);
+    }
+
+    const from = entitiesData.entities[fromIndex];
+    const to = entitiesData.entities[toIndex];
+
+    entitiesData.relations.push({
+      from: from.name,
+      to: to.name,
+      type: relType,
+    });
+
+    console.log(`${info('[INFO]')} Relation ajoutee : ${from.name} ${relType} ${to.name}`);
+
+    const addMore = readline.keyInYNStrict('Ajouter une autre relation ?');
     if (!addMore) break;
   }
 }

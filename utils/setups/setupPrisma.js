@@ -275,6 +275,26 @@ export class PrismaModule {}
 `,
   });
 
+  // 🔧 Installation de dotenv si nécessaire
+  logInfo("📦 Installation de dotenv...");
+  await runCommand(
+    `${inputs.packageManager} add dotenv`,
+    "❌ Échec de l'installation de dotenv"
+  );
+
+  // 🔧 Création du fichier prisma.config.ts pour charger les variables d'environnement
+  const prismaConfigPath = "prisma/prisma.config.ts";
+  const prismaConfigExists = require('fs').existsSync(prismaConfigPath);
+
+  if (prismaConfigExists) {
+    logInfo("📝 Mise à jour de prisma.config.ts avec l'import dotenv...");
+    await updateFile({
+      path: prismaConfigPath,
+      pattern: /^/,
+      replacement: `import 'dotenv/config';\n\n`,
+    });
+  }
+
   // 🧹 Étape intermédiaire : Reset de la base pour éviter les erreurs de drift
   logInfo("🧹 Reset de la base de données...");
   await runCommand(

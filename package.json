@@ -1,7 +1,7 @@
 {
   "name": "nestcraftx",
-  "version": "0.2.0",
-  "description": "Modern CLI to generate scalable NestJS projects with Clean Architecture (FULL) and MVP mode (LIGHT) - Enhanced with auto-generated .env secrets",
+  "version": "0.2.1",
+  "description": "Modern CLI to generate scalable NestJS projects with Clean Architecture (FULL) and MVP mode (LIGHT) - Enhanced with auto-generated .env secrets, complete ORM support, and entity relations",
   "main": "bin/nestcraft.js",
   "bin": {
     "nestcraftx": "bin/nestcraft.js"
