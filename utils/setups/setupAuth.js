@@ -56,13 +56,14 @@ import { User, UserSchema } from '${userSchemaPath}';`;
     prismaProvider = "PrismaService,";
   }
 
+  const userModuleImport = mode === 'light' ? 'src/user/user.module' : 'src/user/user.module';
+
   await createFile({
     path: `${authPath}/auth.module.ts`,
     contente: `
 import { Module } from '@nestjs/common';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-// import { UserMapper } from 'src/user/domain/mappers/user.mapper';
 ${ormImports}
 import { AuthService } from '${authPaths.authServicesPath}/auth.service';
 ${
@@ -70,16 +71,14 @@ ${
     ? "import { PrismaService } from 'src/prisma/prisma.service';"
     : ""
 }
-import { AuthController } from '${
-      authPaths.authControllersPath
-    }/auth.controller';
-import { UserModule } from 'src/user/user.module';
+import { AuthController } from '${authPaths.authControllersPath}/auth.controller';
+import { UserModule } from '${userModuleImport}';
 import { JwtStrategy } from '${authPaths.authStrategyPath}/jwt.strategy';
 import { AuthGuard } from '${authPaths.authGuardsPath}/auth.guard';
 
 @Module({
   imports: [
-   UserModule,
+    UserModule,
     ${ormModuleImport},
     PassportModule,
     JwtModule.register({ secret: 'your-secret-key', signOptions: { expiresIn: '1h' } }),
@@ -99,7 +98,8 @@ export class AuthModule {}
   });
 
   // 📌 Auth Service
-  const userDtoPath = mode === 'light' ? 'src/user/dto/user.dto' : 'src/user/application/dtos/user.dto';
+  const userDtoPath = mode === 'light' ? 'src/user/dto' : 'src/user/application/dtos';
+  const authDtoPath = mode === 'light' ? 'src/auth/dto' : 'src/user/application/dtos';
   const userRepoPath = mode === 'light' ? 'src/user/repositories/user.repository' : 'src/user/application/interfaces/user.repository.interface';
   const userRepoType = mode === 'light' ? 'UserRepository' : 'IUserRepository';
 
@@ -116,15 +116,15 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
-${mode === 'light' ? `import { UserRepository } from 'src/user/repositories/user.repository';
-import { CreateUserDto } from '${userDtoPath}';` : `import { IUserRepository } from '${userRepoPath}';
-import { CreateUserDto } from '${userDtoPath}';`}
-import { LoginCredentialDto } from 'src/user/application/dtos/loginCredential.dto';
-import { RefreshTokenDto } from 'src/user/application/dtos/refreshToken.dto';
-import { SendOtpDto } from 'src/user/application/dtos/sendOtp.dto';
-import { VerifyOtpDto } from 'src/user/application/dtos/verifyOtp.dto';
-import { ForgotPasswordDto } from 'src/user/application/dtos/forgotPassword.dto';
-import { ResetPasswordDto } from 'src/user/application/dtos/resetPassword.dto';
+${mode === 'light' ? `import { UserRepository } from '${userRepoPath}';
+import { CreateUserDto } from '${userDtoPath}/user.dto';` : `import { IUserRepository } from '${userRepoPath}';
+import { CreateUserDto } from '${userDtoPath}/user.dto';`}
+import { LoginCredentialDto } from '${authDtoPath}/loginCredential.dto';
+import { RefreshTokenDto } from '${authDtoPath}/refreshToken.dto';
+import { SendOtpDto } from '${authDtoPath}/sendOtp.dto';
+import { VerifyOtpDto } from '${authDtoPath}/verifyOtp.dto';
+import { ForgotPasswordDto } from '${authDtoPath}/forgotPassword.dto';
+import { ResetPasswordDto } from '${authDtoPath}/resetPassword.dto';
 
 @Injectable()
 export class AuthService {
@@ -266,13 +266,13 @@ export class AuthService {
 import { Request } from 'express';
 import { AuthService } from "${authPaths.authServicesPath}/auth.service";
 import { JwtAuthGuard } from "${authPaths.authGuardsPath}/jwt-auth.guard";
-import { CreateUserDto } from 'src/user/application/dtos/user.dto';
-import { LoginCredentialDto } from 'src/user/application/dtos/loginCredential.dto';
-import { RefreshTokenDto } from 'src/user/application/dtos/refreshToken.dto';
-import { SendOtpDto } from 'src/user/application/dtos/sendOtp.dto';
-import { VerifyOtpDto } from 'src/user/application/dtos/verifyOtp.dto';
-import { ForgotPasswordDto } from 'src/user/application/dtos/forgotPassword.dto';
-import { ResetPasswordDto } from 'src/user/application/dtos/resetPassword.dto';
+import { CreateUserDto } from '${userDtoPath}/user.dto';
+import { LoginCredentialDto } from '${authDtoPath}/loginCredential.dto';
+import { RefreshTokenDto } from '${authDtoPath}/refreshToken.dto';
+import { SendOtpDto } from '${authDtoPath}/sendOtp.dto';
+import { VerifyOtpDto } from '${authDtoPath}/verifyOtp.dto';
+import { ForgotPasswordDto } from '${authDtoPath}/forgotPassword.dto';
+import { ResetPasswordDto } from '${authDtoPath}/resetPassword.dto';
 ${useSwagger ? "import { ApiBearerAuth } from '@nestjs/swagger';" : ""}
 
 @Controller('auth')

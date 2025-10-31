@@ -24,6 +24,26 @@ async function setupLightArchitecture(inputs) {
   const srcPath = "src";
 
   try {
+    // Créer le dossier common/enums pour les énums
+    await createDirectory("src/common/enums");
+
+    // Générer l'enum Role si l'entité User existe
+    const hasUserEntity = entitiesData.entities.some(
+      (entity) => entity.name.toLowerCase() === "user"
+    );
+
+    if (hasUserEntity) {
+      await createFile({
+        path: "src/common/enums/role.enum.ts",
+        contente: `export enum Role {
+  USER = 'USER',
+  ADMIN = 'ADMIN',
+  SUPER_ADMIN = 'SUPER_ADMIN',
+}
+`,
+      });
+    }
+
     await updateFile({
       path: "src/app.module.ts",
       pattern: "import { Module } from '@nestjs/common';",
@@ -71,7 +91,7 @@ async function setupLightArchitecture(inputs) {
         contente: dtoContent,
       });
 
-      const repositoryContent = generateLightRepository(entityNameCapitalized, entityNameLower, dbConfig.orm);
+      const repositoryContent = generateLightRepository(entityNameCapitalized, entityNameLower, dbConfig.orm, entity);
       await createFile({
         path: `${entityPath}/repositories/${entityNameLower}.repository.ts`,
         contente: repositoryContent,
@@ -126,8 +146,12 @@ import { APP_INTERCEPTOR } from '@nestjs/core';`,
   }
 }
 
-function generateLightRepository(entityName, entityLower, orm) {
+function generateLightRepository(entityName, entityLower, orm, entity) {
   if (orm === 'prisma') {
+    const fieldParams = entity.fields
+      .map((f) => `raw.${f.name}`)
+      .join(', ');
+
     return `import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Create${entityName}Dto, Update${entityName}Dto } from '../dto/${entityLower}.dto';
@@ -144,7 +168,7 @@ export class ${entityName}Repository {
       raw.id,
       raw.createdAt,
       raw.updatedAt,
-      ...Object.keys(raw).filter(k => !['id', 'createdAt', 'updatedAt'].includes(k)).map(k => raw[k])
+      ${fieldParams}
     );
   }
 
@@ -175,6 +199,10 @@ export class ${entityName}Repository {
   }
 
   if (orm === 'typeorm') {
+    const fieldParams = entity.fields
+      .map((f) => `raw.${f.name}`)
+      .join(', ');
+
     return `import { Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -196,7 +224,7 @@ export class ${entityName}Repository {
       raw.id,
       raw.createdAt,
       raw.updatedAt,
-      ...Object.keys(raw).filter(k => !['id', 'createdAt', 'updatedAt'].includes(k)).map(k => raw[k])
+      ${fieldParams}
     );
   }
 
@@ -228,6 +256,10 @@ export class ${entityName}Repository {
   }
 
   if (orm === 'mongoose') {
+    const fieldParams = entity.fields
+      .map((f) => `obj.${f.name}`)
+      .join(', ');
+
     return `import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -250,7 +282,7 @@ export class ${entityName}Repository {
       obj._id.toString(),
       obj.createdAt,
       obj.updatedAt,
-      ...Object.keys(obj).filter(k => !['_id', 'createdAt', 'updatedAt', '__v'].includes(k)).map(k => obj[k])
+      ${fieldParams}
     );
   }
 
@@ -356,21 +388,14 @@ export class ${entityName}Service {
 }
 
 function generateLightController(entityName, entityLower, useSwagger) {
-  const swaggerDecorators = useSwagger ? `
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+  const swaggerImports = useSwagger ? `import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';\n` : '';
+  const swaggerDecorators = useSwagger ? `@ApiTags('${entityLower}')\n` : '';
 
-@ApiTags('${entityLower}')` : '';
-
-  const operationDecorators = useSwagger ? (op, desc) => `
-  @ApiOperation({ summary: '${desc}' })
-  @ApiResponse({ status: ${op === 'Post' ? '201' : '200'}, description: 'Success' })` : () => '';
-
-  return `import { Controller, Get, Post, Put, Delete, Body, Param, Logger } from '@nestjs/common';${swaggerDecorators ? `
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';` : ''}
-import { ${entityName}Service } from '../services/${entityLower}.service';
+  return `import { Controller, Get, Post, Put, Delete, Body, Param, Logger } from '@nestjs/common';
+${swaggerImports}import { ${entityName}Service } from '../services/${entityLower}.service';
 import { Create${entityName}Dto, Update${entityName}Dto } from '../dto/${entityLower}.dto';
-${swaggerDecorators}
-@Controller('${entityLower}')
+
+${swaggerDecorators}@Controller('${entityLower}')
 export class ${entityName}Controller {
   private readonly logger = new Logger(${entityName}Controller.name);
 

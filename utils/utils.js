@@ -163,58 +163,108 @@ export async function generateDto(entity, useSwagger, isAuthDto = false) {
     // 🚀 Cas spécifiques pour AUTH DTO (exemples réalistes)
     if (isAuthDto) {
       if (fieldName.includes("newpassword")) {
-        return `"NewStrongPass123!"`;
+        return `"Password@123456"`;
+      }
+      if (fieldName.includes("password")) {
+        return `"SecurePass@2024"`;
       }
       if (fieldName.includes("otp")) {
-        return `"123456"`;
+        return `"654321"`;
       }
       if (fieldName.includes("token")) {
-        return `"eyJhbGciOiJIUzI1NiIsInR5cCI6..."`;
+        return `"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"`;
+      }
+      if (fieldName.includes("email")) {
+        return `"user@example.com"`;
       }
     }
 
+    // 🎯 Patterns spécifiques aux noms de champs
     if (fieldName.includes("email")) {
-      return `"user@example.com"`;
+      return `"alice.johnson@example.com"`;
     }
     if (fieldName.includes("password")) {
-      return `"StrongPassword123!"`;
+      return `"SecurePass@2024"`;
     }
-    // 🌐 Cas génériques applicables à tout
+    if (fieldName.includes("username")) {
+      return `"john_doe"`;
+    }
+    if (fieldName.includes("firstname") || fieldName.includes("first_name")) {
+      return `"John"`;
+    }
+    if (fieldName.includes("lastname") || fieldName.includes("last_name")) {
+      return `"Doe"`;
+    }
+    if (fieldName.includes("phone")) {
+      return `"+1234567890"`;
+    }
+    if (fieldName.includes("title")) {
+      return `"Product Title"`;
+    }
+    if (fieldName.includes("name")) {
+      return `"${entityName} Name"`;
+    }
+    if (fieldName.includes("description")) {
+      return `"A detailed description of the item"`;
+    }
+    if (fieldName.includes("url") || fieldName.includes("image")) {
+      return `"https://example.com/image.png"`;
+    }
     if (fieldName.includes("price")) {
-      return 199.99;
+      return 99.99;
     }
-    if (fieldName.includes("amount")) {
-      return 500.75;
+    if (fieldName.includes("amount") || fieldName.includes("total")) {
+      return 1500.50;
     }
-    if (fieldName.includes("role")) {
-      return `"user"`;
-    }
-    if (fieldName.includes("date")) {
-      return `"2024-01-01T00:00:00Z"`;
-    }
-    if (fieldName.includes("account")) {
-      return `"acc_${f.name}_12345"`;
+    if (fieldName.includes("quantity") || fieldName.includes("count")) {
+      return 5;
     }
     if (fieldName.includes("discount")) {
-      return 10;
+      return 15;
     }
-    if (fieldName.includes("Id")) {
-      return "UID-exemple-4f06-bd56-f4021b541c57";
+    if (fieldName.includes("rate") || fieldName.includes("rating")) {
+      return 4.5;
+    }
+    if (fieldName.includes("role")) {
+      return `"admin"`;
+    }
+    if (fieldName.includes("status")) {
+      return `"active"`;
+    }
+    if (fieldName.includes("type")) {
+      return `"standard"`;
+    }
+    if (fieldName.includes("date") || fieldName.includes("at")) {
+      return `"2024-12-01T10:30:00Z"`;
+    }
+    if (fieldName.includes("time")) {
+      return `"14:30:00"`;
+    }
+    if (fieldName.includes("id") && fieldName !== "id") {
+      return `"550e8400-e29b-41d4-a716-446655440000"`;
+    }
+    if (fieldName.includes("code")) {
+      return `"CODE123456"`;
+    }
+    if (fieldName.includes("reference")) {
+      return `"REF-2024-001"`;
     }
 
-    // 🛠 Sinon fallback basique selon le type
-    switch (f.type) {
+    // 🛠 Fallback selon le type
+    switch (f.type.toLowerCase()) {
       case "string":
-        return `"${f.name}_example"`;
+        return `"${entityName.toLowerCase()}_${f.name}"`;
       case "number":
-        return 123;
+      case "int":
+        return 42;
+      case "float":
+        return 3.14;
       case "boolean":
         return true;
       case "date":
-      case "date":
-        return `"2024-01-01T00:00:00Z"`;
+        return `"2024-01-15T08:00:00Z"`;
       default:
-        return `"sample_${f.name}"`;
+        return `"value"`;
     }
   };
 
