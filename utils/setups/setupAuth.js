@@ -10,7 +10,7 @@ async function setupAuth(inputs) {
 
   const dbConfig = inputs.dbConfig;
   const useSwagger = inputs.useSwagger;
-  const mode = inputs.mode || 'full';
+  const mode = inputs.mode || "full";
 
   await runCommand(
     `npm install @nestjs/jwt @nestjs/passport passport passport-jwt bcrypt uuid`,
@@ -38,17 +38,21 @@ async function setupAuth(inputs) {
   let ormImports = "";
   let ormModuleImport = "";
   let prismaProvider = ""; // Pour n'ajouter PrismaService que si besoin
-  let userModulePath = mode === 'light' ? 'src/user/user.module' : 'src/user/user.module';
-  let userSchemaPath = mode === 'light' ? 'src/user/entities/user.schema' : 'src/user/domain/entities/user.schema';
+  let userModulePath =
+    mode === "light" ? "src/user/user.module" : "src/user/user.module";
+  let userSchemaPath =
+    mode === "light"
+      ? "src/user/entities/user.schema"
+      : "src/user/domain/entities/user.schema";
 
   if (dbConfig.orm === "typeorm") {
     ormImports = `import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/entities/User.entity';`;
-    ormModuleImport = `TypeOrmModule.forFeature([User])`;
+    ormModuleImport = `TypeOrmModule.forFeature([User]),`;
   } else if (dbConfig.orm === "mongoose") {
     ormImports = `import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '${userSchemaPath}';`;
-    ormModuleImport = `MongooseModule.forFeature([{ name: User.name, schema: UserSchema }])`;
+    ormModuleImport = `MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),`;
     prismaProvider = ""; // Ne pas ajouter PrismaService
   } else if (dbConfig.orm === "prisma") {
     ormImports = "";
@@ -56,7 +60,8 @@ import { User, UserSchema } from '${userSchemaPath}';`;
     prismaProvider = "PrismaService,";
   }
 
-  const userModuleImport = mode === 'light' ? 'src/user/user.module' : 'src/user/user.module';
+  const userModuleImport =
+    mode === "light" ? "src/user/user.module" : "src/user/user.module";
 
   await createFile({
     path: `${authPath}/auth.module.ts`,
@@ -71,7 +76,9 @@ ${
     ? "import { PrismaService } from 'src/prisma/prisma.service';"
     : ""
 }
-import { AuthController } from '${authPaths.authControllersPath}/auth.controller';
+import { AuthController } from '${
+      authPaths.authControllersPath
+    }/auth.controller';
 import { UserModule } from '${userModuleImport}';
 import { JwtStrategy } from '${authPaths.authStrategyPath}/jwt.strategy';
 import { AuthGuard } from '${authPaths.authGuardsPath}/auth.guard';
@@ -79,7 +86,7 @@ import { AuthGuard } from '${authPaths.authGuardsPath}/auth.guard';
 @Module({
   imports: [
     UserModule,
-    ${ormModuleImport},
+    ${ormModuleImport}
     PassportModule,
     JwtModule.register({ secret: 'your-secret-key', signOptions: { expiresIn: '1h' } }),
   ],
@@ -98,10 +105,24 @@ export class AuthModule {}
   });
 
   // 📌 Auth Service
-  const userDtoPath = mode === 'light' ? 'src/user/dto' : 'src/user/application/dtos';
-  const authDtoPath = mode === 'light' ? 'src/auth/dto' : 'src/user/application/dtos';
-  const userRepoPath = mode === 'light' ? 'src/user/repositories/user.repository' : 'src/user/application/interfaces/user.repository.interface';
-  const userRepoType = mode === 'light' ? 'UserRepository' : 'IUserRepository';
+  let enumImport;
+  let userDtoPath;
+  let authDtoPath;
+  let userRepoPath;
+  let userRepoType;
+  if (mode === "light") {
+    userDtoPath = "src/user/dto";
+    authDtoPath = "src/user/dto";
+    userRepoPath = "src/user/repositories/user.repository";
+    userRepoType = "UserRepository";
+    enumImport = "import { Role } from 'src/common/enums/role.enum';";
+  } else {
+    userDtoPath = "src/user/application/dtos";
+    authDtoPath = "src/user/application/dtos";
+    userRepoPath = "src/user/application/interfaces/user.repository.interface";
+    userRepoType = "IUserRepository";
+    enumImport = "import { Role } from 'src/user/domain/enums/role.enum';";
+  }
 
   await createFile({
     path: `${authPaths.authServicesPath}/auth.service.ts`,
@@ -116,9 +137,13 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 
-${mode === 'light' ? `import { UserRepository } from '${userRepoPath}';
-import { CreateUserDto } from '${userDtoPath}/user.dto';` : `import { IUserRepository } from '${userRepoPath}';
-import { CreateUserDto } from '${userDtoPath}/user.dto';`}
+${
+  mode === "light"
+    ? `import { UserRepository } from '${userRepoPath}';
+import { CreateUserDto } from '${userDtoPath}/user.dto';`
+    : `import { IUserRepository } from '${userRepoPath}';
+import { CreateUserDto } from '${userDtoPath}/user.dto';`
+}
 import { LoginCredentialDto } from '${authDtoPath}/loginCredential.dto';
 import { RefreshTokenDto } from '${authDtoPath}/refreshToken.dto';
 import { SendOtpDto } from '${authDtoPath}/sendOtp.dto';
@@ -133,10 +158,12 @@ export class AuthService {
 
   constructor(
     private readonly jwtService: JwtService,
-    ${mode === 'light' ?
-      `private readonly userRepository: UserRepository,` :
-      `@Inject('IUserRepository')
-    private readonly userRepository: IUserRepository,`}
+    ${
+      mode === "light"
+        ? `private readonly userRepository: UserRepository,`
+        : `@Inject('IUserRepository')
+    private readonly userRepository: IUserRepository,`
+    }
   ) {}
 
   // 🔒 Hasher le mot de passe utilisateur
@@ -391,7 +418,7 @@ export class AuthController {
     path: `${authPaths.authGuardsPath}/role.guard.ts`,
     contente: `import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Role } from 'src/user/domain/enums/role.enum';
+${enumImport}
 import { ROLES_KEY } from 'src/common/decorators/role.decorator';
 import { IS_PUBLIC_KEY } from 'src/common/decorators/public.decorator';
 
@@ -531,9 +558,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   ];
 
   // ✅ Génération de chaque DTO
-  const dtosPath = mode === 'light' ? 'src/user/dto' : 'src/user/application/dtos';
+  const dtosPath =
+    mode === "light" ? "src/user/dto" : "src/user/application/dtos";
   for (const dto of dtos) {
-    const DtoFileContent = await generateDto(dto, useSwagger, true); // tu dois adapter ta fonction generateDto pour recevoir un dto avec `name` et `fields`
+    const DtoFileContent = await generateDto(dto, useSwagger, true, mode); // tu dois adapter ta fonction generateDto pour recevoir un dto avec `name` et `fields`
     await createFile({
       path: `${dtosPath}/${dto.name}.dto.ts`,
       contente: DtoFileContent,

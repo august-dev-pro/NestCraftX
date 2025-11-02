@@ -42,19 +42,6 @@ async function setupCleanArchitecture(inputs) {
   try {
     // modifier app module pour exporter configService globalement
     const appModuleTsPath = "src/app.module.ts";
-    // let mainTs = fs.readFileSync(mainTsPath, "utf8");
-
-    /* await createDirectory("src");
-    await createFile({
-      path: appModuleTsPath,
-      contente: `import { Module } from '@nestjs/common';
-@Module({
-  imports: [],
-  controllers: [],
-  providers: [],
-})
-export class AppModule {}`,
-    }); */
 
     // ajouter l'import configModule
     await updateFile({

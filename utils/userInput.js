@@ -1,5 +1,6 @@
 import * as readline from "readline-sync";
 import * as fs from "fs";
+import { logInfo } from "./loggers/logInfo.js";
 
 export async function getUserInputs2() {
   console.log("\n🔹🔹🔹 Configuration du projet 🔹🔹🔹\n");
@@ -377,6 +378,7 @@ export async function updateFile({ path, pattern, replacement }) {
 }
 
 export async function safeUpdateAppModule(entity) {
+  logInfo(`safe update appmoduel for: ${entity}`);
   const filePath = "src/app.module.ts";
   const moduleName = `${capitalize(entity)}Module`;
 

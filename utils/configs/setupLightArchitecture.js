@@ -17,6 +17,8 @@ const {
 async function setupLightArchitecture(inputs) {
   logInfo("Generation de la structure Light (MVP)");
 
+  const mode = "light";
+
   const entitiesData = inputs.entitiesData;
   const dbConfig = inputs.dbConfig;
   const useSwagger = inputs.useSwagger;
@@ -72,7 +74,9 @@ async function setupLightArchitecture(inputs) {
       await createDirectory(`${entityPath}/controllers`);
 
       if (dbConfig.orm === "mongoose") {
-        const mongooseSchemaContent = await generateMongooseSchemaFileContent(entity);
+        const mongooseSchemaContent = await generateMongooseSchemaFileContent(
+          entity
+        );
         await createFile({
           path: `${entityPath}/entities/${entityNameLower}.schema.ts`,
           contente: mongooseSchemaContent,
@@ -85,31 +89,48 @@ async function setupLightArchitecture(inputs) {
         contente: entityContent,
       });
 
-      const dtoContent = await generateDto(entity, useSwagger);
+      const dtoContent = await generateDto(entity, useSwagger, false, mode);
       await createFile({
         path: `${entityPath}/dto/${entityNameLower}.dto.ts`,
         contente: dtoContent,
       });
 
-      const repositoryContent = generateLightRepository(entityNameCapitalized, entityNameLower, dbConfig.orm, entity);
+      const repositoryContent = generateLightRepository(
+        entityNameCapitalized,
+        entityNameLower,
+        dbConfig.orm,
+        entity
+      );
       await createFile({
         path: `${entityPath}/repositories/${entityNameLower}.repository.ts`,
         contente: repositoryContent,
       });
 
-      const serviceContent = generateLightService(entityNameCapitalized, entityNameLower);
+      const serviceContent = generateLightService(
+        entityNameCapitalized,
+        entityNameLower
+      );
       await createFile({
         path: `${entityPath}/services/${entityNameLower}.service.ts`,
         contente: serviceContent,
       });
 
-      const controllerContent = generateLightController(entityNameCapitalized, entityNameLower, useSwagger);
+      const controllerContent = generateLightController(
+        entityNameCapitalized,
+        entityNameLower,
+        useSwagger
+      );
       await createFile({
         path: `${entityPath}/controllers/${entityNameLower}.controller.ts`,
         contente: controllerContent,
       });
 
-      const moduleContent = generateLightModule(entityNameCapitalized, entityNameLower, entityPath, dbConfig.orm);
+      const moduleContent = generateLightModule(
+        entityNameCapitalized,
+        entityNameLower,
+        entityPath,
+        dbConfig.orm
+      );
       await createFile({
         path: `${entityPath}/${entityNameLower}.module.ts`,
         contente: moduleContent,
@@ -147,10 +168,8 @@ import { APP_INTERCEPTOR } from '@nestjs/core';`,
 }
 
 function generateLightRepository(entityName, entityLower, orm, entity) {
-  if (orm === 'prisma') {
-    const fieldParams = entity.fields
-      .map((f) => `raw.${f.name}`)
-      .join(', ');
+  if (orm === "prisma") {
+    const fieldParams = entity.fields.map((f) => `raw.${f.name}`).join(", ");
 
     return `import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -198,10 +217,8 @@ export class ${entityName}Repository {
 }`;
   }
 
-  if (orm === 'typeorm') {
-    const fieldParams = entity.fields
-      .map((f) => `raw.${f.name}`)
-      .join(', ');
+  if (orm === "typeorm") {
+    const fieldParams = entity.fields.map((f) => `raw.${f.name}`).join(", ");
 
     return `import { Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
@@ -255,10 +272,8 @@ export class ${entityName}Repository {
 }`;
   }
 
-  if (orm === 'mongoose') {
-    const fieldParams = entity.fields
-      .map((f) => `obj.${f.name}`)
-      .join(', ');
+  if (orm === "mongoose") {
+    const fieldParams = entity.fields.map((f) => `obj.${f.name}`).join(", ");
 
     return `import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -388,8 +403,10 @@ export class ${entityName}Service {
 }
 
 function generateLightController(entityName, entityLower, useSwagger) {
-  const swaggerImports = useSwagger ? `import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';\n` : '';
-  const swaggerDecorators = useSwagger ? `@ApiTags('${entityLower}')\n` : '';
+  const swaggerImports = useSwagger
+    ? `import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';\n`
+    : "";
+  const swaggerDecorators = useSwagger ? `@ApiTags('${entityLower}')\n` : "";
 
   return `import { Controller, Get, Post, Put, Delete, Body, Param, Logger } from '@nestjs/common';
 ${swaggerImports}import { ${entityName}Service } from '../services/${entityLower}.service';
@@ -400,37 +417,57 @@ export class ${entityName}Controller {
   private readonly logger = new Logger(${entityName}Controller.name);
 
   constructor(private readonly service: ${entityName}Service) {}
-${useSwagger ? `
+${
+  useSwagger
+    ? `
   @ApiOperation({ summary: 'Create a new ${entityLower}' })
-  @ApiResponse({ status: 201, description: 'Created' })` : ''}
+  @ApiResponse({ status: 201, description: 'Created' })`
+    : ""
+}
   @Post()
   async create(@Body() dto: Create${entityName}Dto) {
     return await this.service.create(dto);
   }
-${useSwagger ? `
+${
+  useSwagger
+    ? `
   @ApiOperation({ summary: 'Get all ${entityLower}s' })
-  @ApiResponse({ status: 200, description: 'Success' })` : ''}
+  @ApiResponse({ status: 200, description: 'Success' })`
+    : ""
+}
   @Get()
   async findAll() {
     return await this.service.findAll();
   }
-${useSwagger ? `
+${
+  useSwagger
+    ? `
   @ApiOperation({ summary: 'Get ${entityLower} by id' })
-  @ApiResponse({ status: 200, description: 'Success' })` : ''}
+  @ApiResponse({ status: 200, description: 'Success' })`
+    : ""
+}
   @Get(':id')
   async findById(@Param('id') id: string) {
     return await this.service.findById(id);
   }
-${useSwagger ? `
+${
+  useSwagger
+    ? `
   @ApiOperation({ summary: 'Update ${entityLower}' })
-  @ApiResponse({ status: 200, description: 'Updated' })` : ''}
+  @ApiResponse({ status: 200, description: 'Updated' })`
+    : ""
+}
   @Put(':id')
   async update(@Param('id') id: string, @Body() dto: Update${entityName}Dto) {
     return await this.service.update(id, dto);
   }
-${useSwagger ? `
+${
+  useSwagger
+    ? `
   @ApiOperation({ summary: 'Delete ${entityLower}' })
-  @ApiResponse({ status: 200, description: 'Deleted' })` : ''}
+  @ApiResponse({ status: 200, description: 'Deleted' })`
+    : ""
+}
   @Delete(':id')
   async delete(@Param('id') id: string) {
     await this.service.delete(id);
@@ -441,10 +478,7 @@ ${useSwagger ? `
 
 function generateLightModule(entityName, entityLower, entityPath, orm) {
   let importsBlock = [];
-  let providersBlock = [
-    `${entityName}Service`,
-    `${entityName}Repository`
-  ];
+  let providersBlock = [`${entityName}Service`, `${entityName}Repository`];
   let extraImports = "";
 
   if (orm === "prisma") {
@@ -469,9 +503,9 @@ import { ${entityName}Service } from '${entityPath}/services/${entityLower}.serv
 import { ${entityName}Repository } from '${entityPath}/repositories/${entityLower}.repository';
 
 @Module({
-  imports: [${importsBlock.join(', ')}],
+  imports: [${importsBlock.join(", ")}],
   controllers: [${entityName}Controller],
-  providers: [${providersBlock.join(', ')}],
+  providers: [${providersBlock.join(", ")}],
   exports: [${entityName}Service]
 })
 export class ${entityName}Module {}`;

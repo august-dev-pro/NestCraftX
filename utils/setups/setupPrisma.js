@@ -1,4 +1,4 @@
-// const fs = require("fs");
+const fs = require("fs");
 // const { execSync } = require("child_process");
 const { logInfo } = require("../loggers/logInfo");
 const { runCommand } = require("../shell");
@@ -283,10 +283,12 @@ export class PrismaModule {}
   );
 
   // 🔧 Création du fichier prisma.config.ts pour charger les variables d'environnement
-  const prismaConfigPath = "prisma/prisma.config.ts";
-  const prismaConfigExists = require('fs').existsSync(prismaConfigPath);
+  let prismaConfigPath = "prisma.config.ts";
+  if (!fs.existsSync(prismaConfigPath)) {
+    prismaConfigPath = "prisma/prisma.config.ts";
+  }
 
-  if (prismaConfigExists) {
+  if (fs.existsSync(prismaConfigPath)) {
     logInfo("📝 Mise à jour de prisma.config.ts avec l'import dotenv...");
     await updateFile({
       path: prismaConfigPath,

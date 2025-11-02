@@ -154,8 +154,20 @@ export class ${entityName}Mapper {
 `;
 }
 
-export async function generateDto(entity, useSwagger, isAuthDto = false) {
+export async function generateDto(
+  entity,
+  useSwagger,
+  isAuthDto = false,
+  mode = "full"
+) {
   const entityName = capitalize(entity.name);
+  let enumImport = "";
+  if (entityName === "User") {
+    enumImport =
+      mode === "light"
+        ? "import { Role } from 'src/common/enums/role.enum';"
+        : "import { Role } from 'src/user/domain/enums/role.enum';";
+  }
 
   const getExampleForField = (f) => {
     const fieldName = f.name.toLowerCase();
@@ -214,7 +226,7 @@ export async function generateDto(entity, useSwagger, isAuthDto = false) {
       return 99.99;
     }
     if (fieldName.includes("amount") || fieldName.includes("total")) {
-      return 1500.50;
+      return 1500.5;
     }
     if (fieldName.includes("quantity") || fieldName.includes("count")) {
       return 5;
@@ -302,11 +314,7 @@ ${
     ? "import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';"
     : ""
 }
-${
-  entityName == "User"
-    ? "import { Role } from 'src/user/domain/enums/role.enum';"
-    : ""
-}
+${enumImport}
 `;
 
   // ✅ Cas AUTH DTO : une seule classe + nom déjà donné (pas de Create/Update)
