@@ -506,7 +506,7 @@ import { ${entityName}Repository } from '${entityPath}/repositories/${entityLowe
   imports: [${importsBlock.join(", ")}],
   controllers: [${entityName}Controller],
   providers: [${providersBlock.join(", ")}],
-  exports: [${entityName}Service]
+  exports: [${entityName}Service, ${entityName}Repository]
 })
 export class ${entityName}Module {}`;
 }
