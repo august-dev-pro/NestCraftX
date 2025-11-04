@@ -378,40 +378,62 @@ export async function updateFile({ path, pattern, replacement }) {
 }
 
 export async function safeUpdateAppModule(entity) {
-  logInfo(`safe update appmoduel for: ${entity}`);
+  // logInfo(`🧩 Vérification de AppModule pour: ${entity}`);
   const filePath = "src/app.module.ts";
   const moduleName = `${capitalize(entity)}Module`;
+  const importLine = `import { ${moduleName} } from 'src/${entity}/${entity}.module';`;
 
-  const content = fs.readFileSync(filePath, "utf-8");
+  let content = fs.readFileSync(filePath, "utf-8");
 
-  const importLine = `import {${moduleName}} from 'src/${entity}/${entity}.module';`;
-
-  const importPatern = `import { ConfigModule } from '@nestjs/config';`;
-
-  // Ajout de l'import s'il n'existe pas
+  // --- Étape 1 : Ajout de l'import si nécessaire
   if (!content.includes(importLine)) {
-    await updateFile({
-      path: filePath,
-      pattern: importPatern,
-      replacement: `${importPatern}\n${importLine}`,
-    });
+    // logInfo(`➡️ Ajout de l'import pour ${moduleName}`);
+    const importMarker = `import { ConfigModule } from '@nestjs/config';`;
+
+    if (content.includes(importMarker)) {
+      await updateFile({
+        path: filePath,
+        pattern: importMarker,
+        replacement: `${importMarker}\n${importLine}`,
+      });
+      content = fs.readFileSync(filePath, "utf-8");
+    } else {
+      logInfo(
+        "⚠️ Impossible de trouver le point d'insertion de l'import (ConfigModule manquant)"
+      );
+    }
+  } /* else {
+    logInfo(`✅ Import déjà présent pour ${moduleName}`);
+  } */
+
+  // --- Étape 2 : Vérifier le bloc des imports du @Module
+  const importsBlockRegex = /imports:\s*\[((.|\n)*?)\]/m;
+  const match = content.match(importsBlockRegex);
+
+  if (!match) {
+    logInfo("❌ Impossible de trouver le bloc 'imports' dans AppModule.");
+    return;
   }
 
-  // Regex qui capte le contenu de imports: [ ... ]
-  const importRegexPatern = `imports: [
-    ConfigModule.forRoot({
-      isGlobal: true, // Rendre ConfigModule accessible globalement
-      envFilePath: '.env', // Charger les variables d'environnement
-    }),`;
-  // const contentRegex = await fs.readFileSync(filePath, "utf-8");
+  const currentImportsBlock = match[1];
+  const isAlreadyImportedInModule = currentImportsBlock.includes(moduleName);
 
-  if (!content.includes(moduleName)) {
-    await updateFile({
-      path: filePath,
-      pattern: importRegexPatern,
-      replacement: `${importRegexPatern}\n${moduleName},\n`,
-    });
-  }
+  if (!isAlreadyImportedInModule) {
+    logInfo(`🛠 Ajout de ${moduleName} dans le tableau 'imports'`);
+    const updatedBlock = currentImportsBlock.trim().endsWith(",")
+      ? `${currentImportsBlock.trim()} ${moduleName},`
+      : `${currentImportsBlock.trim()}, ${moduleName},`;
+
+    const newContent = content.replace(
+      importsBlockRegex,
+      `imports: [${updatedBlock}]`
+    );
+    fs.writeFileSync(filePath, newContent, "utf-8");
+  } /* else {
+    logInfo(`✅ ${moduleName} est déjà présent dans le tableau 'imports'`);
+  } */
+
+  // logInfo(`🎉 AppModule mis à jour avec succès pour: ${entity}`);
 }
 
 export function capitalize(str) {
