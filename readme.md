@@ -2,11 +2,11 @@
 
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/node-%3E=14.0.0-green.svg)
-![Version](https://img.shields.io/badge/version-0.2.0-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-0.2.1-brightgreen.svg)
 
 **NestCraftX** est un CLI Node.js moderne et puissant pour generer automatiquement des projets NestJS avec une architecture propre et maintenable. Il implemente les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma/TypeORM/Mongoose**, **JWT Auth avec secrets auto-generes**, **Swagger**, **Docker**, et plus encore.
 
-> Version 0.2.0 : CLI moderne avec 2 modes d'architecture (FULL/LIGHT), generation automatique de secrets JWT securises, et UX amelioree avec couleurs et spinners !
+> Version 0.2.1 : Amélioration majeure - Démo interactif avec flags, Auth refactorisée via UserService, templates professionnels (gitignore, README), code propre et maintenir par la communauté !
 
 ---
 
@@ -23,6 +23,40 @@
 - [📌 Roadmap](#roadmap)
 - [❤️ Contribuer](#contribuer)
 - [📜 Licence](#licence)
+
+---
+
+## Nouveautes v0.2.1
+
+### Demo Command Amélioré
+
+- ✅ Options par flags : `--light`, `--orm`, `--auth`, `--swagger`, `--docker`
+- ✅ Mode interactif : pose les questions uniquement si flags manquants
+- ✅ Fusion intelligente flags + réponses interactives
+- ✅ 3 entités pré-configurées avec relations
+- ✅ Support de tous les ORMs (Prisma, TypeORM, Mongoose)
+
+### Auth Refactorisée
+
+- ✅ AuthService passe via UserService (pas d'accès direct au repository)
+- ✅ JWT avec ConfigService pour les secrets
+- ✅ Refresh tokens implémentés
+- ✅ OTP et password reset ready
+- ✅ Guards et strategies Passport configurés
+
+### Templates Professionnels
+
+- ✅ `.gitignore` complet pour NestJS
+- ✅ `README.md` auto-généré pour chaque projet
+- ✅ Git auto-initialized avec premier commit
+- ✅ Structure propre et documentée
+
+### Code Cleaning
+
+- ✅ Suppression des fichiers obsolètes
+- ✅ Normalisation CommonJS vs ES6
+- ✅ Code mort nettoyé
+- ✅ Imports et exports cohérents
 
 ---
 
@@ -168,19 +202,47 @@ nestcraftx new blog-api --light --orm prisma --auth --swagger
 nestcraftx new shop --orm typeorm --auth
 ```
 
-### `nestcraftx demo`
+### `nestcraftx demo [options]`
 
-Génère un projet de démonstration complet avec :
+Génère un projet de démonstration complet (blog-demo) avec :
 
-- 3 entités (User, Post, Comment)
-- Relations entre entités
+- 3 entités (User, Post, Comment) avec relations 1-n
 - Auth JWT intégrée
 - Swagger activé
 - Docker configuré
 
+**Options :**
+
+- `--light` : Mode architecture simplifiée
+- `--docker` : Activer Docker (défaut: true)
+- `--auth` : Activer Auth JWT (défaut: true)
+- `--swagger` : Activer Swagger (défaut: true)
+- `--orm <prisma|typeorm|mongoose>` : Choix de l'ORM (défaut: prisma)
+
+**Exemples :**
+
 ```bash
+# Mode interactif (posera les questions)
 nestcraftx demo
+
+# Mode LIGHT avec Mongoose
+nestcraftx demo --light --orm mongoose
+
+# Mode FULL avec TypeORM
+nestcraftx demo --orm typeorm --auth --swagger
+
+# Démarrer rapidement
+nestcraftx demo --light --orm prisma
 ```
+
+**Résultat :**
+
+Un projet blog fonctionnel avec :
+- Blog-demo créé
+- 3 entités complètes
+- Relations entre User → Post → Comment
+- Endpoints auth, users, posts, comments prêts
+- Documentation Swagger interactive
 
 ### `nestcraftx test`
 
@@ -198,14 +260,6 @@ Affiche les informations sur le CLI :
 
 ```bash
 nestcraftx info
-```
-
-### `nestcraftx start`
-
-Lance le générateur en mode legacy (interactive) :
-
-```bash
-nestcraftx start
 ```
 
 ---
@@ -375,8 +429,11 @@ npm run start:dev
 ### Projet de démonstration
 
 ```bash
-# Générer un projet blog complet
+# Générer un projet blog complet (mode interactif)
 nestcraftx demo
+
+# Ou avec options directes
+nestcraftx demo --light --orm prisma --auth --swagger
 
 # Naviguer et démarrer
 cd blog-demo
@@ -385,6 +442,17 @@ npm run start:dev
 # Accéder à Swagger UI
 open http://localhost:3000/api/docs
 ```
+
+**Qu'inclut le projet demo :**
+
+- Architecture Clean complète (ou LIGHT selon l'option)
+- 3 entités pré-configurées : User, Post, Comment
+- Relations entre entités (User → Post, Post ↔ Comment)
+- Auth JWT avec endpoints /auth/register et /auth/login
+- Endpoints métier : /users, /posts, /comments
+- Documentation Swagger automatique
+- Docker & Docker Compose configurés
+- Configuration ORM de votre choix (Prisma, TypeORM, Mongoose)
 
 ---
 
@@ -468,7 +536,7 @@ Merci à tous les contributeurs et à la communauté NestJS !
 
 ---
 
-**NestCraftX v0.2.0** - Clean Architecture Made Simple
+**NestCraftX v0.2.1** - Clean Architecture Made Simple
 
 Pour plus d'informations:
 - [Guide d'utilisation complet](./CLI_USAGE.md)

@@ -2,6 +2,53 @@
 
 All notable changes to NestCraftX will be documented in this file.
 
+## [0.2.1] - 2025-11-07
+
+### Added
+
+#### Demo Command Amélioré
+- Support complet des flags pour demo : `--light`, `--orm`, `--auth`, `--swagger`, `--docker`
+- Mode interactif intelligent : pose les questions uniquement si flags manquants
+- Fusion intelligente des options passées et réponses interactives
+- 3 entités pré-configurées (User, Post, Comment) avec relations
+- Support de tous les ORMs (Prisma, TypeORM, Mongoose)
+
+#### Auth Refactorisée
+- AuthService refactorisé pour passer via UserService
+- Pas d'accès direct au repository depuis AuthModule
+- JWT configuré avec ConfigService pour secrets dynamiques
+- Refresh tokens implémentés
+- OTP et password reset ready-to-use
+- Guards et strategies Passport complets
+- Support du role-based access control (RBAC)
+
+#### Templates Professionnels
+- `.gitignore` complet généré pour NestJS
+- `README.md` auto-généré pour chaque projet créé
+- Git auto-initialisé avec premier commit
+- Documentation professionnelle incluse
+
+#### Nettoyage du Code
+- Suppression de fichiers obsolètes (start.js, fullModeInput.js, lightModeInput.js)
+- Normalisation CommonJS vs ES6 (cohérence totale)
+- Suppression du code mort et commentaires inutiles
+- Imports/exports cohérents dans tout le projet
+
+### Changed
+
+- Version du projet mise à jour à 0.2.1
+- Documentation README complètement mise à jour
+- CLI_USAGE.md actualisé avec les nouveau flags
+- Meilleure séparation des responsabilités (Auth ↔ User)
+
+### Fixed
+
+- Cohérence des systèmes de modules CommonJS
+- Résolution des problèmes d'imports ES6/CommonJS mélangés
+- Gestion correcte des dépendances transversales
+
+---
+
 ## [0.2.0] - 2025-10-27
 
 ### Added
