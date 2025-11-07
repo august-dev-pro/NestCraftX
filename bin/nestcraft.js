@@ -1,56 +1,53 @@
 #!/usr/bin/env node
 
-const { parseCliArgs } = require('../utils/cliParser');
+const { parseCliArgs } = require("../utils/cliParser");
 
 const args = parseCliArgs(process.argv);
-const command = args.command || 'help';
+const command = args.command || "help";
 
 switch (command) {
-  case 'new':
-    require('../commands/new')(args.projectName, args.flags)
-      .catch(err => {
-        console.error('❌ Erreur:', err.message);
-        process.exit(1);
-      });
+  case "new":
+    require("../commands/new")(args.projectName, args.flags).catch((err) => {
+      console.error("❌ Erreur:", err.message);
+      process.exit(1);
+    });
     break;
 
-  case 'start':
-    require('../commands/start')();
+  case "start":
+    require("../commands/start")();
     break;
 
-  case 'test':
-    require('../commands/test')()
-      .catch(err => {
-        console.error('❌ Erreur:', err.message);
-        process.exit(1);
-      });
+  case "test":
+    require("../commands/test")().catch((err) => {
+      console.error("❌ Erreur:", err.message);
+      process.exit(1);
+    });
     break;
 
-  case 'info':
-    require('../commands/info')()
-      .catch(err => {
-        console.error('❌ Erreur:', err.message);
-        process.exit(1);
-      });
+  case "info":
+    require("../commands/info")().catch((err) => {
+      console.error("❌ Erreur:", err.message);
+      process.exit(1);
+    });
     break;
 
-  case 'demo':
-    require('../commands/demo')()
-      .catch(err => {
-        console.error('❌ Erreur:', err.message);
-        process.exit(1);
-      });
+  case "demo":
+    // Passe tous les flags à la commande demo
+    require("../commands/demo")(args.flags).catch((err) => {
+      console.error("❌ Erreur:", err.message);
+      process.exit(1);
+    });
     break;
 
-  case '--version':
-  case '-v':
-    const pkg = require('../package.json');
-    console.log('NestCraftX v' + pkg.version);
+  case "--version":
+  case "-v":
+    const pkg = require("../package.json");
+    console.log("NestCraftX v" + pkg.version);
     break;
 
-  case '--help':
-  case '-h':
-  case 'help':
+  case "--help":
+  case "-h":
+  case "help":
   default:
     displayHelp();
     break;
@@ -82,8 +79,13 @@ function displayHelp() {
       nestcraftx new blog-api --light --orm prisma --auth --swagger
       nestcraftx new shop --orm typeorm --auth
 
-  nestcraftx demo
+  nestcraftx demo [options]
     Génère un projet de démonstration complet (blog avec users, posts, comments)
+    Options:
+      --light          Mode MVP simplifié
+      --docker         Ajoute Docker
+      --auth           Ajoute Auth JWT
+      --swagger        Ajoute Swagger UI
 
   nestcraftx test
     Vérifie l'environnement système (Node, npm, Nest CLI, Docker, etc.)
