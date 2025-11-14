@@ -1,5 +1,6 @@
 ## 🛠️ NestCraftX — Clean Architecture Generator for NestJS
 
+demo
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/node-%3E=14.0.0-green.svg)
 ![Version](https://img.shields.io/badge/version-0.2.1-brightgreen.svg)
@@ -13,13 +14,14 @@
 ## 📑 Sommaire
 
 - [Nouveautes v0.2.0](#nouveautes-v020)
-- [🎯 Objectif du projet](#objectif-du-projet)
-- [📦 Prérequis](#prérequis)
-- [🚀 Installation](#installation)
-- [💻 Commandes disponibles](#commandes-disponibles)
-- [🧰 Fonctionnalités](#fonctionnalités)
-- [📁 Architecture générée](#architecture-générée)
-- [📚 Guide d'utilisation](#guide-dutilisation)
+- [Objectif du projet](#objectif-du-projet)
+- [Prérequis](#prérequis)
+- [Installation](#installation)
+- [Commandes disponibles](#commandes-disponibles)
+- [Fonctionnalités](#fonctionnalités)
+- [Architecture générée](#architecture-générée)
+- [Démo complète](#démo-complète)
+- [Guide d'utilisation](#guide-dutilisation)
 - [📌 Roadmap](#roadmap)
 - [❤️ Contribuer](#contribuer)
 - [📜 Licence](#licence)
@@ -35,6 +37,7 @@
 - ✅ Fusion intelligente flags + réponses interactives
 - ✅ 3 entités pré-configurées avec relations
 - ✅ Support de tous les ORMs (Prisma, TypeORM, Mongoose)
+- ✅ Instructions séparées dans [Documentation Demo](./DEMO.md)
 
 ### Auth Refactorisée
 
@@ -65,11 +68,13 @@
 ### Deux Modes d'Architecture
 
 **Mode FULL - Architecture Complete**
+
 - Clean Architecture avec use-cases, mappers, adapters
 - Separation stricte domain/application/infrastructure/presentation
 - Ideal pour projets complexes et scalables
 
 **Mode LIGHT - Architecture MVP**
+
 - Structure simplifiee : controllers → services → repositories
 - Demarrage rapide pour prototypes
 - Parfait pour petits projets et MVPs
@@ -117,7 +122,7 @@ nestcraftx new mon-api --light --orm=mongoose
 
 ---
 
-## 🎯 Objectif du projet
+## Objectif du projet
 
 Ne perdez plus de temps à configurer votre architecture backend. NestCraftX vous permet de :
 
@@ -127,7 +132,7 @@ Ne perdez plus de temps à configurer votre architecture backend. NestCraftX vou
 - ✅ Vous concentrer sur la logique métier
 - ✅ Choisir entre configuration rapide (Light) ou complète (Full)
 
-## 📦 Prérequis
+## Prérequis
 
 Assurez-vous d'avoir :
 
@@ -145,7 +150,7 @@ nestcraftx test
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ### 📦 Via npx (recommandé)
 
@@ -175,7 +180,7 @@ npm link
 
 ---
 
-## 💻 Commandes disponibles
+## Commandes disponibles
 
 ### `nestcraftx new <project-name> [options]`
 
@@ -238,6 +243,7 @@ nestcraftx demo --light --orm prisma
 **Résultat :**
 
 Un projet blog fonctionnel avec :
+
 - Blog-demo créé
 - 3 entités complètes
 - Relations entre User → Post → Comment
@@ -264,7 +270,7 @@ nestcraftx info
 
 ---
 
-## 🧰 Fonctionnalités
+## Fonctionnalités
 
 ### Architecture
 
@@ -312,7 +318,7 @@ nestcraftx info
 
 ---
 
-## 📁 Architecture générée
+## Architecture générée
 
 ```
 my-app/
@@ -393,7 +399,13 @@ my-app/
 
 ---
 
-## 📚 Guide d'utilisation
+## Démo complète
+
+🔥 Une démo prête à exécuter, incluant 3 entités liées, Auth JWT, Swagger, Docker et ORM configurable.
+
+👉 Voir la documentation complète : [Documentation Demo](./DEMO.md)
+
+## Guide d'utilisation
 
 ### Démarrage rapide (Mode Light)
 
@@ -456,7 +468,7 @@ open http://localhost:3000/api/docs
 
 ---
 
-## 📌 Roadmap
+## Roadmap
 
 ### Version 0.3.0
 
@@ -539,6 +551,7 @@ Merci à tous les contributeurs et à la communauté NestJS !
 **NestCraftX v0.2.1** - Clean Architecture Made Simple
 
 Pour plus d'informations:
+
 - [Guide d'utilisation complet](./CLI_USAGE.md)
 - [Guide de migration](./MIGRATION_GUIDE.md)
 - [Changelog detaille](./CHANGELOG.md)

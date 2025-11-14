@@ -1,9 +1,9 @@
 const fs = require("fs");
-// const { execSync } = require("child_process");
 const { logInfo } = require("../loggers/logInfo");
 const { runCommand } = require("../shell");
 const { logSuccess } = require("../loggers/logSuccess");
 const { createDirectory, createFile, updateFile } = require("../userInput");
+const { updatePackageJson } = require("../file-utils/packageJsonUtils");
 
 async function setupPrisma(inputs) {
   logInfo("🚀 Configuration de Prisma...");
@@ -297,21 +297,20 @@ export class PrismaModule {}
     });
   }
 
-  // 🧹 Étape intermédiaire : Reset de la base pour éviter les erreurs de drift
-  logInfo("🧹 Reset de la base de données...");
-  await runCommand(
-    "npx prisma migrate reset --force",
-    "❌ Échec du reset de la base"
-  );
-
   // ⚙️ Étape 7 : Génération du client Prisma
   await runCommand("npx prisma generate", "❌ Échec de la génération Prisma");
 
-  // ⚙️ Étape 8 : Migration
-  await runCommand(
-    "npx prisma migrate dev --name init",
-    "❌ Échec de la migration Prisma"
-  );
+  // ⚙️ Étape 8 : Migration (UNIQUEMENT en mode 'new')
+  if (!inputs.isDemo) {
+    logInfo("⚙️ Migration de la base de données...");
+    // Migration complète (créer + appliquer) pour les vrais projets
+    await runCommand(
+      "npx prisma migrate dev --name init",
+      "❌ Échec de la migration Prisma. Assurez-vous que la base de données est opérationnelle."
+    );
+  } else {
+    setupPrismaSeeding(inputs);
+  }
 
   logSuccess("✅ Prisma configuré avec succès !");
 }
@@ -335,6 +334,182 @@ function mapTypeToPrisma(type) {
     default:
       return "String";
   }
+}
+
+async function setupPrismaSeeding(inputs) {
+  logInfo("⚙️ Configuration du seeding pour Prisma...");
+
+  // --- Dépendances ---
+  const prismaDevDeps = [
+    "ts-node",
+    "@types/node",
+    "@types/bcrypt",
+    "dotenv-cli",
+  ];
+  await runCommand(
+    `${inputs.packageManager} add -D ${prismaDevDeps.join(" ")}`,
+    "❌ Échec de l'installation des dépendances de seeding Prisma"
+  );
+  // Bcrypt est souvent une dépendance de production pour le hachage
+  await runCommand(
+    `${inputs.packageManager} install bcrypt`,
+    "❌ Échec de l'installation de bcrypt"
+  );
+
+  // --- Scripts dans package.json ---
+  const prismaScripts = {
+    "prisma:migrate": "npx prisma migrate dev --name init",
+    "prisma:seed": "npx prisma db seed",
+    seed: `${inputs.packageManager} run prisma:seed`,
+  };
+
+  await updatePackageJson(inputs, prismaScripts);
+
+  // --- Configuration dans schema.prisma ---
+  await updateFile({
+    path: "prisma/schema.prisma",
+    pattern: /generator client \{[^}]*\}/g,
+    replacement: `generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+seed = "ts-node prisma/seed.ts" // Ajout de la commande de seed
+`,
+  });
+
+  // --- Création du fichier seed.ts ---
+  const seedTsContent = generatePrismaSeedContent(inputs.entitiesData.entities);
+  await createFile({
+    path: `prisma/seed.ts`,
+    content: seedTsContent,
+  });
+
+  logSuccess("✅ Seeding Prisma configuré.");
+}
+
+function generatePrismaSeedContent(entities) {
+  const requiresBcrypt = entities.some((e) => e.name.toLowerCase() === "user");
+
+  return `
+import { PrismaClient } from '@prisma/client';
+${requiresBcrypt ? "import * as bcrypt from 'bcrypt';" : ""}
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('🌱 Démarrage du seeding pour Prisma...');
+
+  // --- 1. UTILISATEUR ADMIN ---
+  ${
+    requiresBcrypt
+      ? `const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash('password123', salt);`
+      : ""
+  }
+
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@nestcraft.com' },
+    update: {},
+    create: {
+      email: 'admin@nestcraft.com',
+      ${
+        requiresBcrypt
+          ? "password: hashedPassword,"
+          : "// Mot de passe par défaut: password123"
+      }
+      username: 'NestCraftAdmin',
+      isActive: true,
+    },
+  });
+  console.log(\`👑 Admin créé: \${adminUser.email}\`);
+
+  // --- 2. UTILISATEURS DÉMO ---
+  const demoUsersData = [
+    { email: 'emma.jones@demo.com', ${
+      requiresBcrypt ? "password: hashedPassword," : ""
+    } username: 'EmmaJones', isActive: true },
+    { email: 'lucas.martin@demo.com', ${
+      requiresBcrypt ? "password: hashedPassword," : ""
+    } username: 'LucasMartin', isActive: true },
+    { email: 'sophia.bernard@demo.com', ${
+      requiresBcrypt ? "password: hashedPassword," : ""
+    } username: 'SophiaBernard', isActive: true },
+    { email: 'alexandre.dubois@demo.com', ${
+      requiresBcrypt ? "password: hashedPassword," : ""
+    } username: 'AlexandreDubois', isActive: true },
+    { email: 'chloe.moreau@demo.com', ${
+      requiresBcrypt ? "password: hashedPassword," : ""
+    } username: 'ChloeMoreau', isActive: true },
+  ];
+
+  await prisma.user.createMany({ data: demoUsersData, skipDuplicates: true });
+  console.log('👥 Utilisateurs démo créés.');
+
+  const allUsers = await prisma.user.findMany({ select: { id: true } });
+  const userIds = allUsers.map(u => u.id);
+
+  // --- 3. ARTICLES DE BLOG ---
+  const postsData = [
+    {
+      title: 'Les bases de NestJS pour les développeurs modernes',
+      content: 'Découvrez comment construire une API robuste et maintenable avec NestJS...',
+      published: true,
+      authorId: userIds[1],
+    },
+    {
+      title: 'Comment sécuriser votre API avec JWT',
+      content: 'L’authentification JWT est un standard pour sécuriser les APIs...',
+      published: true,
+      authorId: userIds[2],
+    },
+    {
+      title: 'Optimiser les performances d’une API Node.js',
+      content: 'Découvrez les meilleures pratiques pour améliorer les performances...',
+      published: true,
+      authorId: userIds[3],
+    },
+    {
+      title: 'Introduction à Prisma ORM',
+      content: 'Prisma est un ORM moderne qui simplifie les interactions avec la base de données...',
+      published: true,
+      authorId: userIds[4],
+    },
+    {
+      title: 'Comprendre la Clean Architecture',
+      content: 'La Clean Architecture permet de séparer la logique métier du reste du code...',
+      published: false,
+      authorId: userIds[0],
+    },
+  ];
+  await prisma.post.createMany({ data: postsData, skipDuplicates: true });
+  console.log('📝 Articles créés.');
+
+  const allPosts = await prisma.post.findMany({ select: { id: true } });
+  const postIds = allPosts.map(p => p.id);
+
+  // --- 4. COMMENTAIRES DÉMO ---
+  const commentsData = [
+    { content: 'Excellent article ! J’ai pu appliquer ces conseils directement sur mon projet NestJS.', postId: postIds[0], authorId: userIds[2] },
+    { content: 'Très clair et bien expliqué, merci pour le partage sur Prisma 👏', postId: postIds[3], authorId: userIds[0] },
+    { content: 'Je ne connaissais pas JWT avant cet article, c’est une vraie révélation.', postId: postIds[1], authorId: userIds[4] },
+    { content: 'La Clean Architecture m’a toujours paru floue, cet article m’a enfin éclairé.', postId: postIds[4], authorId: userIds[1] },
+    { content: 'Merci pour ce contenu ! J’aimerais voir un tutoriel complet avec NestJS + Prisma.', postId: postIds[2], authorId: userIds[3] },
+  ];
+  await prisma.comment.createMany({ data: commentsData, skipDuplicates: true });
+  console.log('💬 Commentaires créés.');
+
+  console.log('✅ Seeding terminé avec succès ! 🚀');
+}
+
+main()
+  .catch((e) => {
+    console.error('❌ Erreur lors du seeding Prisma:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+`;
 }
 
 module.exports = { setupPrisma };

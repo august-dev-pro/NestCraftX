@@ -1,6 +1,18 @@
 const inquirer = require("inquirer");
 const { logInfo } = require("../utils/loggers/logInfo");
 const { logSuccess } = require("../utils/loggers/logSuccess");
+const { createProject } = require("../utils/setups/projectSetup");
+const {
+  setupCleanArchitecture,
+} = require("../utils/configs/setupCleanArchitecture");
+const {
+  setupLightArchitecture,
+} = require("../utils/configs/setupLightArchitecture");
+const { setupAuth } = require("../utils/setups/setupAuth");
+const { setupSwagger } = require("../utils/setups/setupSwagger");
+const { setupDatabase } = require("../utils/setups/setupDatabase");
+const { configureDocker } = require("../utils/configs/configureDocker");
+const actualInquirer = inquirer.default || inquirer;
 
 async function demoCommand(flags = {}) {
   console.log("\n🎯 Génération du projet de démonstration...\n");
@@ -47,19 +59,34 @@ async function demoCommand(flags = {}) {
       message: "Choisir l'ORM / Base de données ?",
       choices: [
         { name: "Prisma (PostgreSQL)", value: "prisma" },
-        { name: "TypeORM (MySQL)", value: "typeorm" },
+        { name: "TypeORM (PostgreSQL)", value: "typeorm" },
         { name: "Mongoose (MongoDB)", value: "mongoose" },
       ],
       default: "prisma",
     });
   }
 
+  if (flags.packageManager === undefined) {
+    questions.push({
+      type: "list",
+      name: "packageManager",
+      message: "Choisir le gestionnaire de paquets pour le projet ?",
+      choices: [
+        { name: "npm", value: "npm" },
+        { name: "yarn", value: "yarn" },
+        { name: "pnpm", value: "pnpm" },
+      ],
+      default: "npm",
+    });
+  }
+
   // Pose uniquement les questions nécessaires
-  const answers = questions.length > 0 ? await inquirer.prompt(questions) : {};
+  const answers =
+    questions.length > 0 ? await actualInquirer.prompt(questions) : {};
 
   // Fusionne les réponses interactives et les flags (flags prioritaire)
   const options = { ...answers, ...flags };
-
+  const packageManager = options.packageManager || "npm";
   const isLight = !!options.light;
   const useDocker = !!options.docker;
   const useAuth = !!options.auth;
@@ -80,20 +107,21 @@ async function demoCommand(flags = {}) {
       POSTGRES_PORT: "5432",
     };
   } else if (orm === "typeorm") {
-    selectedDB = "mysql";
+    selectedDB = "postgresql";
     dbConfig = {
       orm: "typeorm",
-      MYSQL_USER: "root",
-      MYSQL_PASSWORD: "root",
-      MYSQL_DB: "blog_demo",
-      MYSQL_HOST: "localhost",
-      MYSQL_PORT: "3306",
+      POSTGRES_USER: "postgres",
+      POSTGRES_PASSWORD: "postgres",
+      POSTGRES_DB: "blog_demo",
+      POSTGRES_HOST: "localhost",
+      POSTGRES_PORT: "5432",
     };
   } else if (orm === "mongoose") {
     selectedDB = "mongodb";
     dbConfig = {
       orm: "mongoose",
-      MONGO_INITDB_DATABASE: "blog_demo",
+      MONGO_URI: "mongodb://localhost:27017/blog_demo",
+      MONGO_DB: "blog_demo",
       MONGO_HOST: "localhost",
       MONGO_PORT: "27017",
     };
@@ -112,8 +140,9 @@ async function demoCommand(flags = {}) {
       version: "1.0.0",
       endpoint: "api/docs",
     },
-    packageManager: "npm",
+    packageManager: packageManager,
     mode: isLight ? "light" : "full",
+    isDemo: true,
     entitiesData: {
       entities: [
         {
@@ -153,18 +182,6 @@ async function demoCommand(flags = {}) {
     dbConfig,
   };
 
-  const { createProject } = require("../utils/setups/projectSetup");
-  const {
-    setupCleanArchitecture,
-  } = require("../utils/configs/setupCleanArchitecture");
-  const {
-    setupLightArchitecture,
-  } = require("../utils/configs/setupLightArchitecture");
-  const { setupAuth } = require("../utils/setups/setupAuth");
-  const { setupSwagger } = require("../utils/setups/setupSwagger");
-  const { setupDatabase } = require("../utils/setups/setupDatabase");
-  const { configureDocker } = require("../utils/configs/configureDocker");
-
   await createProject(demoInputs);
 
   if (isLight) {
@@ -196,10 +213,10 @@ async function demoCommand(flags = {}) {
   if (useDocker) console.log("   ✅ Docker & Docker Compose");
   console.log(
     orm === "prisma"
-      ? "   ✅ Prisma ORM configuré"
+      ? "   ✅ Prisma ORM (PostgreSQL) configuré"
       : orm === "typeorm"
-      ? "   ✅ TypeORM configuré"
-      : "   ✅ Mongoose configuré"
+      ? "   ✅ TypeORM (PostgreSQL) configuré"
+      : "   ✅ Mongoose (MongoDB) configuré"
   );
   console.log(
     isLight
@@ -208,26 +225,72 @@ async function demoCommand(flags = {}) {
   );
 
   console.log("\n🚀 Pour démarrer:");
-  console.log("   1. cd blog-demo");
-  console.log("   2. npm run start:dev");
-  if (useSwagger) console.log("   3. Ouvrir http://localhost:3000/api/docs");
-
-  console.log("\n📚 Endpoints disponibles:");
-  if (useAuth) {
-    console.log("   • /auth/register    - Créer un compte");
-    console.log("   • /auth/login       - Se connecter");
+  console.log("   1️⃣ cd blog-demo");
+  // Instructions spécifiques selon le moteur choisi
+  if (orm === "prisma" || orm === "typeorm") {
+    console.log(
+      "\n   2️⃣ Créez une base PostgreSQL avec le nom indiqué dans le .env (par défaut 'blog_demo')."
+    );
+    console.log("       Exemple (psql) :");
+    console.log("          createdb blog_demo");
+    console.log(
+      "\n   3️⃣ Ouvrez le fichier .env généré et remplacez les valeurs par vos vraies informations :"
+    );
+    console.log("          POSTGRES_USER=<votre_user>");
+    console.log("          POSTGRES_PASSWORD=<votre_mot_de_passe>");
+    console.log("          POSTGRES_DB=blog_demo");
+    console.log("          POSTGRES_HOST=localhost");
+    console.log("          POSTGRES_PORT=5432");
+    console.log("\n   4️⃣ Exécutez les migrations et les seeds :");
+    if (orm === "prisma") {
+      console.log("          npx prisma migrate dev");
+      console.log("          npx prisma db seed");
+    } else {
+      console.log(
+        `          ${demoInputs.packageManager} run typeorm:migration:run`
+      );
+      console.log(`          ${demoInputs.packageManager} run typeorm:seed`); // si tu as un script seed
+    }
+  } else if (orm === "mongoose") {
+    console.log(
+      "\n   2️⃣ MongoDB : tu peux soit utiliser un serveur local, soit Docker."
+    );
+    console.log(
+      "       Par défaut, le projet utilise : MONGO_URI=mongodb://localhost:27017/blog_demo"
+    );
+    console.log(
+      "       La base sera créée automatiquement lors du premier écriture."
+    );
+    console.log(
+      "\n   3️⃣ Ouvrez le fichier .env généré et remplacez la variable MONGO_URI si nécessaire :"
+    );
+    console.log(
+      "          MONGO_URI=mongodb://<user>:<password>@localhost:27017/blog_demo"
+    );
+    console.log("\n   4️⃣ Exécutez le script de seed (si présent) :");
+    console.log(`          ${demoInputs.packageManager} run seed`);
   }
-  console.log("   • /users            - Gérer les utilisateurs");
-  console.log("   • /posts            - Gérer les posts");
-  console.log("   • /comments         - Gérer les commentaires");
 
-  console.log("\n💡 Astuce:");
-  console.log("   Ce projet démo est prêt à l'emploi et montre toutes");
-  console.log("   les capacités de NestCraftX. Parfait pour comprendre");
+  console.log("\n   5️⃣ Lancez le projet :");
+  console.log(`          ${demoInputs.packageManager} run start:dev`);
+  if (useSwagger)
+    console.log("   6️⃣ Ouvrez Swagger UI : http://localhost:3000/api/docs");
+
+  console.log("\n📚 Endpoints principaux :");
+  if (useAuth) {
+    console.log("   • /auth/register    → Créer un compte");
+    console.log("   • /auth/login       → Se connecter");
+  }
+  console.log("   • /users            → Gérer les utilisateurs");
+  console.log("   • /posts            → Gérer les articles");
+  console.log("   • /comments         → Gérer les commentaires");
+
+  console.log("\n💡 Astuce :");
   console.log(
-    isLight
-      ? "   la structure LIGHT et commencer rapidement!\n"
-      : "   la Clean Architecture et commencer rapidement!\n"
+    "   Modifiez le fichier .env pour connecter votre propre base (Postgres ou Mongo)."
+  );
+  console.log(
+    "   Une fois configurée et migrée/seedée, le projet est prêt à être lancé immédiatement ! 🚀\n"
   );
 }
 

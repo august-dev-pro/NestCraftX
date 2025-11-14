@@ -1,0 +1,147 @@
+# NestCraftX CLI - Démo du projet `blog-demo` (v0.2.1)
+
+## 🎯 Objectif
+
+Cette démo montre comment générer un projet NestJS complet avec **Clean Architecture**, prêt à exécuter, incluant :
+
+- Auth JWT
+- Swagger UI
+- Docker (optionnel)
+- ORM (Prisma, TypeORM ou Mongoose)
+- Seeds pour remplir la base de données avec des données d'exemple
+
+---
+
+## 1️⃣ Lancer la démo
+
+Exécute la commande suivante depuis ton terminal :
+
+```bash
+npx nestcraftx demo --light --auth --swagger --docker --orm prisma
+```
+
+- `--light` → Mode MVP simplifié (optionnel)
+- `--auth` → Auth JWT intégrée
+- `--swagger` → Swagger UI activé
+- `--docker` → Génère les fichiers Docker
+- `--orm` → Choisir l'ORM et la base de données (`prisma|typeorm|mongoose`)
+
+Si un flag n’est pas passé, le CLI posera les questions interactives pour choisir la configuration.
+
+---
+
+## 2️⃣ Structure du projet
+
+Après génération, ton projet aura :
+
+```
+blog-demo/
+├─ src/
+│  ├─ modules/
+│  │  ├─ users/
+│  │  ├─ posts/
+│  │  └─ comments/
+│  ├─ seeds/
+│  │  └─ main.seed.ts
+│  └─ main.ts
+├─ .env
+├─ package.json
+├─ Dockerfile (si Docker activé)
+├─ docker-compose.yml (si Docker activé)
+└─ README.md
+```
+
+- Trois entités principales : `User`, `Post`, `Comment`
+- Relations :
+  - Post → User (1-n)
+  - Comment → Post (1-n)
+  - Comment → User (1-n)
+
+---
+
+## 3️⃣ Configuration de la base de données
+
+### PostgreSQL (Prisma ou TypeORM)
+
+1. Crée une base vide `blog_demo` :
+
+```bash
+createdb blog_demo
+```
+
+2. Mets à jour le fichier `.env` :
+
+```env
+POSTGRES_USER=<votre_user>
+POSTGRES_PASSWORD=<votre_mot_de_passe>
+POSTGRES_DB=blog_demo
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+```
+
+3. Exécute les migrations et seeds :
+
+- Prisma :
+
+```bash
+npx prisma migrate dev --name init
+npx prisma db seed
+```
+
+- TypeORM :
+
+```bash
+npm run typeorm:migration:run
+npm run typeorm:seed
+```
+
+### MongoDB (Mongoose)
+
+1. Vérifie que MongoDB est lancé (local ou Docker).
+2. Mets à jour `.env` si nécessaire :
+
+```env
+MONGO_URI=mongodb://<user>:<password>@localhost:27017/blog_demo
+```
+
+3. Lance le script seed (si présent) :
+
+```bash
+npm run seed
+```
+
+---
+
+## 4️⃣ Lancer le projet
+
+```bash
+cd blog-demo
+npm install
+npm run start:dev
+```
+
+- Swagger UI disponible (si activé) : [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
+
+---
+
+## 5️⃣ Endpoints principaux
+
+- **Auth** (si activé) :
+  - POST `/auth/register` → Créer un compte
+  - POST `/auth/login` → Se connecter
+- **Users** : `/users`
+- **Posts** : `/posts`
+- **Comments** : `/comments`
+
+---
+
+## 6️⃣ Astuces
+
+- Modifie le fichier `.env` pour connecter ta propre base.
+- Exécute le seed pour remplir la base avec des données d’exemple.
+- Le projet est prêt à être lancé immédiatement après configuration. 🚀
+
+---
+
+**NestCraftX v0.2.1** – Clean Architecture Generator for NestJS
+[Documentation complète](https://github.com/august-dev-pro/NestCraftX)

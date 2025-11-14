@@ -419,7 +419,7 @@ export async function safeUpdateAppModule(entity) {
   const isAlreadyImportedInModule = currentImportsBlock.includes(moduleName);
 
   if (!isAlreadyImportedInModule) {
-    logInfo(`🛠 Ajout de ${moduleName} dans le tableau 'imports'`);
+    // logInfo(`🛠 Ajout de ${moduleName} dans le tableau 'imports'`);
     const updatedBlock = currentImportsBlock.trim().endsWith(",")
       ? `${currentImportsBlock.trim()} ${moduleName},`
       : `${currentImportsBlock.trim()}, ${moduleName},`;

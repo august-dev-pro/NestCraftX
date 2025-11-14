@@ -1,5 +1,5 @@
 # Ignore development files
-node_modules/
+/node_modules
 .env
 .env.local
 .vscode/
