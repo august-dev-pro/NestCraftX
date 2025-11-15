@@ -10,7 +10,7 @@ const { logError } = require("../loggers/logError");
  * @param {object} [devDependencies={}] Les dépendances de développement à ajouter/mettre à jour
  */
 async function updatePackageJson(inputs, scripts, devDependencies = {}) {
-  const projectPath = path.join(process.cwd(), inputs.projectName);
+  const projectPath = process.cwd();
   const packageJsonPath = path.join(projectPath, "package.json");
 
   try {
@@ -36,12 +36,13 @@ async function updatePackageJson(inputs, scripts, devDependencies = {}) {
     // Note: Les dépendances installées via runCommand (npm install X) sont déjà dans package.json,
     // cette fonction est surtout utile pour les scripts personnalisés ou les dépendances manquantes.
   } catch (error) {
-    // Ici, vous pouvez utiliser votre fonction logError si elle existe
     logError(
       `❌ Erreur lors de la mise à jour de package.json pour ${inputs.projectName}:`,
-      error
+      error.message
     );
-    // throw new Error(`Échec de la mise à jour du fichier package.json.`);
+    throw new Error(
+      `Échec de la mise à jour du fichier package.json., ${error.message}`
+    );
   }
 }
 

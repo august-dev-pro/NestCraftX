@@ -243,8 +243,9 @@ async function demoCommand(flags = {}) {
     console.log("          POSTGRES_PORT=5432");
     console.log("\n   4️⃣ Exécutez les migrations et les seeds :");
     if (orm === "prisma") {
-      console.log("          npx prisma migrate dev");
-      console.log("          npx prisma db seed");
+      console.log(`        ${demoInputs.packageManager} prisma migrate reset`);
+      console.log(`          ${demoInputs.packageManager} prisma migrate dev`);
+      console.log(`          ${demoInputs.packageManager} prisma db seed`);
     } else {
       console.log(
         `          ${demoInputs.packageManager} run typeorm:migration:run`

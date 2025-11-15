@@ -301,14 +301,7 @@ export class PrismaModule {}
   await runCommand("npx prisma generate", "❌ Échec de la génération Prisma");
 
   // ⚙️ Étape 8 : Migration (UNIQUEMENT en mode 'new')
-  if (!inputs.isDemo) {
-    logInfo("⚙️ Migration de la base de données...");
-    // Migration complète (créer + appliquer) pour les vrais projets
-    await runCommand(
-      "npx prisma migrate dev --name init",
-      "❌ Échec de la migration Prisma. Assurez-vous que la base de données est opérationnelle."
-    );
-  } else {
+  if (inputs.isDemo) {
     setupPrismaSeeding(inputs);
   }
 
@@ -360,7 +353,7 @@ async function setupPrismaSeeding(inputs) {
   const prismaScripts = {
     "prisma:migrate": "npx prisma migrate dev --name init",
     "prisma:seed": "npx prisma db seed",
-    seed: `${inputs.packageManager} run prisma:seed`,
+    seed: `ts-node prisma/seed.ts`,
   };
 
   await updatePackageJson(inputs, prismaScripts);
@@ -373,7 +366,7 @@ async function setupPrismaSeeding(inputs) {
   provider = "prisma-client-js"
   output   = "../node_modules/.prisma/client"
 }
-seed = "ts-node prisma/seed.ts" // Ajout de la commande de seed
+
 `,
   });
 
@@ -381,7 +374,7 @@ seed = "ts-node prisma/seed.ts" // Ajout de la commande de seed
   const seedTsContent = generatePrismaSeedContent(inputs.entitiesData.entities);
   await createFile({
     path: `prisma/seed.ts`,
-    content: seedTsContent,
+    contente: seedTsContent,
   });
 
   logSuccess("✅ Seeding Prisma configuré.");
@@ -407,10 +400,8 @@ async function main() {
       : ""
   }
 
-  const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@nestcraft.com' },
-    update: {},
-    create: {
+  const adminUser = await prisma.user.create({
+     data: {
       email: 'admin@nestcraft.com',
       ${
         requiresBcrypt
@@ -418,6 +409,7 @@ async function main() {
           : "// Mot de passe par défaut: password123"
       }
       username: 'NestCraftAdmin',
+      role: 'SUPER_ADMIN',
       isActive: true,
     },
   });

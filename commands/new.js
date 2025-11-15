@@ -238,13 +238,13 @@ function printSuccessSummary(inputs) {
 
     if (inputs.dbConfig.orm === "prisma") {
       console.log("\n   4. **Migrations & Seed (Prisma) :**");
-      console.log(`      - ${inputs.packageManager} run prisma:migrate`); // Assumer un script 'prisma:migrate' pour cacher 'migrate dev'
-      console.log(`      - ${inputs.packageManager} run prisma:seed`);
+      console.log(`        ${demoInputs.packageManager} prisma migrate reset`);
+      console.log(`          ${demoInputs.packageManager} prisma migrate dev`);
     } else {
       // TypeORM
       console.log("\n   4. **Migrations (TypeORM) :**");
       console.log(`      - ${inputs.packageManager} run typeorm:migration:run`);
-      console.log(`      - ${inputs.packageManager} run typeorm:seed`); // Si un script seed est fourni
+      // console.log(`      - ${inputs.packageManager} run typeorm:seed`); // Si un script seed est fourni
     }
     console.log("\n   5. Lancez le projet:");
     console.log(`      - ${inputs.packageManager} run start:dev`);
@@ -256,9 +256,9 @@ function printSuccessSummary(inputs) {
 
     console.log("\n   4. Lancez le projet:");
     console.log(`      - ${inputs.packageManager} run start:dev`);
-    console.log(
+    /*  console.log(
       `   5. Exécutez le script de seed (si disponible): ${inputs.packageManager} run seed`
-    );
+    ); */
   }
 
   // --- ENDPOINTS / SWAGGER ---
