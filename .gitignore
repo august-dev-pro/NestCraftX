@@ -23,5 +23,4 @@ setup-dev.js
 *.spec.js
 *.log
 
-# Keep only what you need
 # (we include only: bin/, commands/, setup.js, package.json, LICENSE, README.md)
