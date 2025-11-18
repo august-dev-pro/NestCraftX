@@ -14,21 +14,35 @@ Cette démo montre comment générer un projet NestJS complet avec **Clean Archi
 
 ## 1️⃣ Lancer la démo
 
-Exécute la commande suivante depuis ton terminal :
+Tu as deux façons de générer le projet de démo blog-demo :
+
+### Mode 1 : Interactif (Recommandé pour les premiers essais)
+
+Le CLI te posera les questions pour chaque option manquante (ORM, Docker, etc.).
 
 ```bash
-npx nestcraftx demo --light --auth --swagger --docker --orm prisma
+npx nestcraftx demo
 ```
 
-- `--light` → Mode MVP simplifié (optionnel)
-- `--auth` → Auth JWT intégrée
-- `--swagger` → Swagger UI activé
-- `--docker` → Génère les fichiers Docker
-- `--orm` → Choisir l'ORM et la base de données (`prisma|typeorm|mongoose`)
+### Mode 2 : Silencieux (Configuration par flags)
 
-Si un flag n’est pas passé, le CLI posera les questions interactives pour choisir la configuration.
+Tu peux tout définir en ligne de commande. Le CLI ne posera aucune question. (Exemple complet)
 
----
+```bash
+npx nestcraftx demo --light --auth --swagger --docker --orm prisma --packageManager npm
+```
+
+Détail des Options :
+
+- --light → Mode MVP simplifié (--full par défaut si omis).
+
+- --auth → Auth JWT intégrée (true par défaut si omis).
+
+- --swagger → Swagger UI activé (true par défaut si omis).
+
+- --docker → Génère les fichiers Docker (true par défaut si omis).
+
+- --orm → Choisir l'ORM et la base de données (`prisma
 
 ## 2️⃣ Structure du projet
 
@@ -84,6 +98,7 @@ POSTGRES_PORT=5432
 - Prisma :
 
 ```bash
+npx prisma migrate reset
 npx prisma migrate dev --name init
 npx prisma db seed
 ```
@@ -92,7 +107,8 @@ npx prisma db seed
 
 ```bash
 npm run typeorm:migration:run
-npm run typeorm:seed
+
+npm run typeorm:seed | npm run seed
 ```
 
 ### MongoDB (Mongoose)

@@ -17,6 +17,7 @@ npm run start:dev
 ```
 
 Resultat : Projet genere en quelques secondes avec :
+
 - Architecture MVP simplifiee
 - Prisma ORM
 - Authentification JWT
@@ -30,6 +31,7 @@ nestcraftx new mon-api --light
 ```
 
 Le CLI vous posera des questions pour :
+
 - Choisir l'ORM
 - Activer Auth/Swagger/Docker
 - Configurer la base de donnees
@@ -42,6 +44,7 @@ nestcraftx new mon-projet
 ```
 
 Configuration complete avec :
+
 - Clean Architecture + DDD
 - Use-cases, mappers, adapters
 - Configuration interactive detaillee
@@ -68,28 +71,32 @@ nestcraftx info
 
 ## Options Principales
 
-| Option | Description | Valeurs |
-|--------|-------------|---------|
-| `--light` | Architecture MVP simplifiee | - |
-| `--full` | Architecture complete (defaut) | - |
-| `--orm` | Choix de l'ORM | `prisma`, `typeorm`, `mongoose` |
-| `--auth` | Active JWT auth | - |
-| `--swagger` | Active Swagger docs | - |
-| `--docker` | Genere Docker files | `true` (defaut), `false` |
+| Option          | Description                                                   | Valeurs                         |
+| --------------- | ------------------------------------------------------------- | ------------------------------- |
+| `--light`       | Architecture MVP simplifiee                                   | -                               |
+| `--full`        | Architecture complete (defaut)                                | -                               |
+| `--orm`         | Choix de l'ORM                                                | `prisma`, `typeorm`, `mongoose` |
+| `--auth`        | Active JWT auth                                               | -                               |
+| `--swagger`     | Active Swagger docs                                           | -                               |
+| `--docker`      | Genere Docker files                                           | `true` (defaut), `false`        |
+| `--interactive` | Force le mode interactif pour la saisie des entités/relations |
 
 ## Exemples Pratiques
 
 ### Blog API (LIGHT + Prisma)
+
 ```bash
 nestcraftx new blog-api --light --orm=prisma --auth --swagger
 ```
 
 ### E-commerce API (FULL + TypeORM)
+
 ```bash
 nestcraftx new shop-api --full --orm=typeorm --auth --swagger
 ```
 
 ### MongoDB API (LIGHT + Mongoose)
+
 ```bash
 nestcraftx new mongo-api --light --orm=mongoose --auth
 ```
@@ -106,12 +113,14 @@ npm run start:dev
 ## Differences Modes
 
 ### Mode LIGHT
+
 - Structure plate
 - Controllers → Services → Repositories
 - Demarrage rapide
 - Parfait pour MVPs
 
 ### Mode FULL
+
 - Clean Architecture complete
 - Domain/Application/Infrastructure/Presentation
 - Use-cases et mappers
@@ -120,6 +129,7 @@ npm run start:dev
 ## Fichier .env Auto-genere
 
 Le CLI genere automatiquement :
+
 - `JWT_SECRET` (64 chars securises)
 - `JWT_REFRESH_SECRET` (64 chars securises)
 - `DATABASE_URL` (pre-configure)
@@ -139,4 +149,4 @@ Le CLI genere automatiquement :
 
 ---
 
-**NestCraftX v0.2.0** - Clean Architecture Made Simple
+**NestCraftX v0.2.1** - Clean Architecture Made Simple

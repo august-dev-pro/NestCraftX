@@ -201,10 +201,10 @@ Crée un nouveau projet NestJS avec Clean Architecture.
 nestcraftx new my-app
 
 # Mode rapide avec options
-nestcraftx new blog-api --light --orm prisma --auth --swagger
+nestcraftx new blog-api --light --orm=prisma --auth --swagger
 
 # Configuration personnalisée
-nestcraftx new shop --orm typeorm --auth
+nestcraftx new shop --orm=typeorm --auth
 ```
 
 ### `nestcraftx demo [options]`

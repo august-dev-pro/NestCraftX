@@ -1,4 +1,5 @@
 # Ignore development files
+/unutils.txt
 /node_modules
 .env
 .env.local
