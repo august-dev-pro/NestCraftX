@@ -2,11 +2,12 @@
 
 All notable changes to NestCraftX will be documented in this file.
 
-## [0.2.1] - 2025-11-07
+## [0.2.2] - 2025-11-07
 
 ### Added
 
 #### Demo Command Amélioré
+
 - Support complet des flags pour demo : `--light`, `--orm`, `--auth`, `--swagger`, `--docker`
 - Mode interactif intelligent : pose les questions uniquement si flags manquants
 - Fusion intelligente des options passées et réponses interactives
@@ -14,6 +15,7 @@ All notable changes to NestCraftX will be documented in this file.
 - Support de tous les ORMs (Prisma, TypeORM, Mongoose)
 
 #### Auth Refactorisée
+
 - AuthService refactorisé pour passer via UserService
 - Pas d'accès direct au repository depuis AuthModule
 - JWT configuré avec ConfigService pour secrets dynamiques
@@ -23,12 +25,14 @@ All notable changes to NestCraftX will be documented in this file.
 - Support du role-based access control (RBAC)
 
 #### Templates Professionnels
+
 - `.gitignore` complet généré pour NestJS
 - `README.md` auto-généré pour chaque projet créé
 - Git auto-initialisé avec premier commit
 - Documentation professionnelle incluse
 
 #### Nettoyage du Code
+
 - Suppression de fichiers obsolètes (start.js, fullModeInput.js, lightModeInput.js)
 - Normalisation CommonJS vs ES6 (cohérence totale)
 - Suppression du code mort et commentaires inutiles
@@ -36,7 +40,7 @@ All notable changes to NestCraftX will be documented in this file.
 
 ### Changed
 
-- Version du projet mise à jour à 0.2.1
+- Version du projet mise à jour à 0.2.2
 - Documentation README complètement mise à jour
 - CLI_USAGE.md actualisé avec les nouveau flags
 - Meilleure séparation des responsabilités (Auth ↔ User)
@@ -54,7 +58,9 @@ All notable changes to NestCraftX will be documented in this file.
 ### Added
 
 #### Architecture Modes
+
 - **Mode FULL** : Architecture complete avec Clean Architecture + DDD
+
   - Structure complete avec use-cases, mappers, adapters
   - Separation stricte domain/application/infrastructure/presentation
   - Ideal pour projets complexes et scalables
@@ -65,7 +71,9 @@ All notable changes to NestCraftX will be documented in this file.
   - Parfait pour prototypes et petits projets
 
 #### CLI Moderne
+
 - Parser de flags ameliore avec validation
+
   - Support de `--flag=value` et `--flag value`
   - Validation des noms de projets
   - Validation des valeurs d'options
@@ -80,6 +88,7 @@ All notable changes to NestCraftX will be documented in this file.
   - `--docker` : Gestion Docker (actif par defaut)
 
 #### Generation .env Securisee
+
 - Generation automatique de secrets JWT securises (64 caracteres)
 - Configuration automatique selon l'ORM :
   - PostgreSQL pour Prisma et TypeORM
@@ -93,6 +102,7 @@ All notable changes to NestCraftX will be documented in this file.
 - Creation d'un fichier `.env.example` sanitise
 
 #### UX Amelioree
+
 - Systeme de couleurs pour les logs :
   - Info en cyan
   - Success en vert
@@ -104,6 +114,7 @@ All notable changes to NestCraftX will be documented in this file.
 - Affichage du mode utilise (FULL/LIGHT)
 
 #### Nouveaux Fichiers Utilitaires
+
 - `utils/cliParser.js` : Parser CLI moderne avec validation
 - `utils/envGenerator.js` : Generateur de fichiers .env securises
 - `utils/colors.js` : Systeme de couleurs pour la console
@@ -113,7 +124,9 @@ All notable changes to NestCraftX will be documented in this file.
 ### Changed
 
 #### Structure du Code
+
 - Refactoring complet de `commands/new.js` :
+
   - Separation en fonctions modulaires
   - `determineMode()` : Detection du mode
   - `buildLightModeInputs()` : Construction config LIGHT
@@ -122,6 +135,7 @@ All notable changes to NestCraftX will be documented in this file.
   - `printSuccessSummary()` : Affichage resume
 
 - Amelioration de `utils/shell.js` :
+
   - Support des spinners
   - Mode silencieux pour certaines operations
   - Meilleure gestion des erreurs
@@ -132,6 +146,7 @@ All notable changes to NestCraftX will be documented in this file.
   - Messages plus clairs
 
 #### Parser CLI
+
 - Validation des inputs en temps reel
 - Detection des flags mutuellement exclusifs
 - Support de la syntaxe moderne (--key=value)
@@ -140,29 +155,34 @@ All notable changes to NestCraftX will be documented in this file.
 ### Improved
 
 #### Generation de Projet
+
 - Detection automatique du mode selon les flags
 - Configuration interactive seulement si necessaire
 - Validation des noms de projets
 - Meilleure gestion des erreurs
 
 #### Configuration Database
+
 - URL de database construite automatiquement
 - Support ameliore pour les 3 ORMs
 - Configuration adaptee au type de database
 
 #### Documentation
+
 - Ajout de `CLI_USAGE.md` : Guide complet d'utilisation
 - Ajout de `CHANGELOG.md` : Historique des versions
 - Exemples de commandes detailles
 - Documentation des deux modes d'architecture
 
 ### Fixed
+
 - Gestion des erreurs amelioree dans tout le CLI
 - Validation des options avant execution
 - Messages d'erreur plus explicites
 - Nettoyage du code (suppression des commentaires obsoletes)
 
 ### Security
+
 - Generation de secrets JWT securises avec crypto
 - Secrets de 64 caracteres en base64url
 - Fichier .env.example sans secrets sensibles
@@ -171,6 +191,7 @@ All notable changes to NestCraftX will be documented in this file.
 ## [0.1.0] - Previous Version
 
 ### Features Initiales
+
 - Generation de projets NestJS
 - Support Prisma, TypeORM, Mongoose
 - Architecture Clean Code de base
@@ -189,12 +210,14 @@ All notable changes to NestCraftX will be documented in this file.
 **Nouvelles commandes recommandees :**
 
 Avant (0.1.x) :
+
 ```bash
 nestcraftx start
 # Configuration interactive
 ```
 
 Maintenant (0.2.0) :
+
 ```bash
 # Mode LIGHT (nouveau - recommande pour MVP)
 nestcraftx new mon-projet --light --orm=prisma --auth
@@ -204,6 +227,7 @@ nestcraftx new mon-projet --full --orm=prisma --auth
 ```
 
 **Avantages de la mise a jour :**
+
 - Generation de secrets JWT automatique et securisee
 - Fichier .env pret a l'emploi
 - Mode LIGHT pour demarrer plus rapidement

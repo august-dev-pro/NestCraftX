@@ -3,11 +3,11 @@
 demo
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/node-%3E=14.0.0-green.svg)
-![Version](https://img.shields.io/badge/version-0.2.1-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-0.2.2-brightgreen.svg)
 
 **NestCraftX** est un CLI Node.js moderne et puissant pour generer automatiquement des projets NestJS avec une architecture propre et maintenable. Il implemente les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma/TypeORM/Mongoose**, **JWT Auth avec secrets auto-generes**, **Swagger**, **Docker**, et plus encore.
 
-> Version 0.2.1 : Amélioration majeure - Démo interactif avec flags, Auth refactorisée via UserService, templates professionnels (gitignore, README), code propre et maintenir par la communauté !
+> Version 0.2.2 : Amélioration majeure - Démo interactif avec flags, Auth refactorisée via UserService, templates professionnels (gitignore, README), code propre et maintenir par la communauté !
 
 ---
 
@@ -28,7 +28,7 @@ demo
 
 ---
 
-## Nouveautes v0.2.1
+## Nouveautes v0.2.2
 
 ### Demo Command Amélioré
 
@@ -548,7 +548,7 @@ Merci à tous les contributeurs et à la communauté NestJS !
 
 ---
 
-**NestCraftX v0.2.1** - Clean Architecture Made Simple
+**NestCraftX v0.2.2** - Clean Architecture Made Simple
 
 Pour plus d'informations:
 

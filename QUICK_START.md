@@ -149,4 +149,4 @@ Le CLI genere automatiquement :
 
 ---
 
-**NestCraftX v0.2.1** - Clean Architecture Made Simple
+**NestCraftX v0.2.2** - Clean Architecture Made Simple

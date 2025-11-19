@@ -1,4 +1,4 @@
-# NestCraftX CLI - Démo du projet `blog-demo` (v0.2.1)
+# NestCraftX CLI - Démo du projet `blog-demo` (v0.2.2)
 
 ## 🎯 Objectif
 
@@ -159,5 +159,5 @@ npm run start:dev
 
 ---
 
-**NestCraftX v0.2.1** – Clean Architecture Generator for NestJS
+**NestCraftX v0.2.2** – Clean Architecture Generator for NestJS
 [Documentation complète](https://github.com/august-dev-pro/NestCraftX)
