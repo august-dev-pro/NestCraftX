@@ -5,68 +5,70 @@ const { setupMongoose } = require("./setupMongoose");
 const { setupPrisma } = require("./setupPrisma");
 
 async function setupDatabase(inputs) {
-  logInfo("🚀 Configuration de la base de données...");
+  logInfo("🚀 Configuring the database...");
 
   await runCommand(
     "npm install dotenv",
-    "error instal dotenv automaticly, run it manuealy now"
+    "Error installing dotenv automatically, please run it manually now"
   );
 
   switch (inputs.selectedDB) {
     case "postgresql":
-      await setupPostgres(inputs); // Configuration PostgreSQL
+      await setupPostgres(inputs); // PostgreSQL Configuration
       break;
     case "mysql":
-      await setupMySQL(inputs); // Configuration MySQL
+      await setupMySQL(inputs); // MySQL Configuration
       break;
     case "mongodb":
-      await setupMongoDB(inputs); // Configuration MongoDB
+      await setupMongoDB(inputs); // MongoDB Configuration
       break;
     case "sqlite":
-      await setupSQLite(inputs); // Configuration SQLite
+      await setupSQLite(inputs); // SQLite Configuration
       break;
     case "firebase":
-      await setupFirebase(inputs); // Configuration Firebase
+      await setupFirebase(inputs); // Firebase Configuration
       break;
     case "redis":
-      await setupRedis(inputs); // Configuration Firebase
+      await setupRedis(inputs); // Redis Configuration
       break;
     default:
-      throw new Error("Base de données non supportée.");
+      throw new Error("Unsupported database.");
   }
 }
+
 async function setupMongoDB(inputs) {
-  logInfo("Configuration de MongoDB...");
+  logInfo("Configuring MongoDB...");
   await setupMongoose(inputs);
 }
+
 async function setupSQLite(inputs) {
-  logInfo("Configuration de SQLite...");
-  // Appelle un script spécifique à SQLite
+  logInfo("Configuring SQLite..."); // Calls a SQLite-specific script
   await setupSQLiteConfig(inputs);
 }
+
 async function setupMySQL(inputs) {
-  logInfo("Configuration de MySQL...");
-  // Appelle un script spécifique à MySQL
+  logInfo("Configuring MySQL..."); // Calls a MySQL-specific script
   await setupMySQLConfig(inputs);
 }
+
 async function setupFirebase(inputs) {
-  logInfo("Configuration de Firebase...");
-  // Appelle un script spécifique à Firebase
+  logInfo("Configuring Firebase..."); // Calls a Firebase-specific script
   await setupFirebaseConfig(inputs);
 }
+
 async function setupPostgres(inputs) {
-  // Vérifie quel ORM a été choisi et appelle la fonction correspondante
+  // Checks which ORM was chosen and calls the corresponding function
   if (inputs.dbConfig.orm === "prisma") {
     await setupPrisma(inputs);
   } else if (inputs.dbConfig.orm === "typeorm") {
     await setupTypeORM(inputs);
   } else {
-    throw new Error("orm non suporter: ", inputs.dbConfig.orm);
+    throw new Error("Unsupported ORM: " + inputs.dbConfig.orm);
   }
 }
+
 async function setupRedis(inputs) {
-  logInfo("Configuration de Redis...");
-  // Appelle un script spécifique à Redis
+  logInfo("Configuring Redis..."); // Calls a Redis-specific script
   await setupRedisConfig(inputs);
 }
 

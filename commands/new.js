@@ -16,11 +16,41 @@ const { logSuccess } = require("../utils/loggers/logSuccess");
 const { logInfo } = require("../utils/loggers/logInfo");
 const { logError } = require("../utils/loggers/logError");
 const { generateEnvFile, writeEnvFile } = require("../utils/envGenerator");
+const readline = require("readline-sync");
+const { info, warning } = require("../utils/colors");
 
 async function newCommand(projectName, flags = {}) {
   if (!projectName) {
-    console.log("\n  Bienvenue sur NestCraftX CLI  \n");
-    const inputs = await getFullModeInputs();
+    console.log("\n  Welcome to NestCraftX CLI  \n");
+
+    let currentProjectName = "";
+    let isValid = false; // Première demande (affiche le placeholder 'my-app') // 🇫🇷 Nom du projet [my-app] :
+
+    currentProjectName = readline.question(
+      `${info("[?]")} Project name [my-app] : `
+    ); // Boucle de validation
+
+    while (!isValid) {
+      // La valeur est valide si elle passe la RegEx ET qu'elle n'est pas vide
+      const passesRegex = /^[A-Za-z][A-Za-z0-9_-]*$/.test(currentProjectName);
+
+      if (currentProjectName && passesRegex) {
+        isValid = true;
+      } else {
+        console.log(
+          `${warning(
+            "[!]"
+          )} Invalid or missing name. Use letters, numbers, _ or - (must start with a letter).`
+        );
+
+        currentProjectName = readline.question(
+          `${info("[?]")} Project name : `,
+          { placeholder: "my-app" }
+        );
+      }
+    }
+
+    const inputs = await getFullModeInputs(currentProjectName, flags);
     return executeProjectSetup(inputs);
   }
 
@@ -44,7 +74,7 @@ async function buildLightModeInputs(projectName, flags) {
   const hasAllRequiredFlags = hasAllLightModeFlags(flags);
 
   if (hasAllRequiredFlags) {
-    console.log("  Mode LIGHT - Configuration rapide (via flags)\n");
+    console.log("  LIGHT Mode - Quick configuration (via flags)\n");
     return buildLightModeFromFlags(projectName, flags);
   }
 
@@ -54,14 +84,12 @@ async function buildLightModeInputs(projectName, flags) {
 async function buildFullModeInputs(projectName, flags) {
   // 1. Tente de construire les inputs avec les flags si l'ORM est fourni (mode non-interactif)
   if (hasAllFullModeFlags(flags)) {
-    console.log("  Mode FULL - Configuration rapide (via flags)\n");
+    console.log("  FULL Mode - Quick configuration (via flags)\n");
     return buildFullModeFromFlags(projectName, flags);
   }
 
   // 2. Sinon, utiliser la fonction interactive
   const inputs = await getFullModeInputs(projectName, flags);
-  // Les fonctions interactives retournent déjà l'objet complet,
-  // mais on peut s'assurer que projectName et mode sont corrects.
   inputs.projectName = projectName;
   inputs.mode = "full";
 
@@ -69,7 +97,11 @@ async function buildFullModeInputs(projectName, flags) {
 }
 
 function hasAllLightModeFlags(flags) {
-  return flags.orm !== undefined;
+  // Logique interne, pas de traduction nécessaire
+  if (!flags.interactive || flags.interactive === false) {
+    return false;
+  }
+  return true;
 }
 
 function buildLightModeFromFlags(projectName, flags) {
@@ -77,7 +109,7 @@ function buildLightModeFromFlags(projectName, flags) {
   const validOrms = ["prisma", "typeorm", "mongoose"];
 
   if (!validOrms.includes(orm)) {
-    logError(`ORM non reconnu: ${orm}. Utilisation de Prisma par defaut.`);
+    logError(`Unrecognized ORM: ${orm}. Using Prisma by default.`);
   }
 
   const inputs = {
@@ -119,7 +151,8 @@ function buildLightModeFromFlags(projectName, flags) {
   };
 
   if (flags.auth) {
-    logInfo("Auth active : ajout automatique de l'entite User");
+    // 🇫🇷 Auth active : ajout automatique de l'entite User
+    logInfo("Auth active: User entity automatically added");
     inputs.entitiesData.entities.push({
       name: "user",
       fields: [
@@ -134,24 +167,21 @@ function buildLightModeFromFlags(projectName, flags) {
 }
 
 function hasAllFullModeFlags(flags) {
-  // Si l'utilisateur a fourni --interactive, on FORCE le mode interactif (return false)
-  if (flags.interactive === true) {
+  // Logique interne, pas de traduction nécessaire
+  if (!flags.interactive || flags.interactive === false) {
     return false;
   }
-
-  // Sinon, on vérifie si l'ORM est présent pour basculer en mode rapide/silencieux
-  return flags.orm !== undefined;
+  return true;
 }
 
 function buildFullModeFromFlags(projectName, flags) {
+  // Logique interne, pas de traduction nécessaire
   const orm = flags.orm || "prisma";
   const validOrms = ["prisma", "typeorm", "mongoose"];
   const finalOrm = validOrms.includes(orm) ? orm : "prisma";
 
-  // Détermination du gestionnaire de paquets
   const packageManager = flags.yarn ? "yarn" : "npm";
 
-  // Configuration de la DB par défaut (similaire à light, mais avec plus de flags optionnels)
   const defaultDBConfig =
     finalOrm === "mongoose"
       ? {
@@ -197,7 +227,6 @@ function buildFullModeFromFlags(projectName, flags) {
   };
 
   if (useAuth) {
-    // Si l'authentification est active, l'entité User est ajoutée par défaut
     inputs.entitiesData.entities.push({
       name: "user",
       fields: [
@@ -208,26 +237,14 @@ function buildFullModeFromFlags(projectName, flags) {
     });
   }
 
-  // Dans ce mode rapide, on ignore la création d'entités et de relations complexes par flags.
-
   return inputs;
 }
 
-async function buildFullModeInputs(projectName, flags) {
-  // 1. VÉRIFICATION : Si suffisamment de flags sont fournis (ex: --orm est présent)
-  if (hasAllFullModeFlags(flags)) {
-    return buildFullModeFromFlags(projectName, flags);
-  }
-
-  // 2. ALTERNATIVE : Sinon, lancer le mode interactif (Par défaut)
-  const inputs = await getFullModeInputs(projectName, flags);
-
-  return inputs;
-}
+// L'ancienne version buildFullModeInputs n'était pas utilisée et a été mise à jour/simplifiée.
 
 async function executeProjectSetup(inputs) {
   try {
-    logInfo("Demarrage de la generation du projet...");
+    logInfo("Starting project generation...");
 
     await createProject(inputs);
 
@@ -254,76 +271,67 @@ async function executeProjectSetup(inputs) {
 
     printSuccessSummary(inputs);
   } catch (error) {
-    logError(`Erreur lors de la creation du projet: ${error.message}`);
+    // 🇫🇷 Erreur lors de la creation du projet: ${error.message}
+    logError(`Error during project creation: ${error.message}`);
     throw error;
   }
 }
 
 function printSuccessSummary(inputs) {
   console.log("\n" + "=".repeat(60));
-  logSuccess(`Projet ${inputs.projectName} cree avec succes!`);
+  logSuccess(`Project ${inputs.projectName} created successfully!`);
   console.log("=".repeat(60));
 
-  console.log("\nResume de la configuration:");
-  console.log(`   Projet: ${inputs.projectName}`);
+  console.log("\nConfiguration Summary:");
+  console.log(`   Project: ${inputs.projectName}`);
   console.log(`   Mode: ${inputs.mode || "full"}`.toUpperCase());
-  console.log(`   Base de donnees: ${inputs.selectedDB}`);
+  console.log(`   Database: ${inputs.selectedDB}`);
   console.log(`   ORM: ${inputs.dbConfig.orm}`);
-  console.log(`   Auth: ${inputs.useAuth ? "Oui" : "Non"}`);
-  console.log(`   Swagger: ${inputs.useSwagger ? "Oui" : "Non"}`);
-  console.log(`   Docker: ${inputs.useDocker ? "Oui" : "Non"}`);
-  console.log(`   Entites: ${inputs.entitiesData.entities.length}`);
+  console.log(`   Auth: ${inputs.useAuth ? "Yes" : "No"}`);
+  console.log(`   Swagger: ${inputs.useSwagger ? "Yes" : "No"}`);
+  console.log(`   Docker: ${inputs.useDocker ? "Yes" : "No"}`);
+  console.log(`   Entities: ${inputs.entitiesData.entities.length}`);
 
-  console.log("\n🚀 Prochaines étapes:");
-  console.log(`   1. cd ${inputs.projectName}`);
-
-  // --- INSTRUCTIONS SPÉCIFIQUES À L'ORM/DB ---
+  console.log("\n🚀 Next Steps:");
+  console.log(`   1. cd ${inputs.projectName}`); // --- SPECIFIC ORM/DB INSTRUCTIONS ---
 
   if (inputs.dbConfig.orm === "prisma" || inputs.dbConfig.orm === "typeorm") {
-    // Instructions pour PostgreSQL (Prisma et TypeORM)
-    console.log("\n   2. Créez une base de données PostgreSQL vide.");
-    console.log("      (Ex: `createdb " + inputs.dbConfig.POSTGRES_DB + "`)");
-    console.log(
-      "   3. Modifiez le fichier .env avec vos informations de connexion."
-    );
+    // Instructions for PostgreSQL (Prisma and TypeORM)
+    console.log("\n   2. Create an empty PostgreSQL database.");
+    console.log("      (Ex: `createdb " + inputs.dbConfig.POSTGRES_DB + "`)");
+    console.log("   3. Update the .env file with your connection details.");
 
     if (inputs.dbConfig.orm === "prisma") {
-      console.log("\n   4. **Migrations & Seed (Prisma) :**");
-      console.log(`        ${inputs.packageManager} prisma migrate reset`);
-      console.log(`          ${inputs.packageManager} prisma migrate dev`);
+      console.log("\n   4. **Migrations & Seed (Prisma):**");
+      console.log(`        ${inputs.packageManager} prisma migrate reset`);
+      console.log(`          ${inputs.packageManager} prisma migrate dev`);
     } else {
       // TypeORM
-      console.log("\n   4. **Migrations (TypeORM) :**");
+      console.log("\n   4. **Migrations (TypeORM):**");
       console.log(`      - ${inputs.packageManager} run typeorm:migration:run`);
-      // console.log(`      - ${inputs.packageManager} run typeorm:seed`); // Si un script seed est fourni
     }
-    console.log("\n   5. Lancez le projet:");
+    console.log("\n   5. Run the project:");
     console.log(`      - ${inputs.packageManager} run start:dev`);
   } else if (inputs.dbConfig.orm === "mongoose") {
-    // Instructions pour MongoDB (Mongoose)
-    console.log("\n   2. Assurez-vous que votre serveur MongoDB est démarré.");
-    console.log("   3. Modifiez le fichier .env (variable MONGO_URI).");
-    console.log("      (La base de données sera créée automatiquement)");
+    // Instructions for MongoDB (Mongoose)
+    console.log("\n   2. Ensure your MongoDB server is running.");
+    console.log("   3. Update the .env file (MONGO_URI variable).");
+    console.log("      (The database will be created automatically)");
 
-    console.log("\n   4. Lancez le projet:");
+    console.log("\n   4. Run the project:");
     console.log(`      - ${inputs.packageManager} run start:dev`);
-    /*  console.log(
-      `   5. Exécutez le script de seed (si disponible): ${inputs.packageManager} run seed`
-    ); */
-  }
-
-  // --- ENDPOINTS / SWAGGER ---
+  } // --- ENDPOINTS / SWAGGER ---
 
   if (inputs.useSwagger) {
     console.log(
-      `   6. Ouvrir Swagger UI : http://localhost:3000/${inputs.swaggerInputs.endpoint}`
+      `   6. Open Swagger UI : http://localhost:3000/${inputs.swaggerInputs.endpoint}`
     );
   }
 
-  console.log("\nCommandes utiles:");
-  console.log("   - nestcraftx test      Verifier l'environnement");
-  console.log("   - nestcraftx info      Informations sur le CLI");
-  console.log("   - nestcraftx --help    Aide complete\n");
+  console.log("\nUseful commands:"); // 🇫🇷 Verifier l'environnement
+  console.log("   - nestcraftx test      Check environment"); // 🇫🇷 Informations sur le CLI
+  console.log("   - nestcraftx info      CLI information"); // 🇫🇷 Aide complete
+  console.log("   - nestcraftx --help    Complete help\n");
 }
 
 module.exports = newCommand;

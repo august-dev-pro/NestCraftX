@@ -2,42 +2,41 @@ const fs = require("fs");
 const { logInfo } = require("../loggers/logInfo");
 const { runCommand } = require("../shell");
 const { logSuccess } = require("../loggers/logSuccess");
-const { createDirectory, createFile, updateFile } = require("../userInput");
+const {
+  createDirectory,
+  createFile,
+  updateFile,
+  capitalize,
+} = require("../userInput");
 const { updatePackageJson } = require("../file-utils/packageJsonUtils");
 
 async function setupPrisma(inputs) {
-  logInfo("🚀 Configuration de Prisma...");
+  logInfo("Configuring Prisma...");
 
-  const dbConfig = inputs.dbConfig;
-  // 📌 Chemin du schema.prisma
-  const schemaPath = "prisma/schema.prisma";
+  const dbConfig = inputs.dbConfig; // 📌 Path to schema.prisma
+  const schemaPath = "prisma/schema.prisma"; // 📦 Step 1: Install Prisma and its client at version 6.5.0
 
-  // 📌 Pattern correspondant à la datasource existante (créée par défaut par `npx prisma init`)
-  const pattern = `datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}`;
-
-  // 📦 Étape 1 : Installation de Prisma et de son client
-  await runCommand(
-    `${inputs.packageManager} add -D prisma @prisma/client`,
-    "❌ Échec de l'installation de Prisma"
+  const prismaVersion = "6.5.0"; // Stable version for the CLI
+  logInfo(
+    `Installing prisma@${prismaVersion} and @prisma/client@${prismaVersion}...`
   );
+  await runCommand(
+    `${inputs.packageManager} add -D prisma@${prismaVersion} @prisma/client@${prismaVersion}`,
+    "❌ Prisma installation failed"
+  ); // ⚙️ Step 2: Initialize Prisma
 
-  // ⚙️ Étape 2 : Initialisation de Prisma
-  logInfo("initialisation de prisma");
-  await runCommand("npx prisma init", "❌ Échec de l'initialisation de Prisma");
+  logInfo("Initializing Prisma");
+  await runCommand("npx prisma init", "❌ Prisma initialization failed");
 
   await updateFile({
     path: schemaPath,
     pattern: /generator client \{[^}]*\}/g,
     replacement: `generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client" //
-}`,
-  });
+    provider = "prisma-client-js"
+    output   = "../node_modules/.prisma/client" //
+  }`,
+  }); // 📁 Step 3: Environment Configuration (.env and .env.example files)
 
-  // 📁 Étape 3 : Configuration de l'environnement (fichiers .env et .env.example)
   const envPath = ".env";
   const exampleEnvPath = ".env.example";
   const databaseUrl = `DATABASE_URL="postgresql://${dbConfig.POSTGRES_USER}:${dbConfig.POSTGRES_PASSWORD}@${dbConfig.POSTGRES_HOST}:${dbConfig.POSTGRES_PORT}/${dbConfig.POSTGRES_DB}?schema=public"`;
@@ -51,288 +50,350 @@ async function setupPrisma(inputs) {
   await createFile({
     path: exampleEnvPath,
     contente: exampleDatabaseUrl,
-  });
+  }); // 🧱 Step 4: Generating Prisma models from provided entities
 
-  // 🧱 Étape 4 : Génération des modèles Prisma à partir des entités fournies
-  logInfo("ajout des entités");
-  let schemaContent = "";
+  logInfo("Adding entities");
+  let schemaContent = ""; // Detecting the presence of the User entity
 
-  // Détection de la présence de l'entité User
   const hasUserEntity = inputs.entitiesData.entities.some(
     (entity) => entity.name.toLowerCase() === "user"
-  );
+  ); // Adding the Role enum block if User is present
 
-  // Ajout du bloc enum Role si User est présent
   if (hasUserEntity) {
     schemaContent += `
-/**
- * Enumération des rôles
- */
-enum Role {
-  USER
-  ADMIN
-  SUPER_ADMIN
-}
-`;
+  /**
+  * Role enumeration
+  */
+  enum Role {
+    USER
+    ADMIN
+    SUPER_ADMIN
+  }
+  `;
+  } // --- START OF CORRECTION LOGIC --- // 1. Determine the list of field names to exclude (those incorrectly generated as String)
+
+  const fieldsToExcludeMap = new Map();
+  for (const entity of inputs.entitiesData.entities) {
+    fieldsToExcludeMap.set(entity.name.toLowerCase(), []);
   }
 
+  if (inputs.entitiesData.relations?.length > 0) {
+    for (const relation of inputs.entitiesData.relations) {
+      const fromLower = relation.from.toLowerCase();
+      const toLower = relation.to.toLowerCase();
+      const fromCapitalized = capitalize(relation.from);
+      const toCapitalized = capitalize(relation.to); // 'from' side (source)
+
+      if (relation.type === "1-n") {
+        // 'One' side: exclude the name of the other entity's list (e.g., 'articles')
+        fieldsToExcludeMap.get(fromLower).push(`${toLower}s`);
+      } else if (relation.type === "n-1") {
+        // 'Many' side: exclude the foreign key (e.g., 'articleId') and the relation name (e.g., 'article')
+        fieldsToExcludeMap.get(fromLower).push(`${toLower}id`, toLower);
+      } // Add other relation types (1-1, n-n) if necessary here... // 'to' side (target)
+      if (relation.type === "1-n") {
+        // 'Many' side: exclude the foreign key (e.g., 'userId') and the relation name (e.g., 'user')
+        fieldsToExcludeMap.get(toLower).push(`${fromLower}id`, fromLower);
+      } else if (relation.type === "n-1") {
+        // 'One' side: exclude the name of the other entity's list (e.g., 'comments')
+        fieldsToExcludeMap.get(toLower).push(`${fromLower}s`);
+      }
+    }
+  } // 2. Initial generation of models WITHOUT incorrect relationship fields
+
   for (const entity of inputs.entitiesData.entities) {
+    const entityNameLower = entity.name.toLowerCase();
+
     schemaContent += `
-/**
- * Modèle ${entity.name}
- */
-model ${entity.name} {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt`;
+  /**
+  * ${entity.name} Model
+  */
+  model ${entity.name} {
+    id        String    @id @default(uuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt`;
+
+    const fieldsToExclude = fieldsToExcludeMap.get(entityNameLower) || [];
 
     for (const field of entity.fields) {
-      schemaContent += `\n  ${field.name} ${mapTypeToPrisma(field.type)}`;
-    }
+      // Only add the field if it is NOT a relationship/foreign key field to be corrected.
+      if (!fieldsToExclude.includes(field.name.toLowerCase())) {
+        schemaContent += `\n    ${field.name} ${mapTypeToPrisma(field.type)}`;
+      }
+    } // Adding the role field only for User
 
-    // Ajout du champ role uniquement pour User
-    if (entity.name.toLowerCase() === "user") {
-      schemaContent += `\n  role     Role     @default(USER)`;
+    if (entityNameLower === "user") {
+      schemaContent += `\n    role      Role      @default(USER)`;
     }
 
     schemaContent += `\n}\n`;
-  }
+  } // 3. Applying relationship logic to add the CORRECT fields
 
-  // 🔗 Ajout des relations
+  logInfo("Applying Prisma relations...");
+
   if (inputs.entitiesData.relations?.length > 0) {
     for (const relation of inputs.entitiesData.relations) {
       const from = relation.from;
       const to = relation.to;
-      const type = relation.type;
+      const type = relation.type; // The replacement must be done on the entire generated schemaContent // Using a replacement function to update the content of `schemaContent`
 
-      // Mise à jour du modèle source
-      schemaContent = schemaContent.replace(
-        new RegExp(`model ${from} \\{`),
-        (match) => {
-          if (type === "1-n") {
-            // Côté "one" (source) : ajoute la liste
-            schemaContent = schemaContent.replace(
-              new RegExp(`model ${from} {([\\s\\S]*?)}`),
-              (match) => {
-                const fieldLine = `${to}s ${to}[]`;
-                return match.includes(fieldLine)
-                  ? match
-                  : `${match}\n  ${fieldLine}`;
-              }
-            );
-            // Côté "many" (cible) : ajoute la relation et la clé étrangère si absente
-            schemaContent = schemaContent.replace(
-              new RegExp(`model ${to} {([\\s\\S]*?)}`),
-              (match) => {
-                const relationLine = `${from} ${from} @relation(fields: [${from}Id], references: [id])`;
-                const fkLine = `${from}Id String`;
-                let result = match.includes(relationLine)
-                  ? match
-                  : `${match}\n  ${relationLine}`;
-                result = result.includes(fkLine)
-                  ? result
-                  : `${result}\n  ${fkLine}`;
-                return result;
-              }
-            );
+      if (type === "1-n") {
+        // "One" side (source): adds the list (to[])
+        schemaContent = schemaContent.replace(
+          new RegExp(`model ${from} \{([\\s\\S]*?)\n\\}`, "m"),
+          (match, content) => {
+            const fieldLine = `    ${to}s ${to}[]`;
+            return match.includes(fieldLine)
+              ? match
+              : `model ${from} {${content}\n${fieldLine}\n}`;
           }
+        ); // "Many" side (target): adds the relation and the foreign key
 
-          if (type === "n-1") {
-            // Côté "many" (source) : ajoute la relation et la clé étrangère si absente
-            schemaContent = schemaContent.replace(
-              new RegExp(`model ${from} {([\\s\\S]*?)}`),
-              (match) => {
-                const relationLine = `${to} ${to} @relation(fields: [${to}Id], references: [id])`;
-                const fkLine = `${to}Id String`;
-                let result = match.includes(relationLine)
-                  ? match
-                  : `${match}\n  ${relationLine}`;
-                result = result.includes(fkLine)
-                  ? result
-                  : `${result}\n  ${fkLine}`;
-                return result;
-              }
-            );
-            // Côté "one" (cible) : ajoute la liste
-            schemaContent = schemaContent.replace(
-              new RegExp(`model ${to} {([\\s\\S]*?)}`),
-              (match) => {
-                const fieldLine = `${from}s ${from}[]`;
-                return match.includes(fieldLine)
-                  ? match
-                  : `${match}\n  ${fieldLine}`;
-              }
-            );
+        schemaContent = schemaContent.replace(
+          new RegExp(`model ${to} \{([\\s\\S]*?)\n\\}`, "m"),
+          (match, content) => {
+            const relationLine = `    ${from} ${from} @relation(fields: [${from}Id], references: [id])`;
+            const fkLine = `    ${from}Id String`;
+            let result = match.includes(relationLine)
+              ? content
+              : `${content}\n${relationLine}`;
+            result = result.includes(fkLine) ? result : `${result}\n${fkLine}`;
+            return `model ${to} {${result}\n}`;
           }
+        );
+      }
 
-          if (type === "1-1") {
-            // Côté A
-            schemaContent = schemaContent.replace(
-              new RegExp(`model ${from} {([\\s\\S]*?)}`),
-              (match) => {
-                const relationLine = `${to} ${to} @relation(fields: [${to}Id], references: [id])`;
-                const fkLine = `${to}Id String @unique`;
-                let result = match.includes(relationLine)
-                  ? match
-                  : `${match}\n  ${relationLine}`;
-                result = result.includes(fkLine)
-                  ? result
-                  : `${result}\n  ${fkLine}`;
-                return result;
-              }
-            );
-            // Côté B
-            schemaContent = schemaContent.replace(
-              new RegExp(`model ${to} {([\\s\\S]*?)}`),
-              (match) => {
-                const relationLine = `${from} ${from}? @relation(fields: [${from}Id], references: [id])`;
-                const fkLine = `${from}Id String? @unique`;
-                let result = match.includes(relationLine)
-                  ? match
-                  : `${match}\n  ${relationLine}`;
-                result = result.includes(fkLine)
-                  ? result
-                  : `${result}\n  ${fkLine}`;
-                return result;
-              }
-            );
+      if (type === "n-1") {
+        // n-1 is the inverse of 1-n: from is the "many" and to is the "one"
+
+        // "Many" side (source = from): adds the relation and the foreign key
+        schemaContent = schemaContent.replace(
+          new RegExp(`model ${from} \{([\\s\\S]*?)\n\\}`, "m"),
+          (match, content) => {
+            const relationLine = `    ${to} ${to} @relation(fields: [${to}Id], references: [id])`;
+            const fkLine = `    ${to}Id String`;
+            let result = match.includes(relationLine)
+              ? content
+              : `${content}\n${relationLine}`;
+            result = result.includes(fkLine) ? result : `${result}\n${fkLine}`;
+            return `model ${from} {${result}\n}`;
           }
+        ); // "One" side (target = to): adds the list (from[])
 
-          if (type === "n-n" || type === "m-n") {
-            // Pour n-n, généralement, il faut créer une table de jointure à la main.
-            // Ici, on ajoute juste les listes de chaque côté si absentes.
-            schemaContent = schemaContent.replace(
-              new RegExp(`model ${from} {([\\s\\S]*?)}`),
-              (match) => {
-                const fieldLine = `${to}s ${to}[]`;
-                return match.includes(fieldLine)
-                  ? match
-                  : `${match}\n  ${fieldLine}`;
-              }
-            );
-            schemaContent = schemaContent.replace(
-              new RegExp(`model ${to} {([\\s\\S]*?)}`),
-              (match) => {
-                const fieldLine = `${from}s ${from}[]`;
-                return match.includes(fieldLine)
-                  ? match
-                  : `${match}\n  ${fieldLine}`;
-              }
-            );
+        schemaContent = schemaContent.replace(
+          new RegExp(`model ${to} \{([\\s\\S]*?)\n\\}`, "m"),
+          (match, content) => {
+            const fromCapitalized = capitalize(from);
+            const fieldLine = `    ${from}s ${from}[]`;
+            return match.includes(fieldLine)
+              ? match
+              : `model ${to} {${content}\n${fieldLine}\n}`;
           }
+        );
+      }
 
-          return match;
-        }
-      );
+      if (type === "1-1") {
+        //
+
+        // 'from' side (source): adds the relation, foreign key, and @unique attribute
+        schemaContent = schemaContent.replace(
+          new RegExp(`model ${from} \{([\\s\\S]*?)\n\\}`, "m"),
+          (match, content) => {
+            const relationLine = `    ${to} ${to}? @relation(fields: [${to}Id], references: [id])`; // The foreign key must be unique in a 1-1 relationship, and optional for flexibility
+            const fkLine = `    ${to}Id String? @unique`;
+
+            let result = match.includes(relationLine)
+              ? content
+              : `${content}\n${relationLine}`;
+            result = result.includes(fkLine) ? result : `${result}\n${fkLine}`;
+            return `model ${from} {${result}\n}`;
+          }
+        ); // 'to' side (target): adds the inverse relation (optional)
+
+        schemaContent = schemaContent.replace(
+          new RegExp(`model ${to} \{([\\s\\S]*?)\n\\}`, "m"),
+          (match, content) => {
+            // Inverse relation (optional because 'from' holds the FK)
+            const fieldLine = `    ${from} ${from}?`;
+            return match.includes(fieldLine)
+              ? match
+              : `model ${to} {${content}\n${fieldLine}\n}`;
+          }
+        );
+      }
+
+      if (type === "n-n") {
+        //
+
+        // 'from' side (source): adds the list (to[])
+        schemaContent = schemaContent.replace(
+          new RegExp(`model ${from} \{([\\s\\S]*?)\n\\}`, "m"),
+          (match, content) => {
+            const fieldLine = `    ${to}s ${to}[]`;
+            return match.includes(fieldLine)
+              ? match
+              : `model ${from} {${content}\n${fieldLine}\n}`;
+          }
+        ); // 'to' side (target): adds the list (from[])
+
+        schemaContent = schemaContent.replace(
+          new RegExp(`model ${to} \{([\\s\\S]*?)\n\\}`, "m"),
+          (match, content) => {
+            const fieldLine = `    ${from}s ${from}[]`;
+            return match.includes(fieldLine)
+              ? match
+              : `model ${to} {${content}\n${fieldLine}\n}`;
+          }
+        );
+      } // Other relation types (1-1, n-n) should be implemented here if you support them.
     }
+  } // --- END OF CORRECTION LOGIC --- // 🛠 Step 5: Inserting models into schema.prisma
+
+  logInfo("Updating schema.prisma");
+  const baseSchema = `
+  generator client {
+    provider = "prisma-client-js"
   }
 
-  // 🛠 Étape 5 : Insertion des modèles dans schema.prisma (après la datasource existante)
-  logInfo("mise à jour de schema.prisma");
-  await updateFile({
+  datasource db {
+    provider = "${inputs.dbConfig.orm === "mongodb" ? "mongodb" : "postgresql"}"
+    url      = env("DATABASE_URL")
+  }
+
+  ${schemaContent}
+  `;
+
+  await createFile({
     path: schemaPath,
-    pattern: pattern, // On insère après la configuration de la datasource
-    replacement: `${pattern}\n\n${schemaContent}`,
-  });
+    contente: baseSchema,
+  }); // 📁 Step 6: Creating the `src/prisma` structure
 
-  // 📁 Étape 6 : Création de la structure `src/prisma`
   const defaultPatch = "src/prisma";
-  await createDirectory(defaultPatch);
+  await createDirectory(defaultPatch); // 🧩 Prisma Service
 
-  // 🧩 Service Prisma
   await createFile({
     path: `${defaultPatch}/prisma.service.ts`,
-    contente: `import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
+    contente: `import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+  import { PrismaClient } from '@prisma/client';
 
-/**
- * Service Prisma permettant d'exposer une instance globale du client Prisma
- */
-@Injectable()
-export class PrismaService extends PrismaClient {
-  constructor() {
-    super();
+  /**
+  * Prisma Service to expose a global instance of the Prisma client
+  */
+  @Injectable()
+  export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+    constructor() {
+        super();
+    }
+
+    async onModuleInit() {
+        await this.$connect();
+    }
+
+    async onModuleDestroy() {
+        await this.$disconnect();
+    }
   }
-}
-`,
-  });
+  `,
+  }); // 🧩 Prisma Module
 
-  // 🧩 Module Prisma
   await createFile({
     path: `${defaultPatch}/prisma.module.ts`,
     contente: `import { Global, Module } from '@nestjs/common';
-import { PrismaService } from './prisma.service';
+  import { PrismaService } from './prisma.service';
 
-/**
- * Module Prisma global pour fournir le service à l'ensemble de l'application
- */
-@Global()
-@Module({
-  providers: [PrismaService],
-  exports: [PrismaService],
-})
-export class PrismaModule {}
-`,
-  });
+  /**
+  * Global Prisma Module to provide the service to the entire application
+  */
+  @Global()
+  @Module({
+    providers: [PrismaService],
+    exports: [PrismaService],
+  })
+  export class PrismaModule {}
+  `,
+  }); // 🔧 Installing dotenv if necessary
 
-  // 🔧 Installation de dotenv si nécessaire
-  logInfo("📦 Installation de dotenv...");
+  logInfo("📦 Installing dotenv...");
   await runCommand(
     `${inputs.packageManager} add dotenv`,
-    "❌ Échec de l'installation de dotenv"
-  );
+    "❌ Failed to install dotenv"
+  ); // 🔧 Creating prisma.config.ts file to load environment variables
 
-  // 🔧 Création du fichier prisma.config.ts pour charger les variables d'environnement
   let prismaConfigPath = "prisma.config.ts";
   if (!fs.existsSync(prismaConfigPath)) {
     prismaConfigPath = "prisma/prisma.config.ts";
   }
 
   if (fs.existsSync(prismaConfigPath)) {
-    logInfo("📝 Mise à jour de prisma.config.ts avec l'import dotenv...");
+    logInfo("📝 Updating prisma.config.ts with dotenv import...");
     await updateFile({
       path: prismaConfigPath,
       pattern: /^/,
       replacement: `import 'dotenv/config';\n\n`,
     });
-  }
+  } // ⚙️ Step 7: Generating the Prisma client
 
-  // ⚙️ Étape 7 : Génération du client Prisma
-  await runCommand("npx prisma generate", "❌ Échec de la génération Prisma");
+  await runCommand("npx prisma generate", "❌ Prisma generation failed"); // ⚙️ Step 8: Migration (ONLY in 'new' mode)
 
-  // ⚙️ Étape 8 : Migration (UNIQUEMENT en mode 'new')
   if (inputs.isDemo) {
     setupPrismaSeeding(inputs);
   }
 
-  logSuccess("✅ Prisma configuré avec succès !");
+  logSuccess("✅ Prisma configured successfully!");
 }
 
+/**
+ * Maps generic entity types to Prisma data types.
+ * @param {string} type - Generic type (e.g., 'string', 'number', 'Date', 'string[]', 'MonEnum')
+ * @returns {string} The corresponding type in the Prisma schema.
+ */
 function mapTypeToPrisma(type) {
-  switch (type.toLowerCase()) {
+  // Handles the case of arrays (e.g., 'string[]')
+  if (type.endsWith("[]")) {
+    const innerType = type.slice(0, -2); // Removes '[]' // Recursively calls for the inner type
+    return `${mapTypeToPrisma(innerType)}[]`;
+  }
+
+  const typeLower = type.toLowerCase();
+
+  switch (typeLower) {
     case "string":
+    case "text": // Mapped to String because Prisma does not have a distinct TEXT type for PostgreSQL
       return "String";
+
+    case "number": // A simple "number" field can be Int or Float. We default to Float.
+      return "Float";
     case "int":
       return "Int";
-    case "float":
-      return "Float";
-    case "number":
-      return "Float"; // ou "Int" selon le besoin
+
+    case "decimal": // Use Decimal for high precision, or Float for simplicity
+      return "Decimal";
+
     case "boolean":
       return "Boolean";
+
     case "date":
       return "DateTime";
+
+    case "uuid": // We use String by default for storage, the @id @default(uuid()) attribute will be managed by the ID logic. // For non-ID fields, String is the appropriate choice.
+      return "String";
+
+    case "json":
+      return "Json";
     case "role":
       return "Role";
-    default:
-      return "String";
+
+    default: // Handles cases of custom enumerations (e.g., 'StatusEnum') or named object types (e.g., 'Address')
+      // Prisma will use the exact type name if it matches a defined 'enum' or other 'model'.
+      // In the context of a simple non-persistent DTO/object field, it is better to revert to Json if unrecognized.
+      // If the type is capitalized (e.g., 'Address'), we return it as is (assuming it's another Model/Enum)
+      return type.charAt(0) === type.charAt(0).toUpperCase() ? type : "Json";
   }
 }
 
 async function setupPrismaSeeding(inputs) {
-  logInfo("⚙️ Configuration du seeding pour Prisma...");
+  logInfo("⚙️ Configuring seeding for Prisma..."); // --- Dependencies ---
 
-  // --- Dépendances ---
   const prismaDevDeps = [
     "ts-node",
     "@types/node",
@@ -341,167 +402,163 @@ async function setupPrismaSeeding(inputs) {
   ];
   await runCommand(
     `${inputs.packageManager} add -D ${prismaDevDeps.join(" ")}`,
-    "❌ Échec de l'installation des dépendances de seeding Prisma"
-  );
-  // Bcrypt est souvent une dépendance de production pour le hachage
+    "❌ Failed to install Prisma seeding dependencies"
+  ); // Bcrypt is often a production dependency for hashing
   await runCommand(
     `${inputs.packageManager} install bcrypt`,
-    "❌ Échec de l'installation de bcrypt"
-  );
+    "❌ Failed to install bcrypt"
+  ); // --- Scripts in package.json ---
 
-  // --- Scripts dans package.json ---
   const prismaScripts = {
     "prisma:migrate": "npx prisma migrate dev --name init",
     "prisma:seed": "npx prisma db seed",
     seed: `ts-node prisma/seed.ts`,
   };
 
-  await updatePackageJson(inputs, prismaScripts);
+  await updatePackageJson(inputs, prismaScripts); // --- Configuration in schema.prisma ---
 
-  // --- Configuration dans schema.prisma ---
   await updateFile({
     path: "prisma/schema.prisma",
     pattern: /generator client \{[^}]*\}/g,
     replacement: `generator client {
-  provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
-}
+    provider = "prisma-client-js"
+    output   = "../node_modules/.prisma/client"
+  }
 
-`,
-  });
+  `,
+  }); // --- Creating seed.ts file ---
 
-  // --- Création du fichier seed.ts ---
   const seedTsContent = generatePrismaSeedContent(inputs.entitiesData.entities);
   await createFile({
     path: `prisma/seed.ts`,
     contente: seedTsContent,
   });
 
-  logSuccess("✅ Seeding Prisma configuré.");
+  logSuccess("✅ Prisma seeding configured.");
 }
 
 function generatePrismaSeedContent(entities) {
   const requiresBcrypt = entities.some((e) => e.name.toLowerCase() === "user");
 
   return `
-import { PrismaClient } from '@prisma/client';
-${requiresBcrypt ? "import * as bcrypt from 'bcrypt';" : ""}
+  import { PrismaClient } from '@prisma/client';
+  ${requiresBcrypt ? "import * as bcrypt from 'bcrypt';" : ""}
 
-const prisma = new PrismaClient();
+  const prisma = new PrismaClient();
 
-async function main() {
-  console.log('🌱 Démarrage du seeding pour Prisma...');
+  async function main() {
+    console.log('🌱 Starting Prisma seeding...');
 
-  // --- 1. UTILISATEUR ADMIN ---
-  ${
+    // --- 1. ADMIN USER ---
+    ${
     requiresBcrypt
       ? `const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash('password123', salt);`
+    const hashedPassword = await bcrypt.hash('password123', salt);`
       : ""
   }
 
-  const adminUser = await prisma.user.create({
-     data: {
-      email: 'admin@nestcraft.com',
-      ${
-        requiresBcrypt
-          ? "password: hashedPassword,"
-          : "// Mot de passe par défaut: password123"
-      }
-      username: 'NestCraftAdmin',
-      role: 'SUPER_ADMIN',
-      isActive: true,
-    },
-  });
-  console.log(\`👑 Admin créé: \${adminUser.email}\`);
+    const adminUser = await prisma.user.create({
+       data: {
+        email: 'admin@nestcraft.com',
+        ${
+    requiresBcrypt
+      ? "password: hashedPassword,"
+      : "// Default password: password123"
+  }
+        username: 'NestCraftAdmin',
+        role: 'SUPER_ADMIN',
+        isActive: true,
+      },
+    });
+    console.log(\`👑 Admin created: \${adminUser.email}\`);
 
-  // --- 2. UTILISATEURS DÉMO ---
-  const demoUsersData = [
-    { email: 'emma.jones@demo.com', ${
-      requiresBcrypt ? "password: hashedPassword," : ""
-    } username: 'EmmaJones', isActive: true },
-    { email: 'lucas.martin@demo.com', ${
-      requiresBcrypt ? "password: hashedPassword," : ""
-    } username: 'LucasMartin', isActive: true },
-    { email: 'sophia.bernard@demo.com', ${
-      requiresBcrypt ? "password: hashedPassword," : ""
-    } username: 'SophiaBernard', isActive: true },
-    { email: 'alexandre.dubois@demo.com', ${
-      requiresBcrypt ? "password: hashedPassword," : ""
-    } username: 'AlexandreDubois', isActive: true },
-    { email: 'chloe.moreau@demo.com', ${
-      requiresBcrypt ? "password: hashedPassword," : ""
-    } username: 'ChloeMoreau', isActive: true },
-  ];
+    // --- 2. DEMO USERS ---
+    const demoUsersData = [
+      { email: 'emma.jones@demo.com', ${
+    requiresBcrypt ? "password: hashedPassword," : ""
+  } username: 'EmmaJones', isActive: true },
+      { email: 'lucas.martin@demo.com', ${
+    requiresBcrypt ? "password: hashedPassword," : ""
+  } username: 'LucasMartin', isActive: true },
+      { email: 'sophia.bernard@demo.com', ${
+    requiresBcrypt ? "password: hashedPassword," : ""
+  } username: 'SophiaBernard', isActive: true },
+      { email: 'alexandre.dubois@demo.com', ${
+    requiresBcrypt ? "password: hashedPassword," : ""
+  } username: 'AlexandreDubois', isActive: true },
+      { email: 'chloe.moreau@demo.com', ${
+    requiresBcrypt ? "password: hashedPassword," : ""
+  } username: 'ChloeMoreau', isActive: true },
+    ];
 
-  await prisma.user.createMany({ data: demoUsersData, skipDuplicates: true });
-  console.log('👥 Utilisateurs démo créés.');
+    await prisma.user.createMany({ data: demoUsersData, skipDuplicates: true });
+    console.log('👥 Demo users created.');
 
-  const allUsers = await prisma.user.findMany({ select: { id: true } });
-  const userIds = allUsers.map(u => u.id);
+    const allUsers = await prisma.user.findMany({ select: { id: true } });
+    const userIds = allUsers.map(u => u.id);
 
-  // --- 3. ARTICLES DE BLOG ---
-  const postsData = [
-    {
-      title: 'Les bases de NestJS pour les développeurs modernes',
-      content: 'Découvrez comment construire une API robuste et maintenable avec NestJS...',
-      published: true,
-      authorId: userIds[1],
-    },
-    {
-      title: 'Comment sécuriser votre API avec JWT',
-      content: 'L’authentification JWT est un standard pour sécuriser les APIs...',
-      published: true,
-      authorId: userIds[2],
-    },
-    {
-      title: 'Optimiser les performances d’une API Node.js',
-      content: 'Découvrez les meilleures pratiques pour améliorer les performances...',
-      published: true,
-      authorId: userIds[3],
-    },
-    {
-      title: 'Introduction à Prisma ORM',
-      content: 'Prisma est un ORM moderne qui simplifie les interactions avec la base de données...',
-      published: true,
-      authorId: userIds[4],
-    },
-    {
-      title: 'Comprendre la Clean Architecture',
-      content: 'La Clean Architecture permet de séparer la logique métier du reste du code...',
-      published: false,
-      authorId: userIds[0],
-    },
-  ];
-  await prisma.post.createMany({ data: postsData, skipDuplicates: true });
-  console.log('📝 Articles créés.');
+    // --- 3. BLOG POSTS ---
+    const postsData = [
+      {
+        title: 'The Basics of NestJS for Modern Developers',
+        content: 'Discover how to build a robust and maintainable API with NestJS...',
+        published: true,
+        authorId: userIds[1],
+      },
+      {
+        title: 'How to Secure Your API with JWT',
+        content: 'JWT authentication is a standard for securing APIs...',
+        published: true,
+        authorId: userIds[2],
+      },
+      {
+        title: 'Optimizing Node.js API Performance',
+        content: 'Discover best practices for improving performance...',
+        published: true,
+        authorId: userIds[3],
+      },
+      {
+        title: 'Introduction to Prisma ORM',
+        content: 'Prisma is a modern ORM that simplifies interactions with the database...',
+        published: true,
+        authorId: userIds[4],
+      },
+      {
+        title: 'Understanding Clean Architecture',
+        content: 'Clean Architecture helps separate business logic from the rest of the code...',
+        published: false,
+        authorId: userIds[0],
+      },
+    ];
+    await prisma.post.createMany({ data: postsData, skipDuplicates: true });
+    console.log('📝 Articles created.');
 
-  const allPosts = await prisma.post.findMany({ select: { id: true } });
-  const postIds = allPosts.map(p => p.id);
+    const allPosts = await prisma.post.findMany({ select: { id: true } });
+    const postIds = allPosts.map(p => p.id);
 
-  // --- 4. COMMENTAIRES DÉMO ---
-  const commentsData = [
-    { content: 'Excellent article ! J’ai pu appliquer ces conseils directement sur mon projet NestJS.', postId: postIds[0], authorId: userIds[2] },
-    { content: 'Très clair et bien expliqué, merci pour le partage sur Prisma 👏', postId: postIds[3], authorId: userIds[0] },
-    { content: 'Je ne connaissais pas JWT avant cet article, c’est une vraie révélation.', postId: postIds[1], authorId: userIds[4] },
-    { content: 'La Clean Architecture m’a toujours paru floue, cet article m’a enfin éclairé.', postId: postIds[4], authorId: userIds[1] },
-    { content: 'Merci pour ce contenu ! J’aimerais voir un tutoriel complet avec NestJS + Prisma.', postId: postIds[2], authorId: userIds[3] },
-  ];
-  await prisma.comment.createMany({ data: commentsData, skipDuplicates: true });
-  console.log('💬 Commentaires créés.');
+    // --- 4. DEMO COMMENTS ---
+    const commentsData = [
+      { content: 'Excellent article! I was able to apply these tips directly to my NestJS project.', postId: postIds[0], authorId: userIds[2] },
+      { content: 'Very clear and well explained, thank you for sharing about Prisma 👏', postId: postIds[3], authorId: userIds[0] },
+      { content: 'I didn\'t know about JWT before this article, it\'s a real revelation.', postId: postIds[1], authorId: userIds[4] },
+      { content: 'Clean Architecture always seemed blurry to me, this article finally enlightened me.', postId: postIds[4], authorId: userIds[1] },
+      { content: 'Thanks for the content! I would like to see a complete tutorial with NestJS + Prisma.', postId: postIds[2], authorId: userIds[3] },
+    ];
+    await prisma.comment.createMany({ data: commentsData, skipDuplicates: true });
+    console.log('💬 Comments created.');
 
-  console.log('✅ Seeding terminé avec succès ! 🚀');
-}
+    console.log('✅ Seeding finished successfully! 🚀');
+  }
 
-main()
-  .catch((e) => {
-    console.error('❌ Erreur lors du seeding Prisma:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
-`;
+  main()
+    .catch((e) => {
+      console.error('❌ Error during Prisma seeding:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+  `;
 }
 
 module.exports = { setupPrisma };

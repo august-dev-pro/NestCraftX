@@ -1,4 +1,4 @@
-## 🛠️ NestCraftX — Clean Architecture Generator for NestJS
+## NestCraftX — Clean Architecture Generator for NestJS
 
 demo
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -11,9 +11,9 @@ demo
 
 ---
 
-## 📑 Sommaire
+## Sommaire
 
-- [Nouveautes v0.2.0](#nouveautes-v020)
+- [Nouveautes v0.2.2](#nouveautes-v022)
 - [Objectif du projet](#objectif-du-projet)
 - [Prérequis](#prérequis)
 - [Installation](#installation)
@@ -22,48 +22,13 @@ demo
 - [Architecture générée](#architecture-générée)
 - [Démo complète](#démo-complète)
 - [Guide d'utilisation](#guide-dutilisation)
-- [📌 Roadmap](#roadmap)
-- [❤️ Contribuer](#contribuer)
-- [📜 Licence](#licence)
+- [Roadmap](#roadmap)
+- [Contribuer](#contribuer)
+- [Licence](#licence)
 
 ---
 
 ## Nouveautes v0.2.2
-
-### Demo Command Amélioré
-
-- ✅ Options par flags : `--light`, `--orm`, `--auth`, `--swagger`, `--docker`
-- ✅ Mode interactif : pose les questions uniquement si flags manquants
-- ✅ Fusion intelligente flags + réponses interactives
-- ✅ 3 entités pré-configurées avec relations
-- ✅ Support de tous les ORMs (Prisma, TypeORM, Mongoose)
-- ✅ Instructions séparées dans [Documentation Demo](./DEMO.md)
-
-### Auth Refactorisée
-
-- ✅ AuthService passe via UserService (pas d'accès direct au repository)
-- ✅ JWT avec ConfigService pour les secrets
-- ✅ Refresh tokens implémentés
-- ✅ OTP et password reset ready
-- ✅ Guards et strategies Passport configurés
-
-### Templates Professionnels
-
-- ✅ `.gitignore` complet pour NestJS
-- ✅ `README.md` auto-généré pour chaque projet
-- ✅ Git auto-initialized avec premier commit
-- ✅ Structure propre et documentée
-
-### Code Cleaning
-
-- ✅ Suppression des fichiers obsolètes
-- ✅ Normalisation CommonJS vs ES6
-- ✅ Code mort nettoyé
-- ✅ Imports et exports cohérents
-
----
-
-## Nouveautes v0.2.0
 
 ### Deux Modes d'Architecture
 
@@ -79,6 +44,15 @@ demo
 - Demarrage rapide pour prototypes
 - Parfait pour petits projets et MVPs
 
+### Demo Command Amélioré
+
+- ✅ Options par flags : `--light`, `--orm`, `--auth`, `--swagger`, `--docker`
+- ✅ Mode interactif : pose les questions uniquement si flags manquants
+- ✅ Fusion intelligente flags + réponses interactives
+- ✅ 3 entités pré-configurées avec relations
+- ✅ Support de tous les ORMs (Prisma, TypeORM, Mongoose)
+- ✅ Instructions séparées dans [Documentation Demo](./DEMO.md)
+
 ### CLI Moderne avec Flags
 
 ```bash
@@ -87,6 +61,7 @@ nestcraftx new <project-name> [options]
 Options:
   --light              Mode architecture simplifiee
   --full               Mode architecture complete (defaut)
+  --dn=<db>            Choix db: postgresql|mongodb
   --orm=<orm>          Choix ORM: prisma|typeorm|mongoose
   --auth               Active authentification JWT
   --swagger            Active documentation Swagger
@@ -129,6 +104,7 @@ Ne perdez plus de temps à configurer votre architecture backend. NestCraftX vou
 - ✅ Démarrer un projet en quelques minutes au lieu de quelques jours
 - ✅ Avoir une architecture Clean dès le départ
 - ✅ Uniformiser vos projets avec les mêmes bonnes pratiques
+- ✅ Configuration automatiser de BD-ORM et autres modules (decorateur, authentification, dockerisation)
 - ✅ Vous concentrer sur la logique métier
 - ✅ Choisir entre configuration rapide (Light) ou complète (Full)
 
@@ -152,7 +128,7 @@ nestcraftx test
 
 ## Installation
 
-### 📦 Via npx (recommandé)
+### Via npx (recommandé)
 
 Utilisez NestCraftX sans installation globale :
 
@@ -160,7 +136,7 @@ Utilisez NestCraftX sans installation globale :
 npx nestcraftx new my-app
 ```
 
-### 🌍 Installation globale
+### Installation globale
 
 Pour une utilisation fréquente :
 
@@ -169,7 +145,7 @@ npm install -g nestcraftx
 nestcraftx new my-app
 ```
 
-### 🧪 Installation pour développement
+### Installation pour développement
 
 ```bash
 git clone https://github.com/august-dev-pro/NestCraftX.git
@@ -231,13 +207,13 @@ Génère un projet de démonstration complet (blog-demo) avec :
 nestcraftx demo
 
 # Mode LIGHT avec Mongoose
-nestcraftx demo --light --orm mongoose
+nestcraftx demo --light --orm=mongoose
 
 # Mode FULL avec TypeORM
-nestcraftx demo --orm typeorm --auth --swagger
+nestcraftx demo --orm=typeorm --auth --swagger
 
 # Démarrer rapidement
-nestcraftx demo --light --orm prisma
+nestcraftx demo --light --orm=prisma
 ```
 
 **Résultat :**
@@ -283,37 +259,53 @@ nestcraftx info
 ### Base de données
 
 ✅ **Prisma** - ORM moderne et type-safe (recommandé)
+
 ✅ **TypeORM** - ORM complet avec decorateurs
+
 ✅ **Mongoose** - ODM pour MongoDB
+
 ✅ Configuration automatique du schéma
+
 ✅ Support PostgreSQL et MongoDB
 
 ### Sécurité
 
 ✅ **JWT Authentication** avec guards et strategies
+
 ✅ **Role-based Access Control** (RBAC)
+
 ✅ **Password hashing** avec bcrypt
+
 ✅ **Public routes** avec decorators
 
 ### Documentation
 
 ✅ **Swagger UI** automatique
+
 ✅ Décorateurs ApiProperty sur les DTOs
+
 ✅ Documentation des endpoints
+
 ✅ Interface interactive d'API
 
 ### DevOps
 
 ✅ **Docker** et **Docker Compose**
+
 ✅ Configuration des variables d'environnement
+
 ✅ Logging structuré
+
 ✅ Error handling centralisé
 
 ### Qualité du code
 
 ✅ Validation des DTOs avec class-validator
+
 ✅ Transformation des données avec class-transformer
+
 ✅ Intercepteurs de réponse standardisés
+
 ✅ Filtres d'exceptions globaux
 
 ---
@@ -495,7 +487,7 @@ open http://localhost:3000/api/docs
 
 ---
 
-## ❤️ Contribuer
+## Contribuer
 
 Vous voulez améliorer NestCraftX ? Les contributions sont les bienvenues !
 
@@ -524,7 +516,7 @@ npm link
 
 ---
 
-## 📜 Licence
+## Licence
 
 MIT © [Ablanhou Augustin Selete](https://github.com/august-dev-pro)
 
@@ -532,7 +524,7 @@ Libre d'usage pour projets personnels et commerciaux.
 
 ---
 
-## 🙏 Remerciements
+## Remerciements
 
 Merci à tous les contributeurs et à la communauté NestJS !
 
@@ -540,7 +532,7 @@ Merci à tous les contributeurs et à la communauté NestJS !
 
 ---
 
-## 📞 Contact & Support
+## Contact & Support
 
 - 📧 GitHub Issues : [Ouvrir une issue](https://github.com/august-dev-pro/NestCraftX/issues)
 - 🌐 Repository : [NestCraftX sur GitHub](https://github.com/august-dev-pro/NestCraftX)

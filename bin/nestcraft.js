@@ -1,9 +1,19 @@
 #!/usr/bin/env node
-
+const { execSync } = require("child_process");
 const { parseCliArgs } = require("../utils/cliParser");
 
 const args = parseCliArgs(process.argv);
 const command = args.command || "help";
+
+// 🔐 Forcer UTF-8 uniquement sur Windows
+if (process.platform === "win32") {
+  try {
+    execSync("chcp 65001", { stdio: "ignore" }); // Changer l'encodage de la console
+  } catch (err) {
+    const message = `⚠️ Impossible de forcer UTF-8 dans le terminal Windows: ${err}`;
+    console.warn(message);
+  }
+}
 
 switch (command) {
   case "new":
