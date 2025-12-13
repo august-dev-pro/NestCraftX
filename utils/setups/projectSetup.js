@@ -1,3 +1,4 @@
+const readline = require("readline-sync");
 const { logInfo } = require("../loggers/logInfo");
 const { runCommand } = require("../shell");
 const fs = require("fs");
@@ -6,7 +7,7 @@ async function createProject(inputs) {
   if (fs.existsSync(inputs.projectName)) {
     console.log("⚠️ Project already exists.");
 
-    const confirmation = readlineSync.keyInYNStrict(
+    const confirmation = readline.keyInYNStrict(
       `The folder '${inputs.projectName}' already exists. Do you want to delete it and proceed? `
     );
 
