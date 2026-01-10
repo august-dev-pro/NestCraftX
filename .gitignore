@@ -10,7 +10,7 @@ coverage/
 logs/
 .DS_Store
 .git/
-.gitignore
+.npmignore
 LICENSE.md
 README-DRAFT.md
 test/
