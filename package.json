@@ -1,6 +1,6 @@
 {
   "name": "nestcraftx",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Modern CLI to generate scalable NestJS projects with Clean Architecture (FULL) and MVP mode (LIGHT) - Enhanced with auto-generated .env secrets, complete ORM support, and entity relations",
   "main": "bin/nestcraft.js",
   "bin": {
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/august-dev-pro/NestCraftX.git"
+    "url": "git+https://github.com/august-dev-pro/NestCraftX.git"
   },
   "keywords": [
     "nestjs",
