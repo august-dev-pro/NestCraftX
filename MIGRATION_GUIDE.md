@@ -1,127 +1,124 @@
-# Guide de Migration NestCraftX : v0.1.x → v0.2.3
+# NestCraftX Migration Guide: v0.1.x → v0.2.3
 
-## Vue d'ensemble
+## Overview
 
-La version **0.2.3** marque une étape majeure dans la maturité de NestCraftX. Nous passons d'un simple script de génération à un véritable outil CLI professionnel avec une expérience utilisateur (UX) totalement repensée.
+Version **0.2.3** marks a major milestone in NestCraftX's maturity. We are moving from a simple generation script to a truly professional CLI tool with a completely redesigned User Experience (UX).
 
-**Points clés de la mise à jour :**
+**Update Key Points:**
 
-- **Nouvelle Interface :** Navigation par flèches avec `Inquirer.js` (plus de saisie manuelle).
-- **Gestionnaire de Paquets :** Support natif de `npm`, `yarn` et `pnpm`.
-- **Architecture Hybrid :** Choix entre le mode **LIGHT** (MVP) et **FULL** (Clean Architecture).
-- **Sécurité Renforcée :** Secrets JWT de 64 caractères auto-générés via `crypto.randomBytes`.
+- **New Interface:** Arrow-key navigation using `Inquirer.js` (no more manual typing).
+- **Package Manager:** Native support for `npm`, `yarn`, and `pnpm`.
+- **Hybrid Architecture:** Choice between **LIGHT** mode (MVP) and **FULL** mode (Clean Architecture).
+- **Enhanced Security:** 64-character JWT secrets auto-generated via `crypto.randomBytes`.
 
 ---
 
-## 1. Changements de Syntaxe
+## 1. Syntax Changes
 
-### La commande `start` est dépréciée
+### The `start` command is deprecated
 
-Bien que le mode interactif reste accessible pour la compatibilité, la commande sémantique recommandée est désormais `new`.
+While interactive mode remains accessible for compatibility, the recommended semantic command is now `new`.
 
-- **Ancien (v0.1.x) :** `nestcraftx start`
-- **Nouveau (v0.2.3) :** `nestcraftx new mon-projet`
+- **Old (v0.1.x):** `nestcraftx start`
+- **New (v0.2.3):** `nestcraftx new my-project`
 
-### Nouveaux Flags Professionnels
+### New Professional Flags
 
-Vous pouvez désormais tout configurer en une seule ligne sans répondre à une seule question :
+You can now configure everything in a single line without answering a single question:
 
 ```bash
-# Exemple : Un projet ultra-rapide avec pnpm et Prisma
-nestcraftx new mon-api --light --orm=prisma --pm=pnpm --auth --swagger
+# Example: An ultra-fast project with pnpm and Prisma
+nestcraftx new my-api --light --orm=prisma --pm=pnpm --auth --swagger
 
 ```
 
 ---
 
-## 2. Comparaison des Architectures
+## 2. Architecture Comparison
 
-Le choix du mode impacte directement la structure de vos dossiers sous `src/`.
+The choice of mode directly impacts your folder structure under `src/`.
 
-### Mode LIGHT (Nouveauté v0.2.0+)
+### LIGHT Mode (New in v0.2.0+)
 
-Idéal pour la rapidité et les prototypes. On élimine les mappers et les use-cases pour une communication directe.
+Ideal for speed and prototyping. We eliminate mappers and use-cases for direct communication.
 
-- **Structure :** `src/[entity]/[controllers|services|repositories|entities|dtos]`
-- **Flux :** `Controller` ➔ `Service` ➔ `Repository` ➔ `DB`
+- **Structure:** `src/[entity]/[controllers|services|repositories|entities|dtos]`
+- **Flow:** `Controller` ➔ `Service` ➔ `Repository` ➔ `DB`
 
-### Mode FULL (Standard Clean Code)
+### FULL Mode (Clean Code Standard)
 
-C'est l'architecture robuste de la v0.1.x, mais affinée. Les services sont maintenant isolés dans la couche `application` pour respecter strictement les principes DDD.
+This is the robust architecture from v0.1.x, but refined. Services are now isolated in the `application` layer to strictly follow DDD principles.
 
-- **Structure :** Séparation en `domain`, `application`, `infrastructure` et `presentation`.
-- **Flux :** `Controller` ➔ `Use-Case` ➔ `Service` ➔ `Repository/Adapter` ➔ `DB`
-
----
-
-## 3. Gestionnaire de Paquets (Nouveauté v0.2.3)
-
-Le flag `--pm` (ou `--packageManager`) vous permet de définir votre outil favori. Si vous ne le spécifiez pas, le CLI vous proposera une liste de choix interactive.
-
-| Outil    | Flag        | Commande d'installation lancée |
-| -------- | ----------- | ------------------------------ |
-| **npm**  | `--pm=npm`  | `npm install`                  |
-| **Yarn** | `--pm=yarn` | `yarn install`                 |
-| **pnpm** | `--pm=pnpm` | `pnpm install`                 |
+- **Structure:** Separated into `domain`, `application`, `infrastructure`, and `presentation`.
+- **Flow:** `Controller` ➔ `Use-Case` ➔ `Service` ➔ `Repository/Adapter` ➔ `DB`
 
 ---
 
-## 4. Génération Automatique du .env
+## 3. Package Manager (New in v0.2.3)
 
-Le système de génération de secrets a été renforcé pour utiliser des algorithmes cryptographiques plus sûrs.
+The `--pm` (or `--packageManager`) flag allows you to define your favorite tool. If you don't specify it, the CLI will provide an interactive list of choices.
 
-**Ancien comportement :** Saisie manuelle ou secrets courts.
-**Nouveau comportement (v0.2.3) :** - `JWT_SECRET` : 64 caractères hexadécimaux uniques.
-
-- `DATABASE_URL` : Auto-construit selon l'ORM choisi (Prisma/TypeORM/Mongoose).
+| Tool     | Flag        | Installation command executed |
+| -------- | ----------- | ----------------------------- |
+| **npm**  | `--pm=npm`  | `npm install`                 |
+| **Yarn** | `--pm=yarn` | `yarn install`                |
+| **pnpm** | `--pm=pnpm` | `pnpm install`                |
 
 ---
 
-## Checklist de Migration Rapide
+## 4. Automatic .env Generation
 
-- [ ] **Mise à jour globale :** `npm install -g nestcraftx@latest`
-- [ ] **Vérification environnement :** Lancez `nestcraftx test` pour vérifier la présence de `pnpm` ou `yarn`.
-- [ ] **Test de la Démo :** Testez la nouvelle commande `nestcraftx demo --light` pour voir la nouvelle structure simplifiée.
-- [ ] **Secrets JWT :** Si vous migrez manuellement un ancien projet, générez un secret pro :
+The secret generation system has been strengthened to use more secure cryptographic algorithms.
+
+**Old behavior:** Manual input or short secrets.
+**New behavior (v0.2.3):** - `JWT_SECRET`: 64 unique hexadecimal characters.
+
+- `DATABASE_URL`: Auto-built based on the chosen ORM (Prisma/TypeORM/Mongoose).
+
+---
+
+## Quick Migration Checklist
+
+- [ ] **Global Update:** `npm install -g nestcraftx@latest`
+- [ ] **Environment Check:** Run `nestcraftx test` to verify the presence of `pnpm` or `yarn`.
+- [ ] **Demo Test:** Try the new `nestcraftx demo --light` command to see the new simplified structure.
+- [ ] **JWT Secrets:** If you are manually migrating an old project, generate a professional secret:
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 ```
 
-## FAQ de Migration
+## Migration FAQ
 
-**Q : Mes anciens projets vont-ils casser ?** R : Non. NestCraftX est un générateur de code. Une fois le code généré, il est indépendant. La mise à jour du CLI n'impacte que les _prochains_ projets que vous créerez.
+**Q: Will my old projects break?** A: No. NestCraftX is a code generator. Once the code is generated, it is independent. Updating the CLI only impacts the _next_ projects you create.
 
-**Q : Pourquoi passer à Inquirer.js ?** R : Pour éviter les erreurs de frappe (ex: taper "prismm" au lieu de "prisma"). La sélection par liste avec les flèches du clavier est plus rapide et plus fiable.
+**Q: Why switch to Inquirer.js?** A: To avoid typos (e.g., typing "prismm" instead of "prisma"). List selection with arrow keys is faster and more reliable.
 
-**Q : Comment choisir entre LIGHT et FULL ?** R :
+**Q: How to choose between LIGHT and FULL?** A:
 
-- Utilisez **LIGHT** pour des MVPs, des microservices simples ou si vous débutez.
-- Utilisez **FULL** pour des applications d'entreprise, des projets à longue durée de vie ou des architectures complexes.
+- Use **LIGHT** for MVPs, simple microservices, or if you are a beginner.
+- Use **FULL** for enterprise applications, long-lived projects, or complex architectures.
 
 ## Support
 
-Si vous rencontrez des problemes lors de la migration :
+If you encounter issues during migration:
 
-1. Verifiez la documentation : `CLI_USAGE.md`
+1. Check the documentation: `CLI_USAGE.md`
+2. Consult the changelog: `CHANGELOG.md`
+3. Open an issue on GitHub: [https://github.com/august-dev-pro/NestCraftX/issues](https://github.com/august-dev-pro/NestCraftX/issues)
 
-2. Consultez le changelog : `CHANGELOG.md`
+## Resources
 
-3. Ouvrez une issue sur GitHub : https://github.com/august-dev-pro/NestCraftX/issues
-
-## Ressources
-
-- [CLI Usage Guide](./CLI_USAGE.md)
-
-- [Changelog](./CHANGELOG.md)
-
-- [GitHub Repository](https://github.com/august-dev-pro/NestCratfX)
+- [CLI Usage Guide](https://www.google.com/search?q=./CLI_USAGE.md)
+- [Changelog](https://www.google.com/search?q=./CHANGELOG.md)
+- [GitHub Repository](https://github.com/august-dev-pro/NestCraftX)
 
 ```
-Seriez-vous intéressé par un script d'automatisation pour mettre à jour vos variables d'environnement sur plusieurs serveurs ?
+Would you be interested in an automation script to update your environment variables across multiple servers?
+
 ```
 
 ---
 
-**NestCraftX v0.2.3** — _Clean Architecture Made Simple._ [Accéder au Dépôt GitHub](https://github.com/august-dev-pro/NestCraftX)
+**NestCraftX v0.2.3** — _Clean Architecture Made Simple._ [Access the GitHub Repository](https://github.com/august-dev-pro/NestCraftX)

@@ -1,6 +1,7 @@
 # Ignore development files
 /unutils.txt
 /node_modules
+node_modules/
 .env
 .env.local
 .vscode/

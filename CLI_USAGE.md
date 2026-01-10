@@ -1,33 +1,36 @@
-# NestCraftX CLI - Guide d'utilisation
+# NestCraftX CLI - User Guide
 
 ## Installation
 
 ```bash
 npm install -g nestcraftx
+
 ```
 
-## Commandes disponibles
+## Available Commands
 
-### Creer un nouveau projet
+### Create a new project
 
 ```bash
 nestcraftx new <project-name> [options]
+
 ```
 
-## Modes de generation
+## Generation Modes
 
-### Mode FULL (Architecture Complete - Clean Architecture + DDD)
+### FULL Mode (Complete Architecture - Clean Architecture + DDD)
 
-Structure complete avec use-cases, mappers, adapters et separation stricte des couches.
-Ideal pour les projets complexes et scalables.
+Complete structure with use-cases, mappers, adapters, and strict layer separation.
+Ideal for complex and scalable projects.
 
 ```bash
-nestcraftx new mon-projet --full
-nestcraftx new mon-projet --mode=full
-nestcraftx new mon-projet
+nestcraftx new my-project --full
+nestcraftx new my-project --mode=full
+nestcraftx new my-project
+
 ```
 
-**Structure generee :**
+**Generated Structure:**
 
 ```
 src
@@ -53,19 +56,21 @@ src
 │   │   └── controllers
 │   │
 │   └── [entity].module.ts
+
 ```
 
-### Mode LIGHT (MVP Simplifie)
+### LIGHT Mode (Simplified MVP)
 
-Structure plate avec moins de couches d'abstraction.
-Parfait pour prototypes et petits projets.
+Flat structure with fewer abstraction layers.
+Perfect for prototypes and small projects.
 
 ```bash
-nestcraftx new mon-projet --light
-nestcraftx new mon-projet --mode=light
+nestcraftx new my-project --light
+nestcraftx new my-project --mode=light
+
 ```
 
-**Structure generee :**
+**Generated Structure:**
 
 ```
 src
@@ -76,43 +81,50 @@ src
 │   ├── repositories
 │   ├── controllers
 │   └── [entity].module.ts
+
 ```
 
-## Options disponibles
+---
+
+## Available Options
 
 ### ORM
 
-Choisir l'ORM a utiliser :
+Choose which ORM to use:
 
 ```bash
---orm=prisma     # Prisma (par defaut)
+--orm=prisma     # Prisma (default)
 --orm=typeorm    # TypeORM
---orm=mongoose   # Mongoose (MongoDB - phase de test)
+--orm=mongoose   # Mongoose (MongoDB - beta phase)
+
 ```
 
-**Exemples :**
+**Examples:**
 
 ```bash
-nestcraftx new mon-api --light --orm=prisma
-nestcraftx new mon-api --full --orm=typeorm
-nestcraftx new mon-api --orm=mongoose
+nestcraftx new my-api --light --orm=prisma
+nestcraftx new my-api --full --orm=typeorm
+nestcraftx new my-api --orm=mongoose
+
 ```
 
-### Authentification
+### Authentication
 
-Activer l'authentification JWT :
+Enable JWT authentication:
 
 ```bash
---auth           # Active l'auth avec JWT
+--auth           # Enables JWT auth
+
 ```
 
-**Exemple :**
+**Example:**
 
 ```bash
-nestcraftx new mon-api --light --auth --orm=prisma
+nestcraftx new my-api --light --auth --orm=prisma
+
 ```
 
-Avec `--auth`, une entite User est automatiquement generee avec :
+With `--auth`, a User entity is automatically generated with:
 
 - email (string)
 - password (string)
@@ -120,212 +132,233 @@ Avec `--auth`, une entite User est automatiquement generee avec :
 
 ### Swagger
 
-Activer la documentation Swagger/OpenAPI :
+Enable Swagger/OpenAPI documentation:
 
 ```bash
---swagger        # Active Swagger UI
+--swagger        # Enables Swagger UI
+
 ```
 
-**Exemple :**
+**Example:**
 
 ```bash
-nestcraftx new mon-api --light --swagger
+nestcraftx new my-api --light --swagger
+
 ```
 
-Swagger sera accessible a : `http://localhost:3000/api/docs`
+Swagger will be accessible at: `http://localhost:3000/api/docs`
 
 ### Docker
 
-Desactiver Docker (active par defaut) :
+Disable Docker (enabled by default):
 
 ```bash
---docker=false   # Desactive Docker
+--docker=false   # Disables Docker
+
 ```
 
-**Exemple :**
+**Example:**
 
 ```bash
-nestcraftx new mon-api --light --docker=false
+nestcraftx new my-api --light --docker=false
+
 ```
 
-## Exemples de commandes completes
+---
 
-### Projet LIGHT avec toutes les options
+## Full Command Examples
+
+### LIGHT Project with all options
 
 ```bash
-nestcraftx new mon-api --light --orm=prisma --auth --swagger
+nestcraftx new my-api --light --orm=prisma --auth --swagger
+
 ```
 
-### Projet FULL avec TypeORM et Auth
+### FULL Project with TypeORM and Auth
 
 ```bash
-nestcraftx new mon-api --full --orm=typeorm --auth
+nestcraftx new my-api --full --orm=typeorm --auth
+
 ```
 
-### Projet minimal LIGHT (mode interactif)
+### Minimal LIGHT Project (interactive mode)
 
 ```bash
-nestcraftx new mon-api --light
-# Le CLI demandera toutes les options necessaires
+nestcraftx new my-api --light
+# The CLI will prompt for all necessary options
+
 ```
 
-### Projet MongoDB avec Mongoose
+### MongoDB Project with Mongoose
 
 ```bash
-nestcraftx new mon-api --light --orm=mongoose --auth --swagger
+nestcraftx new my-api --light --orm=mongoose --auth --swagger
+
 ```
 
-## Configuration automatique
+---
 
-### Fichier .env genere
+## Automatic Configuration
 
-Le CLI genere automatiquement un fichier `.env` avec :
+### Generated .env file
 
-**Pour PostgreSQL (Prisma/TypeORM) :**
+The CLI automatically generates a `.env` file with:
+
+**For PostgreSQL (Prisma/TypeORM):**
 
 ```env
 NODE_ENV=development
 PORT=3000
-JWT_SECRET=<secret-auto-genere-64-chars>
-JWT_REFRESH_SECRET=<secret-auto-genere-64-chars>
+JWT_SECRET=<auto-generated-64-chars>
+JWT_REFRESH_SECRET=<auto-generated-64-chars>
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
-POSTGRES_DB=mon-api
+POSTGRES_DB=my-api
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mon-api?schema=public
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/my-api?schema=public
+
 ```
 
-**Pour MongoDB (Mongoose) :**
+**For MongoDB (Mongoose):**
 
 ```env
 NODE_ENV=development
 PORT=3000
-JWT_SECRET=<secret-auto-genere-64-chars>
-JWT_REFRESH_SECRET=<secret-auto-genere-64-chars>
+JWT_SECRET=<auto-generated-64-chars>
+JWT_REFRESH_SECRET=<auto-generated-64-chars>
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 MONGO_URI=mongodb://localhost:27017
-MONGO_DB=mon-api
+MONGO_DB=my-api
+
 ```
 
-Les secrets JWT sont generes automatiquement de maniere securisee.
+JWT secrets are automatically generated in a secure manner.
 
-## Modes Interactifs
+---
 
-### Mode LIGHT Interactif
+## Interactive Modes
 
-Si vous ne fournissez pas tous les flags necessaires, le CLI passera en mode interactif pour demander les options manquantes.
+### Interactive LIGHT Mode
 
-**Exemple :**
+If you don't provide all necessary flags, the CLI will enter interactive mode to ask for missing options.
+
+**Example:**
 
 ```bash
-nestcraftx new mon-api --light
+nestcraftx new my-api --light
 
-[MODE LIGHT] Configuration simplifiee pour mon-api
+[LIGHT MODE] Simplified configuration for my-api
 
-[?] Choisissez un ORM (prisma, typeorm, mongoose) [prisma]: prisma
-[?] Activer l'authentification JWT ? (Y/n): y
-[INFO] Auth active : ajout automatique de l'entite User
-[?] Activer Swagger pour la documentation API ? (Y/n): y
-[?] Generer les fichiers Docker ? (Y/n): y
+[?] Choose an ORM (prisma, typeorm, mongoose) [prisma]: prisma
+[?] Enable JWT authentication? (Y/n): y
+[INFO] Auth enabled: automatically adding User entity
+[?] Enable Swagger for API documentation? (Y/n): y
+[?] Generate Docker files? (Y/n): y
 
-[INFO] Configuration PostgreSQL
-  Utilisateur PostgreSQL [postgres]:
-  Mot de passe PostgreSQL [postgres]:
-  Nom de la base [mon-api]:
-  Hote PostgreSQL [localhost]:
-  Port PostgreSQL [5432]:
+[INFO] PostgreSQL Configuration
+  PostgreSQL User [postgres]:
+  PostgreSQL Password [postgres]:
+  Database Name [my-api]:
+  PostgreSQL Host [localhost]:
+  PostgreSQL Port [5432]:
 
-[?] Voulez-vous ajouter des entites supplementaires ? (Y/n): n
+[?] Do you want to add additional entities? (Y/n): n
 
-[INFO] Demarrage de la generation du projet...
+[INFO] Starting project generation...
+
 ```
 
-### Mode FULL Interactif
+### Interactive FULL Mode
 
-Le mode FULL est toujours interactif pour vous donner un controle total sur la configuration.
+The FULL mode is always interactive to give you total control over the configuration.
 
-**Exemple :**
+**Example:**
 
 ```bash
-nestcraftx new mon-projet
+nestcraftx new my-project
 
-[MODE FULL] Configuration complete avec Clean Architecture
+[FULL MODE] Complete configuration with Clean Architecture
 
-[?] Nom du projet : mon-projet
-[?] Base de donnees (postgresql, mongodb) [postgresql]: postgresql
+[?] Project name: my-project
+[?] Database (postgresql, mongodb) [postgresql]: postgresql
 
-[INFO] Configuration PostgreSQL
-  Utilisateur PostgreSQL [postgres]:
-  Mot de passe PostgreSQL [postgres]:
+[INFO] PostgreSQL Configuration
+  PostgreSQL User [postgres]:
+  PostgreSQL Password [postgres]:
   ...
 
-[?] ORM pour PostgreSQL (prisma, typeorm) [prisma]: prisma
-[?] Utiliser Yarn ? (Y/n): n
-[?] Generer fichiers Docker ? (Y/n): y
-[?] Ajouter authentification JWT ? (Y/n): y
-[?] Installer Swagger ? (Y/n): y
+[?] ORM for PostgreSQL (prisma, typeorm) [prisma]: prisma
+[?] Use Yarn? (Y/n): n
+[?] Generate Docker files? (Y/n): y
+[?] Add JWT authentication? (Y/n): y
+[?] Install Swagger? (Y/n): y
 
-[INFO] Configuration Swagger
-  Titre API [mon-projet API]:
+[INFO] Swagger Configuration
+  API Title [my-project API]:
   Description [API generated by NestCraftX]:
   Version [1.0.0]:
   Endpoint [api/docs]:
 
-[INFO] Saisie des entites (Mode FULL - Architecture complete)
-[?] Ajouter une entite ? (Y/n): y
-  Nom de l'entite : post
-  Champs pour "post" :
-    Nom du champ (vide pour terminer) : title
-    Type de "title" (string, number, boolean, Date, enum) : string
-    Nom du champ (vide pour terminer) : content
-    Type de "content" (string, number, boolean, Date, enum) : string
-    Nom du champ (vide pour terminer) :
+[INFO] Entity Input (FULL Mode - Complete Architecture)
+[?] Add an entity? (Y/n): y
+  Entity name: post
+  Fields for "post":
+    Field name (empty to finish): title
+    Type for "title" (string, number, boolean, Date, enum): string
+    Field name (empty to finish): content
+    Type for "content" (string, number, boolean, Date, enum): string
+    Field name (empty to finish):
 
-[✓] Entite "post" ajoutee avec 2 champ(s)
-[?] Ajouter une autre entite ? (Y/n): n
-[?] Ajouter des relations entre entites ? (Y/n): n
+[✓] Entity "post" added with 2 field(s)
+[?] Add another entity? (Y/n): n
+[?] Add relationships between entities? (Y/n): n
+
 ```
 
-## Apres la creation
+---
+
+## After Creation
 
 ```bash
-cd mon-projet
+cd my-project
 npm run start:dev
-```
-
-Si Swagger est active :
 
 ```
-http://localhost:3000/api/docs
-```
 
-## Autres commandes
+If Swagger is enabled:
+`http://localhost:3000/api/docs`
 
-### Verifier l'environnement
+## Other Commands
+
+### Check environment
 
 ```bash
 nestcraftx test
+
 ```
 
-### Informations CLI
+### CLI Information
 
 ```bash
 nestcraftx info
+
 ```
 
-### Aide
+### Help
 
 ```bash
 nestcraftx --help
+
 ```
 
-## Notes importantes
+## Important Notes
 
-- Les secrets JWT sont auto-generes de maniere securisee (64 caracteres)
-- DATABASE_URL est automatiquement construit selon l'ORM choisi
-- Docker est active par defaut en mode LIGHT
-- Le mode FULL necessite une configuration interactive si aucune option n'est fournie
+- JWT secrets are securely auto-generated (64 characters).
+- `DATABASE_URL` is automatically built based on the chosen ORM.
+- Docker is enabled by default in LIGHT mode.
+- FULL mode requires interactive configuration if no options are provided.
