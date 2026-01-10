@@ -320,66 +320,70 @@ nestcraftx info
 ### Light Mode (MVP)
 
 ```
-└── 📁src
-    └── 📁auth
-        └── 📁controllers
-            ├── auth.controller.ts
-        └── 📁dtos
-            ├── create-session.dto.ts
-            ├── forgotPassword.dto.ts
-            ├── loginCredential.dto.ts
-            ├── refreshToken.dto.ts
-            ├── resetPassword.dto.ts
-            ├── sendOtp.dto.ts
-            ├── verifyOtp.dto.ts
-        └── 📁entities
-            ├── session.entity.ts
-        └── 📁guards
-            ├── jwt-auth.guard.ts
-            ├── role.guard.ts
-        └── 📁mappers
-            ├── session.mapper.ts
-        └── 📁persistence
-            ├── session.repository.ts
-        └── 📁services
-            ├── auth.service.ts
-            ├── session.service.ts
-        └── 📁strategies
-            ├── jwt.strategy.ts
-        ├── auth.module.ts
-    └── 📁common
-        └── 📁decorators
-            ├── current-user.decorator.ts
-            ├── public.decorator.ts
-            ├── role.decorator.ts
-        └── 📁enums
-            ├── role.enum.ts
-        └── 📁filters
-            ├── all-exceptions.filter.ts
-        └── 📁interceptors
-            ├── response.interceptor.ts
-        └── 📁middlewares
-            ├── logger.middleware.ts
-    └── 📁prisma
-        ├── prisma.module.ts
-        ├── prisma.service.ts
-    └── 📁user
-        └── 📁controllers
-            ├── user.controller.ts
-        └── 📁dtos
-            ├── user.dto.ts
-        └── 📁entities
-            ├── user.entity.ts
-        └── 📁repositories
-            ├── user.repository.ts
-        └── 📁services
-            ├── user.service.ts
-        ├── user.module.ts
-    ├── app.controller.spec.ts
-    ├── app.controller.ts
-    ├── app.module.ts
-    ├── app.service.ts
-    └── main.ts
+src
+├── auth
+│   ├── controllers
+│   │   └── auth.controller.ts
+│   ├── dtos
+│   │   ├── create-session.dto.ts
+│   │   ├── forgotPassword.dto.ts
+│   │   ├── loginCredential.dto.ts
+│   │   ├── refreshToken.dto.ts
+│   │   ├── resetPassword.dto.ts
+│   │   ├── sendOtp.dto.ts
+│   │   └── verifyOtp.dto.ts
+│   ├── entities
+│   │   └── session.entity.ts
+│   ├── guards
+│   │   ├── jwt-auth.guard.ts
+│   │   └── role.guard.ts
+│   ├── mappers
+│   │   └── session.mapper.ts
+│   ├── persistence
+│   │   └── session.repository.ts
+│   ├── services
+│   │   ├── auth.service.ts
+│   │   └── session.service.ts
+│   ├── strategies
+│   │   └── jwt.strategy.ts
+│   └── auth.module.ts
+│
+├── common
+│   ├── decorators
+│   │   ├── current-user.decorator.ts
+│   │   ├── public.decorator.ts
+│   │   └── role.decorator.ts
+│   ├── enums
+│   │   └── role.enum.ts
+│   ├── filters
+│   │   └── all-exceptions.filter.ts
+│   ├── interceptors
+│   │   └── response.interceptor.ts
+│   └── middlewares
+│       └── logger.middleware.ts
+│
+├── prisma
+│   ├── prisma.module.ts
+│   └── prisma.service.ts
+│
+├── user
+│   ├── controllers
+│   │   └── user.controller.ts
+│   ├── dtos
+│   │   └── user.dto.ts
+│   ├── entities
+│   │   └── user.entity.ts
+│   ├── repositories
+│   │   └── user.repository.ts
+│   ├── services
+│   │   └── user.service.ts
+│   └── user.module.ts
+│
+├── app.controller.spec.ts
+├── app.controller.ts
+├── app.module.ts
+├── app.service.ts
+└── main.ts
 ```
 
 ### Full Mode (Clean Architecture)
