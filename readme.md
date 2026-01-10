@@ -1,124 +1,126 @@
 ## NestCraftX — Clean Architecture Generator for NestJS
 
-demo
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/node-%3E=14.0.0-green.svg)
-![Version](https://img.shields.io/badge/version-0.2.2-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-0.2.3-brightgreen.svg)
+![Prisma](https://img.shields.io/badge/ORM-Prisma-lightblue)
+![TypeORM](https://img.shields.io/badge/ORM-TypeORM-red)
+![Mongoose](https://img.shields.io/badge/ORM-Mongoose-pink)
 
-**NestCraftX** est un CLI Node.js moderne et puissant pour generer automatiquement des projets NestJS avec une architecture propre et maintenable. Il implemente les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma/TypeORM/Mongoose**, **JWT Auth avec secrets auto-generes**, **Swagger**, **Docker**, et plus encore.
+**NestCraftX** is a modern and powerful Node.js CLI for automatically generating NestJS projects with clean and maintainable architecture. It implements modern best practices: **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma/TypeORM/Mongoose**, **JWT Auth with auto-generated secrets**, **Swagger**, **Docker**, and much more.
 
-> Version 0.2.2 : Amélioration majeure - Démo interactif avec flags, Auth refactorisée via UserService, templates professionnels (gitignore, README), code propre et maintenir par la communauté !
+> Version 0.2.3: Major improvement - Interactive demo with flags, Auth refactored via UserService, professional templates (gitignore, README), clean code maintained by the community!
 
 ---
 
-## Sommaire
+## Table of Contents
 
-- [Nouveautes v0.2.2](#nouveautes-v022)
-- [Objectif du projet](#objectif-du-projet)
-- [Prérequis](#prérequis)
+- [What's New in v0.2.3](#whats-new-in-v023)
+- [Project Objective](#project-objective)
+- [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [Commandes disponibles](#commandes-disponibles)
-- [Fonctionnalités](#fonctionnalités)
-- [Architecture générée](#architecture-générée)
-- [Démo complète](#démo-complète)
-- [Guide d'utilisation](#guide-dutilisation)
+- [Available Commands](#available-commands)
+- [Features](#features)
+- [Generated Architecture](#generated-architecture)
+- [Complete Demo](#complete-demo)
+- [Usage Guide](#usage-guide)
 - [Roadmap](#roadmap)
-- [Contribuer](#contribuer)
-- [Licence](#licence)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## Nouveautes v0.2.2
+## What's New in v0.2.3
 
-### Deux Modes d'Architecture
+### Two Architecture Modes
 
-**Mode FULL - Architecture Complete**
+**FULL Mode - Complete Architecture**
 
-- Clean Architecture avec use-cases, mappers, adapters
-- Separation stricte domain/application/infrastructure/presentation
-- Ideal pour projets complexes et scalables
+- Clean Architecture with use-cases, mappers, adapters
+- Strict separation: domain/application/infrastructure/presentation
+- Ideal for complex and scalable projects
 
-**Mode LIGHT - Architecture MVP**
+**LIGHT Mode - MVP Architecture**
 
-- Structure simplifiee : controllers → services → repositories
-- Demarrage rapide pour prototypes
-- Parfait pour petits projets et MVPs
+- Simplified structure: controllers → services → repositories
+- Quick start for prototypes
+- Perfect for small projects and MVPs
 
-### Demo Command Amélioré
+### Improved Demo Command
 
-- ✅ Options par flags : `--light`, `--orm`, `--auth`, `--swagger`, `--docker`
-- ✅ Mode interactif : pose les questions uniquement si flags manquants
-- ✅ Fusion intelligente flags + réponses interactives
-- ✅ 3 entités pré-configurées avec relations
-- ✅ Support de tous les ORMs (Prisma, TypeORM, Mongoose)
-- ✅ Instructions séparées dans [Documentation Demo](./DEMO.md)
+- ✅ Flag options: `--light`, `--orm`, `--auth`, `--swagger`, `--docker`
+- ✅ Interactive mode: only asks questions for missing flags
+- ✅ Intelligent merging of flags and interactive responses
+- ✅ 3 pre-configured entities with relationships
+- ✅ Support for all ORMs (Prisma, TypeORM, Mongoose)
+- ✅ Separate instructions in [Demo Documentation](./DEMO.md)
 
-### CLI Moderne avec Flags
+### Modern CLI with Flags
 
 ```bash
 nestcraftx new <project-name> [options]
 
 Options:
-  --light              Mode architecture simplifiee
-  --full               Mode architecture complete (defaut)
-  --dn=<db>            Choix db: postgresql|mongodb
-  --orm=<orm>          Choix ORM: prisma|typeorm|mongoose
-  --auth               Active authentification JWT
-  --swagger            Active documentation Swagger
-  --docker             Active Docker (defaut: true)
+  --light              Simplified architecture mode
+  --full               Complete architecture mode (default)
+  --db=<db>            Database choice: postgresql|mongodb
+  --orm=<orm>          ORM choice: prisma|typeorm|mongoose
+  --auth               Enable JWT authentication
+  --swagger            Enable Swagger documentation
+  --docker             Enable Docker (default: true)
 ```
 
-### Generation Automatique de Secrets
+### Automatic Secret Generation
 
-- Secrets JWT auto-generes (64 caracteres securises)
-- Fichier .env pret a l'emploi
-- DATABASE_URL configure automatiquement
-- Fichier .env.example sanitise
+- Auto-generated JWT secrets (64 secure characters)
+- Ready-to-use .env file
+- DATABASE_URL automatically configured
+- Sanitized .env.example file
 
-### UX Amelioree
+### Improved UX
 
-- Messages avec couleurs (info, success, error)
-- Spinners animes pour operations longues
-- Resume detaille post-generation
-- Validation des options en temps reel
+- Colored messages (info, success, error)
+- Animated spinners for long operations
+- Detailed post-generation summary
+- Real-time validation of options
 
-### Exemples Rapides
+### Quick Examples
 
 ```bash
-# Projet LIGHT avec Prisma et Auth
-nestcraftx new mon-api --light --orm=prisma --auth
+# LIGHT project with Prisma and Auth
+nestcraftx new my-api --light --orm=prisma --auth
 
-# Projet FULL avec TypeORM et Swagger
-nestcraftx new mon-projet --full --orm=typeorm --swagger
+# FULL project with TypeORM and Swagger
+nestcraftx new my-project --full --orm=typeorm --swagger
 
-# Projet MongoDB minimal
-nestcraftx new mon-api --light --orm=mongoose
+# Minimal MongoDB project
+nestcraftx new my-api --light --orm=mongoose
 ```
 
 ---
 
-## Objectif du projet
+## Project Objective
 
-Ne perdez plus de temps à configurer votre architecture backend. NestCraftX vous permet de :
+Stop wasting time configuring your backend architecture. NestCraftX allows you to:
 
-- ✅ Démarrer un projet en quelques minutes au lieu de quelques jours
-- ✅ Avoir une architecture Clean dès le départ
-- ✅ Uniformiser vos projets avec les mêmes bonnes pratiques
-- ✅ Configuration automatiser de BD-ORM et autres modules (decorateur, authentification, dockerisation)
-- ✅ Vous concentrer sur la logique métier
-- ✅ Choisir entre configuration rapide (Light) ou complète (Full)
+- ✅ Start a project in minutes instead of days
+- ✅ Have a Clean Architecture from the start
+- ✅ Standardize your projects with the same best practices
+- ✅ Automatically configure DB-ORM and other modules (decorators, authentication, dockerization)
+- ✅ Focus on business logic
+- ✅ Choose between quick configuration (Light) or complete (Full)
 
-## Prérequis
+## Prerequisites
 
-Assurez-vous d'avoir :
+Make sure you have:
 
-- **Node.js** v14 ou supérieur
-- **npm** ou **yarn**
-- **Nest CLI** (optionnel, sera utilisé via npx)
-- **Docker** (optionnel, pour la containerisation)
-- **Git** (optionnel, pour la gestion de version)
+- **Node.js** v14 or higher
+- **npm** or **yarn**
+- **Nest CLI** (optional, will be used via npx)
+- **Docker** (optional, for containerization)
+- **Git** (optional, for version control)
 
-Vérifiez votre environnement avec :
+Verify your environment with:
 
 ```bash
 nestcraftx test
@@ -128,24 +130,24 @@ nestcraftx test
 
 ## Installation
 
-### Via npx (recommandé)
+### Via npx (recommended)
 
-Utilisez NestCraftX sans installation globale :
+Use NestCraftX without global installation:
 
 ```bash
 npx nestcraftx new my-app
 ```
 
-### Installation globale
+### Global Installation
 
-Pour une utilisation fréquente :
+For frequent use:
 
 ```bash
 npm install -g nestcraftx
 nestcraftx new my-app
 ```
 
-### Installation pour développement
+### Installation for Development
 
 ```bash
 git clone https://github.com/august-dev-pro/NestCraftX.git
@@ -156,89 +158,92 @@ npm link
 
 ---
 
-## Commandes disponibles
+## Available Commands
 
 ### `nestcraftx new <project-name> [options]`
 
-Crée un nouveau projet NestJS avec Clean Architecture.
+Creates a new NestJS project with Clean Architecture.
 
-**Options :**
+**Options:**
 
-- `--light` : Mode configuration rapide
-- `--orm <prisma|typeorm|mongoose>` : Choix de l'ORM
-- `--auth` : Ajouter l'authentification JWT
-- `--swagger` : Ajouter Swagger UI
-- `--docker` : Générer les fichiers Docker
+- `--light` : Quick configuration mode
+- `--orm <prisma|typeorm|mongoose>` : ORM choice
+- `--auth` : Add JWT authentication
+- `--swagger` : Add Swagger UI
+- `--docker` : Generate Docker files
 
-**Exemples :**
+**Examples:**
 
 ```bash
-# Mode interactif complet
+# Full interactive mode
 nestcraftx new my-app
 
-# Mode rapide avec options
+# Quick mode with options
 nestcraftx new blog-api --light --orm=prisma --auth --swagger
 
-# Configuration personnalisée
+# Custom configuration
 nestcraftx new shop --orm=typeorm --auth
 ```
 
 ### `nestcraftx demo [options]`
 
-Génère un projet de démonstration complet (blog-demo) avec :
+Generates a complete demonstration project (blog-demo) with:
 
-- 3 entités (User, Post, Comment) avec relations 1-n
-- Auth JWT intégrée
-- Swagger activé
-- Docker configuré
+- 3 entities (User, Post, Comment) with 1-n relationships
+- Integrated JWT Auth
+- Swagger enabled
+- Docker configured
 
-**Options :**
+**Options:**
 
-- `--light` : Mode architecture simplifiée
-- `--docker` : Activer Docker (défaut: true)
-- `--auth` : Activer Auth JWT (défaut: true)
-- `--swagger` : Activer Swagger (défaut: true)
-- `--orm <prisma|typeorm|mongoose>` : Choix de l'ORM (défaut: prisma)
+- `--light` : Simplified architecture mode
+- `--docker` : Enable Docker (default: true)
+- `--auth` : Enable JWT Auth (default: true)
+- `--swagger` : Enable Swagger (default: true)
+- `--orm <prisma|typeorm|mongoose>` : ORM choice (default: prisma)
 
-**Exemples :**
+**Examples:**
 
 ```bash
-# Mode interactif (posera les questions)
+# Interactive mode (will ask questions)
 nestcraftx demo
 
-# Mode LIGHT avec Mongoose
+# LIGHT mode with Mongoose
 nestcraftx demo --light --orm=mongoose
 
-# Mode FULL avec TypeORM
+# FULL mode with TypeORM
 nestcraftx demo --orm=typeorm --auth --swagger
 
-# Démarrer rapidement
+# Quick start
 nestcraftx demo --light --orm=prisma
 ```
 
-**Résultat :**
+**Result:**
 
-Un projet blog fonctionnel avec :
+A functional blog project with:
 
-- Blog-demo créé
-- 3 entités complètes
-- Relations entre User → Post → Comment
-- Endpoints auth, users, posts, comments prêts
-- Documentation Swagger interactive
+- Blog-demo created
+- 3 complete entities
+- Relationships between User → Post → Comment
+- Auth endpoints (register, login) ready
+- Business endpoints: /users, /posts, /comments ready
+- Automatic Swagger documentation
+- Docker & Docker Compose configured
+- ORM configuration of your choice (Prisma, TypeORM, Mongoose)
 
 ### `nestcraftx test`
 
-Vérifie que votre environnement est prêt :
+Checks if your environment is ready:
 
 ```bash
 nestcraftx test
 ```
 
-Affiche le statut de Node, npm, Nest CLI, Docker, Git, etc.
+Displays the status of Node, npm, Nest CLI, Docker, Git, etc.
 
 ### `nestcraftx info`
 
-Affiche les informations sur le CLI :
+Displays CLI information:
 
 ```bash
 nestcraftx info
@@ -246,217 +251,272 @@ nestcraftx info
 
 ---
 
-## Fonctionnalités
+## Features
 
 ### Architecture
 
-✅ **Clean Architecture** avec séparation domain/application/infrastructure/presentation
-✅ **Domain-Driven Design** avec entités, use cases et repositories
-✅ **Repository Pattern** pour l'abstraction de la persistance
-✅ **Use Cases Pattern** pour la logique métier isolée
-✅ **Mapper Pattern** pour la transformation des données
+✅ **Clean Architecture** with domain/application/infrastructure/presentation separation
+✅ **Domain-Driven Design** with entities, use cases and repositories
+✅ **Repository Pattern** for persistence abstraction
+✅ **Use Cases Pattern** for isolated business logic
+✅ **Mapper Pattern** for data transformation
 
-### Base de données
+### Database
 
-✅ **Prisma** - ORM moderne et type-safe (recommandé)
+✅ **Prisma ➡️ (PostgreSQL)** - Modern and type-safe ORM (recommended)
 
-✅ **TypeORM** - ORM complet avec decorateurs
+✅ **TypeORM ➡️ (PostgreSQL)** - Complete ORM with decorators
 
-✅ **Mongoose** - ODM pour MongoDB
+✅ **Mongoose ➡️ (MongoDB)** - ODM for MongoDB (Coming soon)
 
-✅ Configuration automatique du schéma
+✅ Automatic schema configuration
 
-✅ Support PostgreSQL et MongoDB
+✅ PostgreSQL and MongoDB support
 
-### Sécurité
+### Security
 
-✅ **JWT Authentication** avec guards et strategies
+✅ **JWT Authentication** with guards and strategies
 
 ✅ **Role-based Access Control** (RBAC)
 
-✅ **Password hashing** avec bcrypt
+✅ **Password hashing** with bcrypt
 
-✅ **Public routes** avec decorators
+✅ **Public routes** with decorators
 
 ### Documentation
 
-✅ **Swagger UI** automatique
+✅ **Swagger UI** automatic
 
-✅ Décorateurs ApiProperty sur les DTOs
+✅ ApiProperty decorators on DTOs
 
-✅ Documentation des endpoints
+✅ Endpoint documentation
 
-✅ Interface interactive d'API
+✅ Interactive API interface
 
 ### DevOps
 
-✅ **Docker** et **Docker Compose**
+✅ **Docker** and **Docker Compose**
 
-✅ Configuration des variables d'environnement
+✅ Environment variables configuration
 
-✅ Logging structuré
+✅ Structured logging
 
-✅ Error handling centralisé
+✅ Centralized error handling
 
-### Qualité du code
+### Code Quality
 
-✅ Validation des DTOs avec class-validator
+✅ DTO validation with class-validator
 
-✅ Transformation des données avec class-transformer
+✅ Data transformation with class-transformer
 
-✅ Intercepteurs de réponse standardisés
+✅ Standardized response interceptors
 
-✅ Filtres d'exceptions globaux
-
----
-
-## Architecture générée
-
-```
-my-app/
-    ├── src/
-    │   ├── auth/
-    │   │   ├── auth.module.ts
-    │   │   ├── controllers/
-    │   │   │   └── auth.controller.ts
-    │   │   ├── guards/
-    │   │   │   ├── auth.guard.ts
-    │   │   │   ├── jwt-auth.guard.ts
-    │   │   │   └── role.guard.ts
-    │   │   ├── services/
-    │   │   │   └── auth.service.ts
-    │   │   └── strategy/
-    │   │       └── jwt.strategy.ts
-    │   │
-    │   ├── common/
-    │   │   ├── decorators/
-    │   │   │   ├── public.decorator.ts
-    │   │   │   └── role.decorator.ts
-    │   │   ├── filters/
-    │   │   │   └── all-exceptions.filter.ts
-    │   │   ├── interceptors/
-    │   │   │   └── response.interceptor.ts
-    │   │   └── middlewares/
-    │   │       └── logger.middleware.ts
-    │   │
-    │   ├── user/
-    │   │   ├── user.module.ts
-    │   │   ├── application/
-    │   │   │   ├── dtos/
-    │   │   │   │   └── user.dto.ts
-    │   │   │   ├── interfaces/
-    │   │   │   │   └── user.repository.interface.ts
-    │   │   │   └── use-cases/
-    │   │   │       ├── create-user.use-case.ts
-    │   │   │       ├── delete-user.use-case.ts
-    │   │   │       ├── getAll-user.use-case.ts
-    │   │   │       ├── getById-user.use-case.ts
-    │   │   │       └── update-user.use-case.ts
-    │   │   │
-    │   │   ├── domain/
-    │   │   │   ├── entities/
-    │   │   │   │   └── user.entity.ts
-    │   │   │   ├── enums/
-    │   │   │   │   ├── role.enum.ts
-    │   │   │   │   └── user.enum.ts
-    │   │   │   └── mappers/
-    │   │   │       └── user.mapper.ts
-    │   │   │
-    │   │   ├── infrastructure/
-    │   │   │   ├── adapters/
-    │   │   │   │   └── user.adapter.ts
-    │   │   │   ├── repositories/
-    │   │   │   │   └── user.repository.ts
-    │   │   │   └── services/
-    │   │   │       └── user.service.ts
-    │   │   │
-    │   │   └── presentation/
-    │   │       └── controllers/
-    │   │           └── user.controller.ts
-    │   │
-    │   ├── entities/
-    │   │   └── User.entity.ts
-    │   │
-    │   ├── app.module.ts
-    │   └── main.ts
-    │
-    ├── .env
-    ├── .gitignore
-    ├── Dockerfile
-    ├── docker-compose.yml
-    ├── package.json
-    └── README.md
-
-```
+✅ Global exception filters
 
 ---
 
-## Démo complète
+## Generated Architecture
 
-🔥 Une démo prête à exécuter, incluant 3 entités liées, Auth JWT, Swagger, Docker et ORM configurable.
+### Light Mode (MVP)
 
-👉 Voir la documentation complète : [Documentation Demo](./DEMO.md)
+```
+└── 📁src
+    └── 📁auth
+        └── 📁controllers
+            ├── auth.controller.ts
+        └── 📁dtos
+            ├── create-session.dto.ts
+            ├── forgotPassword.dto.ts
+            ├── loginCredential.dto.ts
+            ├── refreshToken.dto.ts
+            ├── resetPassword.dto.ts
+            ├── sendOtp.dto.ts
+            ├── verifyOtp.dto.ts
+        └── 📁entities
+            ├── session.entity.ts
+        └── 📁guards
+            ├── jwt-auth.guard.ts
+            ├── role.guard.ts
+        └── 📁mappers
+            ├── session.mapper.ts
+        └── 📁persistence
+            ├── session.repository.ts
+        └── 📁services
+            ├── auth.service.ts
+            ├── session.service.ts
+        └── 📁strategies
+            ├── jwt.strategy.ts
+        ├── auth.module.ts
+    └── 📁common
+        └── 📁decorators
+            ├── current-user.decorator.ts
+            ├── public.decorator.ts
+            ├── role.decorator.ts
+        └── 📁enums
+            ├── role.enum.ts
+        └── 📁filters
+            ├── all-exceptions.filter.ts
+        └── 📁interceptors
+            ├── response.interceptor.ts
+        └── 📁middlewares
+            ├── logger.middleware.ts
+    └── 📁prisma
+        ├── prisma.module.ts
+        ├── prisma.service.ts
+    └── 📁user
+        └── 📁controllers
+            ├── user.controller.ts
+        └── 📁dtos
+            ├── user.dto.ts
+        └── 📁entities
+            ├── user.entity.ts
+        └── 📁repositories
+            ├── user.repository.ts
+        └── 📁services
+            ├── user.service.ts
+        ├── user.module.ts
+    ├── app.controller.spec.ts
+    ├── app.controller.ts
+    ├── app.module.ts
+    ├── app.service.ts
+    └── main.ts
+```
 
-## Guide d'utilisation
+### Full Mode (Clean Architecture)
 
-### Démarrage rapide (Mode Light)
+```
+src
+├── auth
+│   ├── controllers
+│   │   └── auth.controller.ts
+│   ├── dtos
+│   │   ├── create-session.dto.ts
+│   │   ├── forgotPassword.dto.ts
+│   │   ├── loginCredential.dto.ts
+│   │   ├── refreshToken.dto.ts
+│   │   ├── resetPassword.dto.ts
+│   │   ├── sendOtp.dto.ts
+│   │   └── verifyOtp.dto.ts
+│   ├── entities
+│   │   └── session.entity.ts
+│   ├── guards
+│   │   ├── jwt-auth.guard.ts
+│   │   └── role.guard.ts
+│   ├── mappers
+│   │   └── session.mapper.ts
+│   ├── persistence
+│   │   └── session.repository.ts
+│   ├── services
+│   │   ├── auth.service.ts
+│   │   └── session.service.ts
+│   ├── strategies
+│   │   └── jwt.strategy.ts
+│   └── auth.module.ts
+│
+├── common
+│   ├── decorators
+│   │   ├── current-user.decorator.ts
+│   │   ├── public.decorator.ts
+│   │   └── role.decorator.ts
+│   ├── enums
+│   │   └── role.enum.ts
+│   ├── filters
+│   │   └── all-exceptions.filter.ts
+│   ├── interceptors
+│   │   └── response.interceptor.ts
+│   └── middlewares
+│       └── logger.middleware.ts
+│
+├── prisma
+│   ├── prisma.module.ts
+│   └── prisma.service.ts
+│
+├── user
+│   ├── controllers
+│   │   └── user.controller.ts
+│   ├── dtos
+│   │   └── user.dto.ts
+│   ├── entities
+│   │   └── user.entity.ts
+│   ├── repositories
+│   │   └── user.repository.ts
+│   ├── services
+│   │   └── user.service.ts
+│   └── user.module.ts
+│
+├── app.controller.spec.ts
+├── app.controller.ts
+├── app.module.ts
+├── app.service.ts
+└── main.ts
+```
+
+## Complete Demo
+
+🔥 A ready-to-run demo, including 3 linked entities, JWT Auth, Swagger, Docker and configurable ORM.
+
+👉 See full documentation: [Demo Documentation](./DEMO.md)
+
+## Usage Guide
+
+### Quick Start (Light Mode)
 
 ```bash
-# 1. Créer un projet simple
+# 1. Create a simple project
 npx nestcraftx new my-api --light --orm prisma
 
-# 2. Naviguer dans le projet
+# 2. Navigate to the project
 cd my-api
 
-# 3. Démarrer l'application
+# 3. Start the application
 npm run start:dev
 ```
 
-### Configuration complète (Mode Full)
+### Complete Configuration (Full Mode)
 
 ```bash
-# 1. Lancer la création avec interface interactive
+# 1. Launch with interactive interface
 npx nestcraftx new my-project
 
-# 2. Répondre aux questions :
-#    - Nom du projet
-#    - Choix de la base de données
-#    - Configuration ORM
-#    - Entités et relations
-#    - Auth et Swagger
+# 2. Answer the questions:
+#    - Project name
+#    - Database choice
+#    - ORM configuration
+#    - Entities and relationships
+#    - Auth and Swagger
 
-# 3. Démarrer
+# 3. Start
 cd my-project
 npm run start:dev
 ```
 
-### Projet de démonstration
+### Demonstration Project
 
 ```bash
-# Générer un projet blog complet (mode interactif)
+# Generate a complete blog project (interactive mode)
 nestcraftx demo
 
-# Ou avec options directes
+# Or with direct options
 nestcraftx demo --light --orm prisma --auth --swagger
 
-# Naviguer et démarrer
+# Navigate and start
 cd blog-demo
 npm run start:dev
 
-# Accéder à Swagger UI
+# Access Swagger UI
 open http://localhost:3000/api/docs
 ```
 
-**Qu'inclut le projet demo :**
+**What the demo project includes:**
 
-- Architecture Clean complète (ou LIGHT selon l'option)
-- 3 entités pré-configurées : User, Post, Comment
-- Relations entre entités (User → Post, Post ↔ Comment)
-- Auth JWT avec endpoints /auth/register et /auth/login
-- Endpoints métier : /users, /posts, /comments
-- Documentation Swagger automatique
-- Docker & Docker Compose configurés
-- Configuration ORM de votre choix (Prisma, TypeORM, Mongoose)
+- Complete Clean Architecture (or LIGHT depending on option)
+- 3 pre-configured entities: User, Post, Comment
+- Relationships between entities (User → Post, Post ↔ Comment)
+- JWT Auth with /auth/register and /auth/login endpoints
+- Business endpoints: /users, /posts, /comments
+- Automatic Swagger documentation
+- Docker & Docker Compose configured
+- ORM configuration of your choice (Prisma, TypeORM, Mongoose)
 
 ---
 
@@ -464,48 +524,48 @@ open http://localhost:3000/api/docs
 
 ### Version 0.3.0
 
-- [ ] Commande `generate` pour ajouter des entités à un projet existant
-- [ ] Support MySQL et SQLite
-- [ ] Génération de tests unitaires automatiques
-- [ ] Templates de CI/CD (GitHub Actions, GitLab CI)
-- [ ] Support GraphQL
+- [ ] `generate` command to add entities to an existing project
+- [ ] MySQL and SQLite support
+- [ ] Automatic unit test generation
+- [ ] CI/CD templates (GitHub Actions, GitLab CI)
+- [ ] GraphQL support
 
 ### Version 0.4.0
 
-- [ ] Interface web pour configurer les projets
-- [ ] Génération de seeds pour les bases de données
-- [ ] Support des microservices
-- [ ] Intégration Redis
+- [ ] Web interface for project configuration
+- [ ] Database seeding generation
+- [ ] Microservices support
+- [ ] Redis integration
 - [ ] WebSocket support
 
 ### Version 1.0.0
 
-- [ ] Documentation complète en ligne
-- [ ] Support d'autres frameworks (Express, Fastify)
-- [ ] Marketplace de templates communautaires
+- [ ] Complete online documentation
+- [ ] Support for other frameworks (Express, Fastify)
+- [ ] Community templates marketplace
 - [ ] CLI plugins system
 
 ---
 
-## Contribuer
+## Contributing
 
-Vous voulez améliorer NestCraftX ? Les contributions sont les bienvenues !
+Want to improve NestCraftX? Contributions are welcome!
 
-### Comment contribuer
+### How to Contribute
 
-1. Fork le projet
-2. Créez une branche pour votre fonctionnalité (`git checkout -b feature/AmazingFeature`)
-3. Committez vos changements (`git commit -m 'Add some AmazingFeature'`)
-4. Push vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrez une Pull Request
+1. Fork the project
+2. Create a branch for your feature (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-### Ouvrir une issue
+### Open an Issue
 
-Des bugs ? Des idées ? Ouvrez une issue sur GitHub !
+Found bugs? Have ideas? Open an issue on GitHub!
 
-### Développeurs
+### Developers
 
-Pour développer localement :
+To develop locally:
 
 ```bash
 git clone https://github.com/august-dev-pro/NestCraftX.git
@@ -516,34 +576,34 @@ npm link
 
 ---
 
-## Licence
+## License
 
 MIT © [Ablanhou Augustin Selete](https://github.com/august-dev-pro)
 
-Libre d'usage pour projets personnels et commerciaux.
+Free for personal and commercial use.
 
 ---
 
-## Remerciements
+## Thanks
 
-Merci à tous les contributeurs et à la communauté NestJS !
+Thanks to all contributors and the NestJS community!
 
-**Fait avec ❤️ pour la communauté des développeurs backend**
+**Made with ❤️ for the backend developer community**
 
 ---
 
 ## Contact & Support
 
-- 📧 GitHub Issues : [Ouvrir une issue](https://github.com/august-dev-pro/NestCraftX/issues)
-- 🌐 Repository : [NestCraftX sur GitHub](https://github.com/august-dev-pro/NestCraftX)
-- ⭐ Si ce projet vous aide, pensez à lui donner une étoile !
+- 📧 GitHub Issues: [Open an issue](https://github.com/august-dev-pro/NestCraftX/issues)
+- 🌐 Repository: [NestCraftX on GitHub](https://github.com/august-dev-pro/NestCraftX)
+- ⭐ If this project helps you, please consider giving it a star!
 
 ---
 
-**NestCraftX v0.2.2** - Clean Architecture Made Simple
+**NestCraftX v0.2.3** - Clean Architecture Made Simple
 
-Pour plus d'informations:
+For more information:
 
-- [Guide d'utilisation complet](./CLI_USAGE.md)
-- [Guide de migration](./MIGRATION_GUIDE.md)
-- [Changelog detaille](./CHANGELOG.md)
+- [Complete Usage Guide](./CLI_USAGE.md)
+- [Migration Guide](./MIGRATION_GUIDE.md)
+- [Detailed Changelog](./CHANGELOG.md)

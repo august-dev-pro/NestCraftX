@@ -2,12 +2,10 @@ const readline = require("readline-sync");
 const { logInfo } = require("../loggers/logInfo");
 const { runCommand } = require("../shell");
 const fs = require("fs");
-const { question } = require("readline-sync");
+const { info } = require("../colors");
 
 async function createProject(inputs) {
   if (fs.existsSync(inputs.projectName)) {
-    console.log("⚠️ Project already exists.");
-
     const confirmation = readline.keyInYNStrict(
       `${info("[?]")} The folder '${
         inputs.projectName

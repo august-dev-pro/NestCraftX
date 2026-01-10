@@ -28,23 +28,31 @@ nestcraftx new mon-projet
 ```
 
 **Structure generee :**
+
 ```
-src/
-├── [entity]/
-│   ├── application/
-│   │   ├── use-cases/
-│   │   ├── dtos/
-│   │   └── interfaces/
-│   ├── domain/
-│   │   ├── entities/
-│   │   ├── enums/
-│   │   └── mappers/
-│   ├── infrastructure/
-│   │   ├── repositories/
-│   │   ├── services/
-│   │   └── adapters/
-│   └── presentation/
-│       └── controllers/
+src
+├── [entity]
+│   ├── application
+│   │   ├── dtos
+│   │   ├── services
+│   │   ├── use-cases
+│   │   └── interfaces
+│   │
+│   ├── domain
+│   │   ├── entities
+│   │   ├── enums
+│   │   └── interfaces
+│   │
+│   ├── infrastructure
+│   │   ├── adapters
+│   │   ├── mappers
+│   │   ├── repositories
+│   │   └── services
+│   │
+│   ├── presentation
+│   │   └── controllers
+│   │
+│   └── [entity].module.ts
 ```
 
 ### Mode LIGHT (MVP Simplifie)
@@ -58,28 +66,32 @@ nestcraftx new mon-projet --mode=light
 ```
 
 **Structure generee :**
+
 ```
-src/
-├── [entity]/
-│   ├── entities/
-│   ├── dto/
-│   ├── services/
-│   ├── repositories/
-│   └── controllers/
+src
+├── [entity]
+│   ├── entities
+│   ├── dto
+│   ├── services
+│   ├── repositories
+│   ├── controllers
+│   └── [entity].module.ts
 ```
 
 ## Options disponibles
 
 ### ORM
+
 Choisir l'ORM a utiliser :
 
 ```bash
 --orm=prisma     # Prisma (par defaut)
 --orm=typeorm    # TypeORM
---orm=mongoose   # Mongoose (MongoDB)
+--orm=mongoose   # Mongoose (MongoDB - phase de test)
 ```
 
 **Exemples :**
+
 ```bash
 nestcraftx new mon-api --light --orm=prisma
 nestcraftx new mon-api --full --orm=typeorm
@@ -87,6 +99,7 @@ nestcraftx new mon-api --orm=mongoose
 ```
 
 ### Authentification
+
 Activer l'authentification JWT :
 
 ```bash
@@ -94,16 +107,19 @@ Activer l'authentification JWT :
 ```
 
 **Exemple :**
+
 ```bash
 nestcraftx new mon-api --light --auth --orm=prisma
 ```
 
 Avec `--auth`, une entite User est automatiquement generee avec :
+
 - email (string)
 - password (string)
 - isActive (boolean)
 
 ### Swagger
+
 Activer la documentation Swagger/OpenAPI :
 
 ```bash
@@ -111,6 +127,7 @@ Activer la documentation Swagger/OpenAPI :
 ```
 
 **Exemple :**
+
 ```bash
 nestcraftx new mon-api --light --swagger
 ```
@@ -118,6 +135,7 @@ nestcraftx new mon-api --light --swagger
 Swagger sera accessible a : `http://localhost:3000/api/docs`
 
 ### Docker
+
 Desactiver Docker (active par defaut) :
 
 ```bash
@@ -125,6 +143,7 @@ Desactiver Docker (active par defaut) :
 ```
 
 **Exemple :**
+
 ```bash
 nestcraftx new mon-api --light --docker=false
 ```
@@ -132,22 +151,26 @@ nestcraftx new mon-api --light --docker=false
 ## Exemples de commandes completes
 
 ### Projet LIGHT avec toutes les options
+
 ```bash
 nestcraftx new mon-api --light --orm=prisma --auth --swagger
 ```
 
 ### Projet FULL avec TypeORM et Auth
+
 ```bash
 nestcraftx new mon-api --full --orm=typeorm --auth
 ```
 
 ### Projet minimal LIGHT (mode interactif)
+
 ```bash
 nestcraftx new mon-api --light
 # Le CLI demandera toutes les options necessaires
 ```
 
 ### Projet MongoDB avec Mongoose
+
 ```bash
 nestcraftx new mon-api --light --orm=mongoose --auth --swagger
 ```
@@ -159,6 +182,7 @@ nestcraftx new mon-api --light --orm=mongoose --auth --swagger
 Le CLI genere automatiquement un fichier `.env` avec :
 
 **Pour PostgreSQL (Prisma/TypeORM) :**
+
 ```env
 NODE_ENV=development
 PORT=3000
@@ -175,6 +199,7 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/mon-api?schema=public
 ```
 
 **Pour MongoDB (Mongoose) :**
+
 ```env
 NODE_ENV=development
 PORT=3000
@@ -195,6 +220,7 @@ Les secrets JWT sont generes automatiquement de maniere securisee.
 Si vous ne fournissez pas tous les flags necessaires, le CLI passera en mode interactif pour demander les options manquantes.
 
 **Exemple :**
+
 ```bash
 nestcraftx new mon-api --light
 
@@ -223,6 +249,7 @@ nestcraftx new mon-api --light
 Le mode FULL est toujours interactif pour vous donner un controle total sur la configuration.
 
 **Exemple :**
+
 ```bash
 nestcraftx new mon-projet
 
@@ -271,6 +298,7 @@ npm run start:dev
 ```
 
 Si Swagger est active :
+
 ```
 http://localhost:3000/api/docs
 ```
@@ -278,16 +306,19 @@ http://localhost:3000/api/docs
 ## Autres commandes
 
 ### Verifier l'environnement
+
 ```bash
 nestcraftx test
 ```
 
 ### Informations CLI
+
 ```bash
 nestcraftx info
 ```
 
 ### Aide
+
 ```bash
 nestcraftx --help
 ```

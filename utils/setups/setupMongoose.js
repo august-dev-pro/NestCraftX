@@ -1,8 +1,14 @@
 const { runCommand } = require("../shell");
 const path = require("path");
-const { createFile, updateFile } = require("../userInput");
+const {
+  createFile,
+  updateFile,
+  createDirectory,
+  capitalize,
+} = require("../userInput");
 const { logSuccess } = require("../loggers/logSuccess");
 const { logInfo } = require("../loggers/logInfo");
+const { updatePackageJson } = require("../file-utils/packageJsonUtils");
 
 /* async function setupMongoose(inputs) {
   logInfo("📦 Installation de Mongoose et @nestjs/mongoose...");
@@ -98,35 +104,39 @@ async function setupMongoose(inputs) {
   await runCommand(
     `${inputs.packageManager} install @nestjs/mongoose mongoose`,
     "Mongoose and its dependencies successfully installed!"
-  ); // --- Base Configuration (app.module.ts and .env) --- // Generating the .env file
+  );
 
+  // --- Base Configuration (app.module.ts and .env) --- // Generating the .env file
   const envContent = `
   MONGO_URI=${inputs.dbConfig.MONGO_URI}
   MONGO_DB=${inputs.dbConfig.MONGO_DB}
-    `.trim();
+   `.trim();
   await createFile({ path: ".env", contente: envContent });
 
   const appModulePath = path.join("src", "app.module.ts");
   const mongooseImport = `import { MongooseModule } from '@nestjs/mongoose';`;
   const mongooseForRoot = `
-    MongooseModule.forRoot(process.env.MONGO_URI || "mongodb://localhost/test", {
-      dbName: process.env.MONGO_DB,
-    }),`; // 1. Adding MongooseModule import
+   MongooseModule.forRoot(process.env.MONGO_URI || "mongodb://localhost/test", {
+    dbName: process.env.MONGO_DB,
+   }),`;
 
+  // 1. Adding MongooseModule import
   await updateFile({
     path: appModulePath,
     pattern: /import {[\s\S]*?} from '@nestjs\/config';/,
     replacement: (match) => `${match}\n${mongooseImport}`,
-  }); // 2. Adding MongooseModule.forRoot() configuration
+  });
 
+  // 2. Adding MongooseModule.forRoot() configuration
   const importsPattern =
     /imports:\s*\[[\s\S]*?ConfigModule\.forRoot\([\s\S]*?\),/;
   await updateFile({
     path: appModulePath,
     pattern: importsPattern,
     replacement: (match) => `${match}${mongooseForRoot}`,
-  }); // --- Generating Mongoose Entities (Schemas) ---
+  });
 
+  // --- Generating Mongoose Entities (Schemas) ---
   logInfo("📁 Generating Mongoose schemas (src/schemas)...");
   await createDirectory("src/schemas"); // This variable will store MongooseModule.forFeature imports for app.module.ts
 
@@ -149,13 +159,14 @@ async function setupMongoose(inputs) {
       )
     ) {
       mongooseImportCode += "import * as mongoose from 'mongoose';\n";
-    } // --- Base Data Fields --- // Adding the role field if it's the User entity (assuming a Role enum exists)
+    }
 
+    // --- Base Data Fields --- // Adding the role field if it's the User entity (assuming a Role enum exists)
     if (entityNameLower === "user") {
-      extraImports += `import { Role } from '../shared/enums/role.enum';\n`;
+      extraImports += `import { Role } from 'src/user/domain/enums/role.enum';\n`;
       fieldsContent += `
-    @Prop({ type: String, enum: Role, default: Role.USER })
-    role: Role;
+   @Prop({ type: String, enum: Role, default: Role.USER })
+   role: Role;
   `;
     }
 
@@ -180,8 +191,8 @@ async function setupMongoose(inputs) {
       }
 
       fieldsContent += `
-    @Prop({ type: ${mongooseType}${requiredOption} })
-    ${field.name}: ${tsType};
+   @Prop({ type: ${mongooseType}${requiredOption} })
+   ${field.name}: ${tsType};
   `;
     } // --- Mongoose Relations (References) ---
 
@@ -201,17 +212,17 @@ async function setupMongoose(inputs) {
         ) {
           const fkName = `${relFrom.toLowerCase()}Id`;
           fieldsContent += `
-    // Reference to the ${targetEntity} entity
-    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: '${targetEntity}' })
-    ${fkName}: ${targetEntity};
+   // Reference to the ${targetEntity} entity
+   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: '${targetEntity}' })
+   ${fkName}: ${targetEntity};
   `;
         } // n-n : array reference (non-standard Mongoose, but common)
         else if (relation.type === "n-n") {
           const collectionName = `${relFrom.toLowerCase()}s`;
           fieldsContent += `
-    // Multiple references to the ${targetEntity} entity
-    @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: '${targetEntity}' }] })
-    ${collectionName}: ${targetEntity}[];
+   // Multiple references to the ${targetEntity} entity
+   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: '${targetEntity}' }] })
+   ${collectionName}: ${targetEntity}[];
   `;
         }
       }
@@ -224,7 +235,7 @@ async function setupMongoose(inputs) {
 
   @Schema({ timestamps: true })
   export class ${entityName} {
-    // Mongoose handles the ID (_id: ObjectId)
+   // Mongoose handles the ID (_id: ObjectId)
   ${fieldsContent}
   }
 
@@ -271,7 +282,7 @@ async function setupMongoose(inputs) {
   }
 
   logSuccess(
-    "✅ Mongoose configuration complete. Schemas are generated in src/schemas!"
+    "Mongoose configuration complete. Schemas are generated in src/schemas!"
   );
 }
 
@@ -300,20 +311,20 @@ async function setupMongooseSeeding(inputs) {
 
   await createFile({
     path: `src/database/seed.ts`,
-    content: seedTsContent,
+    contente: seedTsContent,
   });
 
-  logSuccess("✅ Mongoose seeding configured.");
+  logSuccess("Mongoose seeding configured.");
 }
 
 function generateMongooseSeedContent(entities) {
   return `/**
-   * 🚀 Mongoose Seeding Script
-   * Automatically generated by NestCraftX
-   * ------------------------------------
-   * This script inserts sample data into the MongoDB database.
-   * Command: npm run seed
-   */
+  * 🚀 Mongoose Seeding Script
+  * Automatically generated by NestCraftX
+  * ------------------------------------
+  * This script inserts sample data into the MongoDB database.
+  * Command: npm run seed
+  */
 
   import mongoose from 'mongoose';
   import bcrypt from 'bcrypt';
@@ -327,41 +338,39 @@ function generateMongooseSeedContent(entities) {
     .join("\n")}
 
   async function connectDB() {
-    const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/${
-    entities[0]?.name?.toLowerCase() || "app"
-  }_db';
-    await mongoose.connect(MONGO_URI);
-    console.log('✅ Connected to MongoDB');
+   const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/${
+     entities[0]?.name?.toLowerCase() || "app"
+   }_db';
+   await mongoose.connect(MONGO_URI);
+   console.log('✅ Connected to MongoDB');
   }
 
   async function seed() {
-    try {
-      await connectDB();
+   try {
+    await connectDB();
 
   ${entities
     .map((entity) => {
       const modelVar = `${entity.name}Model`;
       const dataVar = `${entity.name.toLowerCase()}Data`;
       return `
-      // --- ${entity.name} ---
-      const ${modelVar} = mongoose.model('${entity.name}', ${
-        entity.name
-      }Schema);
-      const ${dataVar} = [
-        ${generateSampleData(entity)}
-      ];
-      await ${modelVar}.insertMany(${dataVar});
-      console.log('✅ ${entity.name} data inserted');
-      `;
+    // --- ${entity.name} ---
+    const ${modelVar} = mongoose.model('${entity.name}', ${entity.name}Schema);
+    const ${dataVar} = [
+     ${generateSampleData(entity)}
+    ];
+    await ${modelVar}.insertMany(${dataVar});
+    console.log('✅ ${entity.name} data inserted');
+    `;
     })
     .join("\n")}
 
-      console.log('🎉 Seeding finished successfully.');
-      await mongoose.disconnect();
-    } catch (err) {
-      console.error('❌ Error during seeding:', err);
-      process.exit(1);
-    }
+    console.log('🎉 Seeding finished successfully.');
+    await mongoose.disconnect();
+   } catch (err) {
+    console.error('❌ Error during seeding:', err);
+    process.exit(1);
+   }
   }
 
   seed();
@@ -400,7 +409,7 @@ function generateSampleData(entity) {
 
       return `${f.name}: null`;
     })
-    .join(",\n      ");
+    .join(",\n   ");
 
   return `{ ${sampleObj} }`;
 }

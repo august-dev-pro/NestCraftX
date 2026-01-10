@@ -15,13 +15,13 @@ const {
 } = require("../utils");
 
 async function setupLightArchitecture(inputs) {
-  logInfo("Generation de la structure Light (MVP)");
-
+  logInfo("Generating Light structure (MVP)");
   const mode = "light";
 
   const entitiesData = inputs.entitiesData;
   const dbConfig = inputs.dbConfig;
   const useSwagger = inputs.useSwagger;
+  const useAuth = inputs.useAuth;
 
   const srcPath = "src";
 
@@ -56,9 +56,9 @@ async function setupLightArchitecture(inputs) {
       path: "src/app.module.ts",
       pattern: "imports: [",
       replacement: `imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: '.env',
+      ConfigModule.forRoot({
+     isGlobal: true, // Make ConfigModule globally accessible
+     envFilePath: '.env', // Load environment variables
     }),`,
     });
 
@@ -67,8 +67,10 @@ async function setupLightArchitecture(inputs) {
       const entityNameLower = decapitalize(entity.name);
       const entityPath = `${srcPath}/${entityNameLower}`;
 
+      if (entityNameLower == "session") continue;
+
       await createDirectory(`${entityPath}/entities`);
-      await createDirectory(`${entityPath}/dto`);
+      await createDirectory(`${entityPath}/dtos`);
       await createDirectory(`${entityPath}/services`);
       await createDirectory(`${entityPath}/repositories`);
       await createDirectory(`${entityPath}/controllers`);
@@ -83,7 +85,7 @@ async function setupLightArchitecture(inputs) {
         });
       }
 
-      const entityContent = await generateEntityFileContent(entity);
+      const entityContent = await generateEntityFileContent(entity, mode);
       await createFile({
         path: `${entityPath}/entities/${entityNameLower}.entity.ts`,
         contente: entityContent,
@@ -91,7 +93,7 @@ async function setupLightArchitecture(inputs) {
 
       const dtoContent = await generateDto(entity, useSwagger, false, mode);
       await createFile({
-        path: `${entityPath}/dto/${entityNameLower}.dto.ts`,
+        path: `${entityPath}/dtos/${entityNameLower}.dto.ts`,
         contente: dtoContent,
       });
 
@@ -129,7 +131,8 @@ async function setupLightArchitecture(inputs) {
         entityNameCapitalized,
         entityNameLower,
         entityPath,
-        dbConfig.orm
+        dbConfig.orm,
+        useAuth
       );
       await createFile({
         path: `${entityPath}/${entityNameLower}.module.ts`,
@@ -160,20 +163,85 @@ import { APP_INTERCEPTOR } from '@nestjs/core';`,
   },`,
     });
 
-    logSuccess(`Structure light generee avec succes !`);
+    logSuccess(`Light structure successfully generated!`);
   } catch (error) {
-    logError(`Erreur lors de la generation light: ${error}`);
+    logError(`Error during light generation: ${error}`);
     throw error;
   }
 }
 
 function generateLightRepository(entityName, entityLower, orm, entity) {
+  // Générateur de méthode spécifique (ex: findByEmail pour Auth)
+  const isUser = entityLower === "user";
+  const getExtraMethods = (ormType) => {
+    if (!isUser) return "";
+
+    switch (ormType) {
+      case "typeorm":
+        return `
+async findByEmail(email: string): Promise<${entityName}Entity | null> {
+  const result = await this.repository.findOne({ where: { email } as any });
+  return result ? this.toEntity(result) : null;
+}`;
+      case "prisma":
+        return `
+async findByEmail(email: string): Promise<${entityName}Entity | null> {
+  const result = await this.prisma.${entityLower}.findUnique({ where: { email } });
+  return result ? this.toEntity(result) : null;
+}`;
+      case "mongoose":
+        return `
+async findByEmail(email: string): Promise<${entityName}Entity | null> {
+  const result = await this.model.findOne({ email }).exec();
+  return result ? this.toEntity(result) : null;
+}`;
+      case "sequelize":
+        return `
+async findByEmail(email: string): Promise<${entityName}Entity | null> {
+  const record = await this.model.findOne({ where: { email } });
+  return record ? this.mapper.toDomain(record) : null;
+}`;
+      default:
+        return `
+async findByEmail(email: string): Promise<${entityName}Entity | null> {
+  throw new Error('Repository not implemented');
+}`;
+    }
+  };
+
+  // 1. Liste des types à NE PAS inclure dans le constructeur (les relations)
+  const SCALAR_TYPES = [
+    "string",
+    "text",
+    "uuid",
+    "json",
+    "number",
+    "decimal",
+    "int",
+    "float",
+    "boolean",
+    "date",
+    "role",
+    "enum",
+  ];
+
+  // 2. On filtre pour ne garder que les champs simples
+  const scalarFields = entity.fields.filter((f) => {
+    const cleanType = f.type.toLowerCase().replace("[]", "");
+
+    // On garde le champ seulement si c'est un type simple
+    // et que ce n'est pas une relation (les types qui commencent par une Majuscule et ne sont pas dans SCALAR_TYPES)
+    return SCALAR_TYPES.includes(cleanType);
+  });
+
+  const extraMethods = getExtraMethods(orm);
+
   if (orm === "prisma") {
-    const fieldParams = entity.fields.map((f) => `raw.${f.name}`).join(", ");
+    const fieldParams = scalarFields.map((f) => `raw.${f.name}`).join(", ");
 
     return `import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Create${entityName}Dto, Update${entityName}Dto } from '../dto/${entityLower}.dto';
+import { Create${entityName}Dto, Update${entityName}Dto } from '../dtos/${entityLower}.dto';
 import { ${entityName}Entity } from '../entities/${entityLower}.entity';
 
 @Injectable()
@@ -201,6 +269,8 @@ export class ${entityName}Repository {
     return result ? this.toEntity(result) : null;
   }
 
+  ${extraMethods}
+
   async findAll(): Promise<${entityName}Entity[]> {
     const results = await this.prisma.${entityLower}.findMany();
     return results.map(r => this.toEntity(r));
@@ -218,13 +288,13 @@ export class ${entityName}Repository {
   }
 
   if (orm === "typeorm") {
-    const fieldParams = entity.fields.map((f) => `raw.${f.name}`).join(", ");
+    const fieldParams = scalarFields.map((f) => `raw.${f.name}`).join(", ");
 
     return `import { Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ${entityName} } from 'src/entities/${entityName}.entity';
-import { Create${entityName}Dto, Update${entityName}Dto } from '../dto/${entityLower}.dto';
+import { Create${entityName}Dto, Update${entityName}Dto } from '../dtos/${entityLower}.dto';
 import { ${entityName}Entity } from '../entities/${entityLower}.entity';
 
 @Injectable()
@@ -255,6 +325,8 @@ export class ${entityName}Repository {
     return result ? this.toEntity(result) : null;
   }
 
+  ${extraMethods}
+
   async findAll(): Promise<${entityName}Entity[]> {
     const results = await this.repository.find();
     return results.map(r => this.toEntity(r));
@@ -273,13 +345,13 @@ export class ${entityName}Repository {
   }
 
   if (orm === "mongoose") {
-    const fieldParams = entity.fields.map((f) => `obj.${f.name}`).join(", ");
+    const fieldParams = scalarFields.map((f) => `obj.${f.name}`).join(", ");
 
     return `import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ${entityName} } from '../entities/${entityLower}.schema';
-import { Create${entityName}Dto, Update${entityName}Dto } from '../dto/${entityLower}.dto';
+import { Create${entityName}Dto, Update${entityName}Dto } from '../dtos/${entityLower}.dto';
 import { ${entityName}Entity } from '../entities/${entityLower}.entity';
 
 @Injectable()
@@ -311,6 +383,13 @@ export class ${entityName}Repository {
     return result ? this.toEntity(result) : null;
   }
 
+  ${extraMethods}
+
+  async findByEmail(email: string): Promise<${entityName}Entity | null> {
+  const result = await this.model.findOne({ email }).exec();
+  return result ? this.toEntity(result) : null;
+  }
+
   async findAll(): Promise<${entityName}Entity[]> {
     const results = await this.model.find();
     return results.map(r => this.toEntity(r));
@@ -328,7 +407,7 @@ export class ${entityName}Repository {
   }
 
   return `import { Injectable, Logger } from '@nestjs/common';
-import { Create${entityName}Dto, Update${entityName}Dto } from '../dto/${entityLower}.dto';
+import { Create${entityName}Dto, Update${entityName}Dto } from '../dtos/${entityLower}.dto';
 import { ${entityName}Entity } from '../entities/${entityLower}.entity';
 
 @Injectable()
@@ -342,6 +421,8 @@ export class ${entityName}Repository {
   async findById(id: string): Promise<${entityName}Entity | null> {
     throw new Error('Repository not implemented');
   }
+
+  ${extraMethods}
 
   async findAll(): Promise<${entityName}Entity[]> {
     throw new Error('Repository not implemented');
@@ -360,7 +441,7 @@ export class ${entityName}Repository {
 function generateLightService(entityName, entityLower) {
   return `import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ${entityName}Repository } from '../repositories/${entityLower}.repository';
-import { Create${entityName}Dto, Update${entityName}Dto } from '../dto/${entityLower}.dto';
+import { Create${entityName}Dto, Update${entityName}Dto } from '../dtos/${entityLower}.dto';
 import { ${entityName}Entity } from '../entities/${entityLower}.entity';
 
 @Injectable()
@@ -410,7 +491,7 @@ function generateLightController(entityName, entityLower, useSwagger) {
 
   return `import { Controller, Get, Post, Put, Delete, Body, Param, Logger } from '@nestjs/common';
 ${swaggerImports}import { ${entityName}Service } from '../services/${entityLower}.service';
-import { Create${entityName}Dto, Update${entityName}Dto } from '../dto/${entityLower}.dto';
+import { Create${entityName}Dto, Update${entityName}Dto } from '../dtos/${entityLower}.dto';
 
 ${swaggerDecorators}@Controller('${entityLower}')
 export class ${entityName}Controller {
@@ -476,14 +557,114 @@ ${
 }`;
 }
 
-function generateLightModule(entityName, entityLower, entityPath, orm) {
+function generateLightController(entityName, entityLower, useSwagger) {
+  // Swagger imports (optional)
+  const swaggerImports = useSwagger
+    ? `import { ApiTags, ApiOperation, ApiResponse, ApiCreatedResponse } from '@nestjs/swagger';\n`
+    : "";
+
+  // Swagger class decorator (optional)
+  const swaggerClassDecorator = useSwagger
+    ? `@ApiTags('${entityLower}')\n`
+    : "";
+
+  // Swagger method decorator helper
+  const swaggerMethodDecorator = (summary) =>
+    useSwagger ? `@ApiOperation({ summary: '${summary}' })\n  ` : "";
+
+  return `import { Controller, Get, Post, Put, Delete, Body, Param, Logger } from '@nestjs/common';
+${swaggerImports}import { ${entityName}Service } from '../services/${entityLower}.service';
+import { Create${entityName}Dto, Update${entityName}Dto } from '../dtos/${entityLower}.dto';
+
+${swaggerClassDecorator}@Controller('${entityLower}')
+export class ${entityName}Controller {
+  private readonly logger = new Logger(${entityName}Controller.name);
+
+  constructor(private readonly service: ${entityName}Service) {}
+
+  /**
+   * Create a new ${entityLower}
+   */
+  @Post()
+  ${swaggerMethodDecorator(`Create a new ${entityLower}`)}${
+    useSwagger
+      ? `@ApiCreatedResponse({ description: '${entityName} created successfully' })\n  `
+      : ""
+  }async create(@Body() dto: Create${entityName}Dto) {
+    await this.service.create(dto);
+    return { message: '${entityName} created successfully' };
+  }
+
+  /**
+   * Get all ${entityLower}s
+   */
+  @Get()
+  ${swaggerMethodDecorator(`Get all ${entityLower}s`)}${
+    useSwagger
+      ? `@ApiResponse({ status: 200, description: 'Success' })\n  `
+      : ""
+  }async findAll() {
+    return await this.service.findAll();
+  }
+
+  /**
+   * Get a ${entityLower} by id
+   */
+  @Get(':id')
+  ${swaggerMethodDecorator(`Get ${entityLower} by id`)}${
+    useSwagger
+      ? `@ApiResponse({ status: 200, description: 'Success' })\n  `
+      : ""
+  }async findById(@Param('id') id: string) {
+    return await this.service.findById(id);
+  }
+
+  /**
+   * Update a ${entityLower}
+   */
+  @Put(':id')
+  ${swaggerMethodDecorator(`Update ${entityLower}`)}${
+    useSwagger
+      ? `@ApiResponse({ status: 200, description: 'Updated' })\n  `
+      : ""
+  }async update(
+    @Param('id') id: string,
+    @Body() dto: Update${entityName}Dto,
+  ) {
+    await this.service.update(id, dto);
+    return { message: '${entityName} updated successfully' };
+  }
+
+  /**
+   * Delete a ${entityLower}
+   */
+  @Delete(':id')
+  ${swaggerMethodDecorator(`Delete ${entityLower}`)}${
+    useSwagger
+      ? `@ApiResponse({ status: 200, description: 'Deleted' })\n  `
+      : ""
+  }async delete(@Param('id') id: string) {
+    await this.service.delete(id);
+    return { message: '${entityName} deleted successfully' };
+  }
+}`;
+}
+
+function generateLightModule(
+  entityName,
+  entityLower,
+  entityPath,
+  orm,
+  useAuth = false
+) {
   let importsBlock = [];
   let providersBlock = [`${entityName}Service`, `${entityName}Repository`];
   let extraImports = "";
+  let forwardRefImport = "";
 
   if (orm === "prisma") {
-    extraImports = `import { PrismaService } from 'src/prisma/prisma.service';`;
-    providersBlock.push("PrismaService");
+    extraImports = `import { PrismaModule } from 'src/prisma/prisma.module';`;
+    importsBlock.push("PrismaModule");
   } else if (orm === "typeorm") {
     extraImports = `import { ${entityName} } from 'src/entities/${entityName}.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';`;
@@ -496,7 +677,13 @@ import { ${entityName}, ${entityName}Schema } from '${entityPath}/entities/${ent
     );
   }
 
-  return `import { Module } from '@nestjs/common';
+  if (entityLower == "user" && useAuth) {
+    extraImports += "\nimport { AuthModule } from 'src/auth/auth.module';";
+    importsBlock.push("forwardRef(() => AuthModule)");
+    forwardRefImport = " forwardRef,";
+  }
+
+  return `import {${forwardRefImport} Module } from '@nestjs/common';
 ${extraImports}
 import { ${entityName}Controller } from '${entityPath}/controllers/${entityLower}.controller';
 import { ${entityName}Service } from '${entityPath}/services/${entityLower}.service';

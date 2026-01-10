@@ -18,10 +18,11 @@ const { logError } = require("../utils/loggers/logError");
 const { generateEnvFile, writeEnvFile } = require("../utils/envGenerator");
 const readline = require("readline-sync");
 const { info, warning } = require("../utils/colors");
+const { logWarning } = require("../utils/loggers/logWarning");
 
 async function newCommand(projectName, flags = {}) {
   if (!projectName) {
-    console.log("\n  Welcome to NestCraftX CLI  \n");
+    console.log("\n Welcome to NestCraftX CLI \n");
 
     let currentProjectName = "";
     let isValid = false; // Première demande (affiche le placeholder 'my-app') // 🇫🇷 Nom du projet [my-app] :
@@ -37,12 +38,9 @@ async function newCommand(projectName, flags = {}) {
       if (currentProjectName && passesRegex) {
         isValid = true;
       } else {
-        console.log(
-          `${warning(
-            "[!]"
-          )} Invalid or missing name. Use letters, numbers, _ or - (must start with a letter).`
+        logWarning(
+          "Invalid or missing name. Use letters, numbers, _ or - (must start with a letter)."
         );
-
         currentProjectName = readline.question(
           `${info("[?]")} Project name : `,
           { placeholder: "my-app" }
@@ -74,7 +72,7 @@ async function buildLightModeInputs(projectName, flags) {
   const hasAllRequiredFlags = hasAllLightModeFlags(flags);
 
   if (hasAllRequiredFlags) {
-    console.log("  LIGHT Mode - Quick configuration (via flags)\n");
+    console.log(" LIGHT Mode - Quick configuration (via flags)\n");
     return buildLightModeFromFlags(projectName, flags);
   }
 
@@ -84,7 +82,7 @@ async function buildLightModeInputs(projectName, flags) {
 async function buildFullModeInputs(projectName, flags) {
   // 1. Tente de construire les inputs avec les flags si l'ORM est fourni (mode non-interactif)
   if (hasAllFullModeFlags(flags)) {
-    console.log("  FULL Mode - Quick configuration (via flags)\n");
+    console.log(" FULL Mode - Quick configuration (via flags)\n");
     return buildFullModeFromFlags(projectName, flags);
   }
 
@@ -283,55 +281,55 @@ function printSuccessSummary(inputs) {
   console.log("=".repeat(60));
 
   console.log("\nConfiguration Summary:");
-  console.log(`   Project: ${inputs.projectName}`);
-  console.log(`   Mode: ${inputs.mode || "full"}`.toUpperCase());
-  console.log(`   Database: ${inputs.selectedDB}`);
-  console.log(`   ORM: ${inputs.dbConfig.orm}`);
-  console.log(`   Auth: ${inputs.useAuth ? "Yes" : "No"}`);
-  console.log(`   Swagger: ${inputs.useSwagger ? "Yes" : "No"}`);
-  console.log(`   Docker: ${inputs.useDocker ? "Yes" : "No"}`);
-  console.log(`   Entities: ${inputs.entitiesData.entities.length}`);
+  console.log(`  Project: ${inputs.projectName}`);
+  console.log(`  Mode: ${inputs.mode || "full"}`.toUpperCase());
+  console.log(`  Database: ${inputs.selectedDB}`);
+  console.log(`  ORM: ${inputs.dbConfig.orm}`);
+  console.log(`  Auth: ${inputs.useAuth ? "Yes" : "No"}`);
+  console.log(`  Swagger: ${inputs.useSwagger ? "Yes" : "No"}`);
+  console.log(`  Docker: ${inputs.useDocker ? "Yes" : "No"}`);
+  console.log(`  Entities: ${inputs.entitiesData.entities.length}`);
 
   console.log("\n🚀 Next Steps:");
-  console.log(`   1. cd ${inputs.projectName}`); // --- SPECIFIC ORM/DB INSTRUCTIONS ---
+  console.log(`  1. cd ${inputs.projectName}`); // --- SPECIFIC ORM/DB INSTRUCTIONS ---
 
   if (inputs.dbConfig.orm === "prisma" || inputs.dbConfig.orm === "typeorm") {
     // Instructions for PostgreSQL (Prisma and TypeORM)
-    console.log("\n   2. Create an empty PostgreSQL database.");
-    console.log("      (Ex: `createdb " + inputs.dbConfig.POSTGRES_DB + "`)");
-    console.log("   3. Update the .env file with your connection details.");
+    console.log("\n  2. Create an empty PostgreSQL database.");
+    console.log("   (Ex: `createdb " + inputs.dbConfig.POSTGRES_DB + "`)");
+    console.log("  3. Update the .env file with your connection details.");
 
     if (inputs.dbConfig.orm === "prisma") {
-      console.log("\n   4. **Migrations & Seed (Prisma):**");
-      console.log(`        ${inputs.packageManager} prisma migrate reset`);
-      console.log(`          ${inputs.packageManager} prisma migrate dev`);
+      console.log("\n  4. **Migrations & Seed (Prisma):**");
+      console.log(`    ${inputs.packageManager} prisma migrate reset`);
+      console.log(`     ${inputs.packageManager} prisma migrate dev`);
     } else {
       // TypeORM
-      console.log("\n   4. **Migrations (TypeORM):**");
-      console.log(`      - ${inputs.packageManager} run typeorm:migration:run`);
+      console.log("\n  4. **Migrations (TypeORM):**");
+      console.log(`   - ${inputs.packageManager} run typeorm:migration:run`);
     }
-    console.log("\n   5. Run the project:");
-    console.log(`      - ${inputs.packageManager} run start:dev`);
+    console.log("\n  5. Run the project:");
+    console.log(`   - ${inputs.packageManager} run start:dev`);
   } else if (inputs.dbConfig.orm === "mongoose") {
     // Instructions for MongoDB (Mongoose)
-    console.log("\n   2. Ensure your MongoDB server is running.");
-    console.log("   3. Update the .env file (MONGO_URI variable).");
-    console.log("      (The database will be created automatically)");
+    console.log("\n  2. Ensure your MongoDB server is running.");
+    console.log("  3. Update the .env file (MONGO_URI variable).");
+    console.log("   (The database will be created automatically)");
 
-    console.log("\n   4. Run the project:");
-    console.log(`      - ${inputs.packageManager} run start:dev`);
+    console.log("\n  4. Run the project:");
+    console.log(`   - ${inputs.packageManager} run start:dev`);
   } // --- ENDPOINTS / SWAGGER ---
 
   if (inputs.useSwagger) {
     console.log(
-      `   6. Open Swagger UI : http://localhost:3000/${inputs.swaggerInputs.endpoint}`
+      `  6. Open Swagger UI : http://localhost:3000/${inputs.swaggerInputs.endpoint}`
     );
   }
 
   console.log("\nUseful commands:"); // 🇫🇷 Verifier l'environnement
-  console.log("   - nestcraftx test      Check environment"); // 🇫🇷 Informations sur le CLI
-  console.log("   - nestcraftx info      CLI information"); // 🇫🇷 Aide complete
-  console.log("   - nestcraftx --help    Complete help\n");
+  console.log("  - nestcraftx test   Check environment"); // 🇫🇷 Informations sur le CLI
+  console.log("  - nestcraftx info   CLI information"); // 🇫🇷 Aide complete
+  console.log("  - nestcraftx --help  Complete help\n");
 }
 
 module.exports = newCommand;

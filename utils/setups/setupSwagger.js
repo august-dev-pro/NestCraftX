@@ -82,7 +82,7 @@ async function setupSwagger(inputs) {
   }
 
   fs.writeFileSync(mainTsPath, mainTs);
-  logSuccess("✅ Swagger configuré avec succès !");
+  logSuccess(" Swagger configuré avec succès !");
 }
 
 module.exports = { setupSwagger };

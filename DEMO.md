@@ -1,109 +1,240 @@
-# NestCraftX CLI - Démo du projet `blog-demo` (v0.2.2)
+# NestCraftX CLI - Demo Project `blog-demo` (v0.2.3)
 
-## 🎯 Objectif
+## Objective
 
-Cette démo montre comment générer un projet NestJS complet avec **Clean Architecture**, prêt à exécuter, incluant :
+This demo shows how to generate a complete NestJS project with **Clean Architecture**, ready to run, including:
 
-- Auth JWT
+- JWT Auth
 - Swagger UI
-- Docker (optionnel)
-- ORM (Prisma, TypeORM ou Mongoose)
-- Seeds pour remplir la base de données avec des données d'exemple
+- Docker (optional)
+- ORM (Prisma, TypeORM or Mongoose)
+- Seeds to populate the database with sample data
 
 ---
 
-## 1️⃣ Lancer la démo
+## 1️⃣ Launch the Demo
 
-Tu as deux façons de générer le projet de démo blog-demo :
+You have two ways to generate the blog-demo demo project:
 
-### Mode 1 : Interactif (Recommandé pour les premiers essais)
+### Mode 1: Interactive (Recommended for first tries)
 
-Le CLI te posera les questions pour chaque option manquante (ORM, Docker, etc.).
+The CLI will ask you questions for each missing option (ORM, Docker, etc.).
 
 ```bash
 npx nestcraftx demo
 ```
 
-### Mode 2 : Silencieux (Configuration par flags)
+### Mode 2: Silent (Configuration via flags)
 
-Tu peux tout définir en ligne de commande. Le CLI ne posera aucune question. (Exemple complet)
+You can define everything from the command line. The CLI will ask no questions. (Complete example)
 
 ```bash
 npx nestcraftx demo --light --auth --swagger --docker --orm prisma --packageManager npm
 ```
 
-Détail des Options :
+Option Details:
 
-- --light → Mode MVP simplifié (--full par défaut si omis).
+- --light → Simplified MVP mode (--full by default if omitted).
 
-- --auth → Auth JWT intégrée (true par défaut si omis).
+- --auth → Integrated JWT Auth (true by default if omitted).
 
-- --swagger → Swagger UI activé (true par défaut si omis).
+- --swagger → Swagger UI enabled (true by default if omitted).
 
-- --docker → Génère les fichiers Docker (true par défaut si omis).
+- --docker → Generate Docker files (true by default if omitted).
 
-- --orm → Choisir l'ORM et la base de données (`prisma
-
-## 2️⃣ Structure du projet
-
-Après génération, ton projet aura :
-
-```
-blog-demo/
-├─ src/
-│  ├─ modules/
-│  │  ├─ users/
-│  │  ├─ posts/
-│  │  └─ comments/
-│  ├─ seeds/
-│  │  └─ main.seed.ts
-│  └─ main.ts
-├─ .env
-├─ package.json
-├─ Dockerfile (si Docker activé)
-├─ docker-compose.yml (si Docker activé)
-└─ README.md
-```
-
-- Trois entités principales : `User`, `Post`, `Comment`
-- Relations :
-  - Post → User (1-n)
-  - Comment → Post (1-n)
-  - Comment → User (1-n)
+- --orm → Choose the ORM and database (`prisma`, `typeorm`, or `mongoose`).
 
 ---
 
-## 3️⃣ Configuration de la base de données
+## 2️⃣ Project Structure
 
-### PostgreSQL (Prisma ou TypeORM)
+After generation, your project will have:
 
-1. Crée une base vide `blog_demo` :
+```
+src
+├── auth
+│   ├── application
+│   │   ├── dtos
+│   │   │   ├── create-session.dto.ts
+│   │   │   ├── forgotPassword.dto.ts
+│   │   │   ├── loginCredential.dto.ts
+│   │   │   ├── refreshToken.dto.ts
+│   │   │   ├── resetPassword.dto.ts
+│   │   │   ├── sendOtp.dto.ts
+│   │   │   └── verifyOtp.dto.ts
+│   │   └── services
+│   │       ├── auth.service.ts
+│   │       └── session.service.ts
+│   ├── domain
+│   │   ├── entities
+│   │   │   └── session.entity.ts
+│   │   └── interfaces
+│   │       └── session.repository.interface.ts
+│   ├── infrastructure
+│   │   ├── guards
+│   │   │   ├── jwt-auth.guard.ts
+│   │   │   └── role.guard.ts
+│   │   ├── mappers
+│   │   │   └── session.mapper.ts
+│   │   ├── persistence
+│   │   │   └── session.repository.ts
+│   │   └── strategies
+│   │       └── jwt.strategy.ts
+│   ├── presentation
+│   │   └── controllers
+│   │       └── auth.controller.ts
+│   └── auth.module.ts
+│
+├── comment
+│   ├── application
+│   │   ├── dtos
+│   │   │   └── comment.dto.ts
+│   │   ├── services
+│   │   │   └── comment.service.ts
+│   │   └── use-cases
+│   │       ├── create-comment.use-case.ts
+│   │       ├── delete-comment.use-case.ts
+│   │       ├── getAll-comment.use-case.ts
+│   │       ├── getById-comment.use-case.ts
+│   │       └── update-comment.use-case.ts
+│   ├── domain
+│   │   ├── entities
+│   │   │   └── comment.entity.ts
+│   │   ├── enums
+│   │   └── interfaces
+│   │       └── comment.repository.interface.ts
+│   ├── infrastructure
+│   │   ├── adapters
+│   │   │   └── comment.adapter.ts
+│   │   ├── mappers
+│   │   │   └── comment.mapper.ts
+│   │   └── repositories
+│   │       └── comment.repository.ts
+│   ├── presentation
+│   │   └── controllers
+│   │       └── comment.controller.ts
+│   └── comment.module.ts
+│
+├── common
+│   ├── decorators
+│   │   ├── current-user.decorator.ts
+│   │   ├── public.decorator.ts
+│   │   └── role.decorator.ts
+│   ├── filters
+│   │   └── all-exceptions.filter.ts
+│   ├── interceptors
+│   │   └── response.interceptor.ts
+│   └── middlewares
+│       └── logger.middleware.ts
+│
+├── post
+│   ├── application
+│   │   ├── dtos
+│   │   │   └── post.dto.ts
+│   │   ├── services
+│   │   │   └── post.service.ts
+│   │   └── use-cases
+│   │       ├── create-post.use-case.ts
+│   │       ├── delete-post.use-case.ts
+│   │       ├── getAll-post.use-case.ts
+│   │       ├── getById-post.use-case.ts
+│   │       └── update-post.use-case.ts
+│   ├── domain
+│   │   ├── entities
+│   │   │   └── post.entity.ts
+│   │   ├── enums
+│   │   └── interfaces
+│   │       └── post.repository.interface.ts
+│   ├── infrastructure
+│   │   ├── adapters
+│   │   │   └── post.adapter.ts
+│   │   ├── mappers
+│   │   │   └── post.mapper.ts
+│   │   └── repositories
+│   │       └── post.repository.ts
+│   ├── presentation
+│   │   └── controllers
+│   │       └── post.controller.ts
+│   └── post.module.ts
+│
+├── user
+│   ├── application
+│   │   ├── dtos
+│   │   │   └── user.dto.ts
+│   │   ├── services
+│   │   │   └── user.service.ts
+│   │   └── use-cases
+│   │       ├── create-user.use-case.ts
+│   │       ├── delete-user.use-case.ts
+│   │       ├── getAll-user.use-case.ts
+│   │       ├── getById-user.use-case.ts
+│   │       └── update-user.use-case.ts
+│   ├── domain
+│   │   ├── entities
+│   │   │   └── user.entity.ts
+│   │   ├── enums
+│   │   │   └── role.enum.ts
+│   │   └── interfaces
+│   │       └── user.repository.interface.ts
+│   ├── infrastructure
+│   │   ├── adapters
+│   │   │   └── user.adapter.ts
+│   │   ├── mappers
+│   │   │   └── user.mapper.ts
+│   │   └── repositories
+│   │       └── user.repository.ts
+│   ├── presentation
+│   │   └── controllers
+│   │       └── user.controller.ts
+│   └── user.module.ts
+│
+├── app.controller.spec.ts
+├── app.controller.ts
+├── app.module.ts
+├── app.service.ts
+└── main.ts
+
+```
+
+- Three main entities: `User`, `Post`, `Comment`
+- Relationships:
+  - User → Post (1:N )
+  - Post → Comment (1:N )
+  - User → Comment (1:N )
+
+---
+
+## 3️⃣ Database Configuration
+
+### PostgreSQL (Prisma or TypeORM)
+
+1. Create an empty database `blog_demo`:
 
 ```bash
 createdb blog_demo
 ```
 
-2. Mets à jour le fichier `.env` :
+2. Update the `.env` file:
 
 ```env
-POSTGRES_USER=<votre_user>
-POSTGRES_PASSWORD=<votre_mot_de_passe>
+POSTGRES_USER=<your_user>
+POSTGRES_PASSWORD=<your_password>
 POSTGRES_DB=blog_demo
 POSTGRES_HOST=localhost
 POSTGRES_PORT=5432
 ```
 
-3. Exécute les migrations et seeds :
+3. Run migrations and seeds:
 
-- Prisma :
+- Prisma:
 
 ```bash
 npx prisma migrate reset
 npx prisma migrate dev --name init
-npx prisma db seed
+npx prisma db seed | npm run seed
 ```
 
-- TypeORM :
+- TypeORM:
 
 ```bash
 npm run typeorm:migration:run
@@ -113,14 +244,14 @@ npm run typeorm:seed | npm run seed
 
 ### MongoDB (Mongoose)
 
-1. Vérifie que MongoDB est lancé (local ou Docker).
-2. Mets à jour `.env` si nécessaire :
+1. Make sure MongoDB is running (local or Docker).
+2. Update `.env` if necessary:
 
 ```env
 MONGO_URI=mongodb://<user>:<password>@localhost:27017/blog_demo
 ```
 
-3. Lance le script seed (si présent) :
+3. Run the seed script (if present):
 
 ```bash
 npm run seed
@@ -128,7 +259,7 @@ npm run seed
 
 ---
 
-## 4️⃣ Lancer le projet
+## 4️⃣ Run the Project
 
 ```bash
 cd blog-demo
@@ -136,28 +267,28 @@ npm install
 npm run start:dev
 ```
 
-- Swagger UI disponible (si activé) : [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
+- Swagger UI available (if enabled): [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
 ---
 
-## 5️⃣ Endpoints principaux
+## 5️⃣ Main Endpoints
 
-- **Auth** (si activé) :
-  - POST `/auth/register` → Créer un compte
-  - POST `/auth/login` → Se connecter
-- **Users** : `/users`
-- **Posts** : `/posts`
-- **Comments** : `/comments`
-
----
-
-## 6️⃣ Astuces
-
-- Modifie le fichier `.env` pour connecter ta propre base.
-- Exécute le seed pour remplir la base avec des données d’exemple.
-- Le projet est prêt à être lancé immédiatement après configuration. 🚀
+- **Auth** (if enabled):
+  - POST `/auth/register` → Create an account
+  - POST `/auth/login` → Log in
+- **Users**: `/users`
+- **Posts**: `/posts`
+- **Comments**: `/comments`
 
 ---
 
-**NestCraftX v0.2.2** – Clean Architecture Generator for NestJS
-[Documentation complète](https://github.com/august-dev-pro/NestCraftX)
+## 6️⃣ Tips
+
+- Edit the `.env` file to connect to your own database.
+- Run the seed to populate the database with sample data.
+- The project is ready to launch immediately after configuration.
+
+---
+
+**NestCraftX v0.2.3** – Clean Architecture Generator for NestJS
+[Complete Documentation](https://github.com/august-dev-pro/NestCraftX)

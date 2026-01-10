@@ -1,8 +1,10 @@
 import { logInfo } from "./loggers/logInfo.js";
 import { logSuccess } from "./loggers/logSuccess.js";
 import { createDirectory, createFile, updateFile } from "./userInput.js";
+import inquirer from "inquirer";
+const actualInquirer = inquirer.default || inquirer;
 
-export async function generateEntityFileContent(entity) {
+export async function generateEntityFileContent(entity, mode = "full") {
   // console.log("Entity name:", entity.name); // Log de l'entité
 
   if (!entity || !entity.name) {
@@ -31,27 +33,43 @@ export async function generateEntityFileContent(entity) {
         "La date de dernière mise à jour de l'entité.\n * Mise à jour à chaque modification.\n *\n * Exemple : new Date('2022-02-01T15:00:00Z')",
     },
   ];
+  // 1. Types de base autorisés dans une Entité de Domaine
+  const DOMAIN_SCALAR_TYPES = [
+    "string",
+    "number",
+    "boolean",
+    "date",
+    "json",
+    "text",
+    "uuid",
+    "decimal",
+    "float",
+    "int",
+    "role",
+  ];
+
+  // 2. Filtrage : On ne garde que les types scalaires ou les IDs techniques
+  const filteredFields = entity.fields.filter((f) => {
+    const typeLower = f.type.toLowerCase().replace("[]", "");
+    return DOMAIN_SCALAR_TYPES.includes(typeLower) || f.name.endsWith("Id");
+  });
 
   const isUserEntityWithRole =
     entity.name.toLowerCase() === "user" &&
     entity.fields.some((f) => f.name === "role");
 
-  const allFields = [...defaultFields, ...entity.fields];
+  const allFields = [...defaultFields, ...filteredFields];
 
   const constructorParams = allFields
     .map(
       (f) => `
-    /**
-     * ${f.comment || `Champ ${f.name}`}
-     */
-    private readonly ${f.name}: ${getFormattedType(f)}
-,`
+    private readonly ${f.name}: ${getFormattedType(f)},`
     )
     .join("");
 
-  const constructorAssignments = allFields
+  /*   const constructorAssignments = allFields
     .map((f) => `    this.${f.name} = ${f.name};`)
-    .join("\n");
+    .join("\n"); */
 
   const getters = allFields
     .map(
@@ -69,7 +87,10 @@ export async function generateEntityFileContent(entity) {
 
   let importStatements = "";
   if (isUserEntityWithRole) {
-    importStatements += `import { Role } from 'src/modules/user/domain/enums/role.enum';\n\n`;
+    importStatements +=
+      mode == "full"
+        ? `import { Role } from 'src/user/domain/enums/role.enum';\n\n`
+        : `import { Role } from 'src/common/enums/role.enum'; \n\n`;
   }
 
   return `${importStatements}/**
@@ -78,11 +99,12 @@ export async function generateEntityFileContent(entity) {
  */
 export class ${className} {
   constructor(${constructorParams}
-  ) {
-${constructorAssignments}
-  }
+  ) {}
 ${getters}
 
+  /**
+ * transforme entity data to json
+ */
   toJSON() {
     return {
 ${jsonFields}
@@ -95,77 +117,23 @@ ${jsonFields}
 /* export async function generateMapper(entity) {
   const entityName = capitalize(entity.name);
 
-  // verification de l'existance de user entity
-  const isUserWithRole =
-    entity.name.toLowerCase() === "user" &&
-    entity.fields.some((f) => f.name.toLowerCase() === "role");
-
-  const domainArgs = ["data.id"]
-    .concat(["data.createdAt", "data.updatedAt"])
-    .concat(entity.fields.map((f) => `data.${f.name}`))
-    .join(",\n      ");
-
-  const toPersistenceFields = entity.fields
-    .map((f) => `${f.name}: dto.${f.name},`)
-    .join("\n      ");
-
-  const toUpdateFields = entity.fields
-    .map(
-      (f) => `if (dto.${f.name} !== undefined) data.${f.name} = dto.${f.name};`
-    )
-    .join("\n    ");
-
-  return `
-import { Injectable } from '@nestjs/common';
-import { ${entityName}Entity } from 'src/${decapitalize(
-    entity.name
-  )}/domain/entities/${decapitalize(entity.name)}.entity';
-import { Create${entityName}Dto, Update${entityName}Dto } from 'src/${
-    entity.name
-  }/application/dtos/${decapitalize(entity.name)}.dto';
-
- ${
-   isUserWithRole
-     ? "import { Role } from 'src/modules/user/domain/enums/role.enum';"
-     : ""
- }
-
-
-@Injectable()
-export class ${entityName}Mapper {
-  toDomain(data: any): ${entityName}Entity {
-    return new ${entityName}Entity(
-      ${domainArgs}
-    );
-  }
-
-  toPersistence(dto: Create${entityName}Dto): any {
-    return {
-      ${toPersistenceFields}
-    };
-  }
-
-  toUpdatePersistence(dto: Update${entityName}Dto): any {
-    const data: any = {};
-    ${toUpdateFields}
-    return data;
-  }
-}
-`;
-} */
-
-export async function generateMapper(entity) {
-  const entityName = capitalize(entity.name);
+  console.log("entity: ", entity);
 
   // 1. Définir les types scalaires pour le filtrage
+  //  CORRECTION 1
   const SCALAR_TYPES = [
     "string",
+    "text", // AJOUTÉ
+    "uuid", // AJOUTÉ
+    "json", // AJOUTÉ
     "number",
     "int",
     "float",
+    "decimal", // AJOUTÉ
     "boolean",
     "date",
     "role",
+    "enum", // AJOUTÉ
   ];
 
   // Logic pour filtrer les champs qui doivent aller en base de données (scalaires + FKs)
@@ -188,21 +156,21 @@ export async function generateMapper(entity) {
   const domainArgs = ["data.id"]
     .concat(["data.createdAt", "data.updatedAt"])
     .concat(entity.fields.map((f) => `data.${f.name}`))
-    .join(",\n      ");
+    .join(",\n   ");
 
-  // 🛑 CORRECTION 1 : Filtrer les champs pour la création (toPersistence)
+  // CORRECTION 1 : Filtrer les champs pour la création (toPersistence)
   const toPersistenceFields = entity.fields
     .filter(filterPersistenceFields)
     .map((f) => `${f.name}: dto.${f.name},`)
-    .join("\n      ");
+    .join("\n   ");
 
-  // 🛑 CORRECTION 2 : Filtrer les champs pour la mise à jour (toUpdatePersistence)
+  // CORRECTION 2 : Filtrer les champs pour la mise à jour (toUpdatePersistence)
   const toUpdateFields = entity.fields
     .filter(filterPersistenceFields)
     .map(
       (f) => `if (dto.${f.name} !== undefined) data.${f.name} = dto.${f.name};`
     )
-    .join("\n    ");
+    .join("\n  ");
 
   return `
 import { Injectable } from '@nestjs/common';
@@ -213,290 +181,125 @@ import { Create${entityName}Dto, Update${entityName}Dto } from 'src/${
     entity.name
   }/application/dtos/${decapitalize(entity.name)}.dto';
 
- ${
-    isUserWithRole
-      ? "import { Role } from 'src/modules/user/domain/enums/role.enum';"
-      : ""
-  }
+${
+  isUserWithRole
+    ? "import { Role } from 'src/modules/user/domain/enums/role.enum';"
+    : ""
+}
 
 
 @Injectable()
 export class ${entityName}Mapper {
-  toDomain(data: any): ${entityName}Entity {
-    return new ${entityName}Entity(
-      ${domainArgs}
-    );
-  }
+ toDomain(data: any): ${entityName}Entity {
+  return new ${entityName}Entity(
+   ${domainArgs}
+  );
+ }
 
-  toPersistence(dto: Create${entityName}Dto): any {
-    return {
-      ${toPersistenceFields}
-    };
-  }
-
-  toUpdatePersistence(dto: Update${entityName}Dto): any {
-    const data: any = {};
-    ${toUpdateFields}
-    return data;
-  }
-}
-`;
-}
-
-/* export async function generateDto(
-  entity,
-  useSwagger,
-  isAuthDto = false,
-  mode = "full"
-) {
-  const entityName = capitalize(entity.name);
-  let enumImport = "";
-  if (entityName === "User") {
-    enumImport =
-      mode === "light"
-        ? "import { Role } from 'src/common/enums/role.enum';"
-        : "import { Role } from 'src/user/domain/enums/role.enum';";
-  }
-
-  const getExampleForField = (f) => {
-    const fieldName = f.name.toLowerCase();
-
-    // 🚀 Cas spécifiques pour AUTH DTO (exemples réalistes)
-    if (isAuthDto) {
-      if (fieldName.includes("newpassword")) {
-        return `"Password@123456"`;
-      }
-      if (fieldName.includes("password")) {
-        return `"SecurePass@2024"`;
-      }
-      if (fieldName.includes("otp")) {
-        return `"654321"`;
-      }
-      if (fieldName.includes("token")) {
-        return `"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"`;
-      }
-      if (fieldName.includes("email")) {
-        return `"user@example.com"`;
-      }
-    }
-
-    // 🎯 Patterns spécifiques aux noms de champs
-    if (fieldName.includes("email")) {
-      return `"alice.johnson@example.com"`;
-    }
-    if (fieldName.includes("password")) {
-      return `"SecurePass@2024"`;
-    }
-    if (fieldName.includes("username")) {
-      return `"john_doe"`;
-    }
-    if (fieldName.includes("firstname") || fieldName.includes("first_name")) {
-      return `"John"`;
-    }
-    if (fieldName.includes("lastname") || fieldName.includes("last_name")) {
-      return `"Doe"`;
-    }
-    if (fieldName.includes("phone")) {
-      return `"+1234567890"`;
-    }
-    if (fieldName.includes("title")) {
-      return `"Product Title"`;
-    }
-    if (fieldName.includes("name")) {
-      return `"${entityName} Name"`;
-    }
-    if (fieldName.includes("description")) {
-      return `"A detailed description of the item"`;
-    }
-    if (fieldName.includes("url") || fieldName.includes("image")) {
-      return `"https://example.com/image.png"`;
-    }
-    if (fieldName.includes("price")) {
-      return 99.99;
-    }
-    if (fieldName.includes("amount") || fieldName.includes("total")) {
-      return 1500.5;
-    }
-    if (fieldName.includes("quantity") || fieldName.includes("count")) {
-      return 5;
-    }
-    if (fieldName.includes("discount")) {
-      return 15;
-    }
-    if (fieldName.includes("rate") || fieldName.includes("rating")) {
-      return 4.5;
-    }
-    if (fieldName.includes("role")) {
-      return `"admin"`;
-    }
-    if (fieldName.includes("status")) {
-      return `"active"`;
-    }
-    if (fieldName.includes("type")) {
-      return `"standard"`;
-    }
-    if (fieldName.includes("date") || fieldName.includes("at")) {
-      return `"2024-12-01T10:30:00Z"`;
-    }
-    if (fieldName.includes("time")) {
-      return `"14:30:00"`;
-    }
-    if (fieldName.includes("id") && fieldName !== "id") {
-      return `"550e8400-e29b-41d4-a716-446655440000"`;
-    }
-    if (fieldName.includes("code")) {
-      return `"CODE123456"`;
-    }
-    if (fieldName.includes("reference")) {
-      return `"REF-2024-001"`;
-    }
-
-    // 🛠 Fallback selon le type
-    switch (f.type.toLowerCase()) {
-      case "string":
-        return `"${entityName.toLowerCase()}_${f.name}"`;
-      case "number":
-      case "int":
-        return 42;
-      case "float":
-        return 3.14;
-      case "boolean":
-        return true;
-      case "date":
-        return `"2024-01-15T08:00:00Z"`;
-      default:
-        return `"value"`;
-    }
+ toPersistence(dto: Create${entityName}Dto): any {
+  return {
+   ${toPersistenceFields}
   };
+ }
 
- const generateFieldLine = (f) => {
-    const typeName = f.type.toLowerCase(); // Définir les types scalaires (primitifs) connus de class-validator et TypeScript.
-
-    const SCALAR_TYPES = [
-      "string",
-      "number",
-      "int",
-      "float",
-      "boolean",
-      "date",
-      "role",
-    ]; // 🛑 DÉTECTION GÉNÉRIQUE : Si le type n'est PAS scalaire, il est traité comme une RELATION d'ENTITÉ.
-
-    const isRelation = !SCALAR_TYPES.includes(typeName);
-
-    let tsType;
-    let typeDecorator;
-    let swaggerDecorator;
-
-    // Dans la fonction generateFieldLine, dans le bloc `if (isRelation)` :
-
-    if (isRelation) {
-      // 1. Nom de base capitalisé (ex: 'Comment')
-      const baseTypeName = capitalize(f.type); // 2. Vérifier si c'est une liste
-      const isList = f.name.toLowerCase().endsWith("s"); // 3. Le type TypeScript final
-      tsType = isList ? `${baseTypeName}Dto[]` : `${baseTypeName}Dto`; // <-- CORRECTION ICI
-      typeDecorator = "IsOptional"; // 4. Configuration de Swagger (Utilise baseTypeName pour le type de référence)
-      swaggerDecorator = useSwagger
-        ? f.optional
-          ? `@ApiPropertyOptional({ type: () => ${baseTypeName}Dto, ${
-              isList ? "isArray: true" : ""
-            } })\n` // <-- CORRECTION ICI
-          : `@ApiProperty({ type: () => ${baseTypeName}Dto, ${
-              isList ? "isArray: true" : ""
-            } })\n` // <-- CORRECTION ICI
-        : "";
-    } else {
-      // GESTION DES TYPES SCALAIRES (Logique actuelle)
-      tsType = capitalize(f.type); // Ex: 'String', 'Int'
-
-      typeDecorator =
-        {
-          string: "IsString",
-          number: "IsInt", // ou IsNumber
-          boolean: "IsBoolean",
-          date: "IsDate",
-          role: "IsEnum(Role)",
-        }[typeName] || "IsString";
-
-      swaggerDecorator = useSwagger
-        ? f.optional
-          ? `@ApiPropertyOptional({ example: ${getExampleForField(f)} })\n`
-          : `@ApiProperty({ example: ${getExampleForField(f)}})\n`
-        : "";
-    } // Rendu final
-
-    return `${swaggerDecorator}  @${typeDecorator}()\n  ${f.name}${
-      f.optional ? "?" : ""
-    }: ${tsType};`;
-  };
-
-  const dtoFields = entity.fields
-    .map((f) => generateFieldLine({ ...f, optional: false }))
-    .join("\n\n");
-
-  const updateDtoFields = entity.fields
-    .map((f) => generateFieldLine({ ...f, optional: true }))
-    .join("\n\n");
-
-  const commonImports = `import { IsOptional, IsString, IsEnum, IsInt, IsBoolean, IsDate, MinLength } from 'class-validator';
-${
-  useSwagger
-    ? "import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';"
-    : ""
-}
-${enumImport}
-`;
-
-  // ✅ Cas AUTH DTO : une seule classe + nom déjà donné (pas de Create/Update)
-  if (isAuthDto) {
-    return `
-${commonImports}
-
-export class ${entityName}Dto {
-${dtoFields}
-}
-`;
-  }
-
-  // ✅ Cas général : Create + Update
-  return `
-${commonImports}
-
-
-export class Create${entityName}Dto {
-${dtoFields}
-
-   // Ajustez le rôle si nécessaire.
-   ${
-     useSwagger && entityName == "User"
-       ? "@ApiPropertyOptional({ example: 'admin', type: 'string' })\n  "
-       : ""
-   }${
-    useSwagger && entityName == "User"
-      ? `@IsEnum(Role)
-  role?: Role.ADMIN;
-    `
-      : ""
-  }
-}
-
-export class Update${entityName}Dto {
-${updateDtoFields}
-
-   ${
-     useSwagger && entityName == "User"
-       ? "@ApiPropertyOptional({ example: 'admin', type: 'string' })\n  "
-       : ""
-   }${
-    useSwagger && entityName == "User"
-      ? `@IsEnum(Role)
-  role?: Role.ADMIN;
-    `
-      : ""
-  }
+ toUpdatePersistence(dto: Update${entityName}Dto): any {
+  const data: any = {};
+  ${toUpdateFields}
+  return data;
+ }
 }
 `;
 } */
+
+export async function generateMapper(entity) {
+  const entityName = capitalize(entity.name);
+
+  // 1. Liste des types autorisés (Scalaires / Primitifs)
+  const SCALAR_TYPES = [
+    "string",
+    "text",
+    "uuid",
+    "json",
+    "number",
+    "int",
+    "float",
+    "decimal",
+    "boolean",
+    "date",
+    "role",
+  ];
+
+  // 2. Fonction de filtrage cohérente
+  const filterDomainFields = (f) => {
+    const typeName = f.type.toLowerCase().replace("[]", "");
+    return (
+      SCALAR_TYPES.includes(typeName) || f.name.toLowerCase().endsWith("id")
+    );
+  };
+
+  // 3. Filtrage des champs pour le constructeur de l'Entity
+  // On ne passe au constructeur QUE ce qui est filtré
+  const filteredFields = entity.fields.filter(filterDomainFields);
+
+  const domainArgs = ["data.id"]
+    .concat(["data.createdAt", "data.updatedAt"])
+    .concat(filteredFields.map((f) => `data.${f.name}`)) // UTILISE LES CHAMPS FILTRÉS ICI
+    .join(",\n    ");
+
+  // 4. Filtrage pour la persistence (Base de données)
+  const toPersistenceFields = filteredFields
+    .map((f) => `${f.name}: dto.${f.name},`)
+    .join("\n    ");
+
+  const toUpdateFields = filteredFields
+    .map(
+      (f) => `if (dto.${f.name} !== undefined) data.${f.name} = dto.${f.name};`
+    )
+    .join("\n   ");
+
+  // ... (Logique isUserWithRole inchangée)
+
+  return `
+import { Injectable } from '@nestjs/common';
+import { ${entityName}Entity } from 'src/${decapitalize(
+    entity.name
+  )}/domain/entities/${decapitalize(entity.name)}.entity';
+import { Create${entityName}Dto, Update${entityName}Dto } from 'src/${decapitalize(
+    entity.name
+  )}/application/dtos/${decapitalize(entity.name)}.dto';
+
+@Injectable()
+export class ${entityName}Mapper {
+
+  /**
+   * Transforme les données (Prisma/TypeORM) en Entité de Domaine
+   */
+  toDomain(data: any): ${entityName}Entity {
+    return new ${entityName}Entity(
+      ${domainArgs}
+    );
+  }
+
+  /**
+   * Transforme le DTO en objet pour la création en base de données
+   */
+  toPersistence(dto: Create${entityName}Dto): any {
+    return {
+      ${toPersistenceFields}
+    };
+  }
+
+  /**
+   * Prépare l'objet de mise à jour partielle
+   */
+  toUpdatePersistence(dto: Update${entityName}Dto): any {
+    const data: any = {};
+    ${toUpdateFields}
+    return data;
+  }
+}
+`;
+}
 
 export async function generateDto(
   entity,
@@ -513,10 +316,9 @@ export async function generateDto(
         : "import { Role } from 'src/user/domain/enums/role.enum';";
   }
 
-  const getExampleForField = (f) => {
+  /* const getExampleForField = (f) => {
     const fieldName = f.name.toLowerCase();
 
-    // 🚀 Cas spécifiques pour AUTH DTO (exemples réalistes)
     if (isAuthDto) {
       if (fieldName.includes("newpassword")) {
         return `"Password@123456"`;
@@ -535,7 +337,6 @@ export async function generateDto(
       }
     }
 
-    // 🎯 Patterns spécifiques aux noms de champs
     if (fieldName.includes("email")) {
       return `"alice.johnson@example.com"`;
     }
@@ -606,15 +407,17 @@ export async function generateDto(
       return `"REF-2024-001"`;
     }
 
-    // 🛠 Fallback selon le type
-    switch (f.type.toLowerCase()) {
+    switch (f.type.toLowerCase().replace("[]", "")) {
       case "string":
+      case "text":
+      case "uuid":
+      case "json":
         return `"${entityName.toLowerCase()}_${f.name}"`;
       case "number":
       case "int":
-        return 42;
+      case "decimal":
       case "float":
-        return 3.14;
+        return 42;
       case "boolean":
         return true;
       case "date":
@@ -622,139 +425,265 @@ export async function generateDto(
       default:
         return `"value"`;
     }
+  }; */
+
+  const getExampleForField = (f) => {
+    const fieldName = f.name.toLowerCase();
+    const isArray = f.type.endsWith("[]");
+    const cleanType = f.type.toLowerCase().replace("[]", "");
+
+    // 1. Logique pour obtenir une valeur de base (SANS le tableau)
+    const getBaseExample = () => {
+      // --- Priorité aux noms de champs (Auth & Common) ---
+      if (fieldName.includes("email")) return `"user@example.com"`;
+      if (fieldName.includes("password")) return `"SecurePass@2024"`;
+      if (fieldName.includes("token")) return `"eyJhbGciOi..."`;
+      if (fieldName.includes("id") && fieldName !== "id")
+        return `"550e8400-e29b-41d4-a716-446655440000"`;
+
+      if (fieldName.includes("title") || fieldName.includes("name"))
+        return `"${capitalize(entityName)} Example"`;
+      if (fieldName.includes("description"))
+        return `"A detailed description example"`;
+      if (fieldName.includes("url") || fieldName.includes("image"))
+        return `"https://example.com/image.png"`;
+
+      if (fieldName.includes("price") || fieldName.includes("amount"))
+        return 99.99;
+      if (fieldName.includes("quantity") || fieldName.includes("count"))
+        return 10;
+      if (fieldName.includes("status") || fieldName.includes("type"))
+        return `"active"`;
+      if (fieldName.includes("date") || fieldName.includes("at"))
+        return `"2024-12-01T10:30:00Z"`;
+
+      // --- Logique par Type ---
+      switch (cleanType) {
+        case "string":
+        case "text":
+        case "uuid":
+          return `"${f.name.toLowerCase()}_val"`;
+        case "number":
+        case "int":
+        case "decimal":
+        case "float":
+          return 42;
+        case "boolean":
+          return true;
+        case "json":
+          // IMPORTANT: On retourne un objet littéral (sous forme de string pour le template)
+          return `{ "key": "value", "active": true }`;
+        case "date":
+          return `"2024-01-15T08:00:00Z"`;
+        default:
+          return `"value"`;
+      }
+    };
+
+    const baseValue = getBaseExample();
+
+    // 2. Si c'est un tableau, on enveloppe la valeur de base
+    if (isArray) {
+      // On retourne deux exemples pour montrer que c'est une liste
+      return `[${baseValue}, ${baseValue}]`;
+    }
+
+    return baseValue;
   };
 
-  /**
-   * Génère une ligne de champ DTO.
-   * @param f Le champ de l'entité.
-   * @param isRequestDto Indique si on génère un DTO de création/mise à jour (true) ou de lecture (false).
-   */
+  // Géneration de ligne de champ DTO
   const generateFieldLine = (f, isRequestDto = false) => {
-    // Crée une copie du champ pour pouvoir modifier 'name' sans impacter l'objet original dans la boucle map.
+    if (entityName === "User" && f.name.toLowerCase() === "role") {
+      return null;
+    }
+
     const field = { ...f };
-    const typeName = field.type.toLowerCase(); // Types scalaires connus (primitifs)
+    const rawType = field.type;
+    const cleanType = rawType.toLowerCase().replace("[]", "");
+    const isArrayType = rawType.endsWith("[]");
 
     const SCALAR_TYPES = [
       "string",
+      "text",
+      "uuid",
+      "json",
       "number",
+      "decimal",
       "int",
       "float",
       "boolean",
       "date",
       "role",
-    ]; // Une relation est un type qui n'est pas scalaire
+      "enum",
+    ];
 
-    const isRelation = !SCALAR_TYPES.includes(typeName);
-    const isList = field.name.toLowerCase().endsWith("s");
+    const isRelation = !SCALAR_TYPES.includes(cleanType);
 
     let tsType;
     let typeDecorator;
-    let swaggerDecorator;
+    let swaggerDecorator = "";
+    let swaggerBaseType = "";
 
+    // 1. GESTION DES RELATIONS
     if (isRelation) {
-      const baseTypeName = capitalize(field.type.replace("[]", "")); // Ex: 'Comment' // 🛑 LOGIQUE DE CORRECTION PRINCIPALE // Dans un DTO de requête, si le type n'est PAS une liste (Many-to-One), on veut l'ID. // On assume que les relations Many-to-One sont nommées 'relatedEntity' (l'objet relation) // et que la clé étrangère est 'relatedEntityId'. // On filtre l'objet relation et on ne garde que l'ID si elle est présente.
-
+      const baseTypeName = capitalize(rawType.replace("[]", ""));
       const isForeignKey = field.name.toLowerCase().endsWith("id");
 
-      if (isRequestDto && !isList) {
-        // Cas N:1 (l'enfant vers le parent) dans un DTO de requête (Ex: Comment -> article).
-        // Si c'est l'objet de relation (ex: article: Article), on l'ignore.
+      if (isRequestDto) {
         if (!isForeignKey) {
-          return null; // Ignore l'objet de relation dans Create/Update DTOs
-        } // Si c'est la Clé Étrangère (ex: articleId: string), on la traite comme un string scalaire // (Le code ci-dessous est exécuté si isForeignKey est true)
-
+          return null;
+        }
         tsType = "string";
-        typeDecorator = "IsString";
+        typeDecorator = "IsUUID()";
 
         swaggerDecorator = useSwagger
           ? field.optional
-            ? `@ApiPropertyOptional({ example: "550e8400-e29b-41d4-a716-446655440000" })\n`
-            : `@ApiProperty({ example: "550e8400-e29b-41d4-a716-446655440000" })\n`
+            ? `@ApiPropertyOptional({ example: "550e8400-e29b-41d4-a716-446655440000", type: String })\n`
+            : `@ApiProperty({ example: "550e8400-e29b-41d4-a716-446655440000", type: String })\n`
           : "";
-      } else if (isRequestDto && isList) {
-        // Cas 1:N (le parent vers les enfants) dans un DTO de requête (Ex: Article -> comments).
-        // 🛑 CORRECTION : Dans une architecture Clean, nous ignorons cette liste
-        // dans les DTO de création/mise à jour du parent pour éviter la création imbriquée.
-        return null; // 👈 Ceci retire 'comments: CommentDto[]' du Create/UpdateArticleDto.
-
-        /* // Ancien code conservé si vous voulez autoriser la création imbriquée :
-            tsType = `${baseTypeName}Dto[]`;
-            typeDecorator = "IsOptional";
-            swaggerDecorator = useSwagger
-              ? field.optional
-                ? `@ApiPropertyOptional({ type: () => ${baseTypeName}Dto, isArray: true })\n`
-                : `@ApiProperty({ type: () => ${baseTypeName}Dto, isArray: true })\n`
-              : "";
-            */
       } else {
-        // DTO de Réponse (non isRequestDto): On veut l'objet de relation complet ou la liste.
         if (isForeignKey) {
-          // On ignore la clé étrangère si l'objet de relation est présent dans le DTO de réponse.
           return null;
         }
+        tsType = isArrayType ? `${baseTypeName}Dto[]` : `${baseTypeName}Dto`;
 
-        tsType = isList ? `${baseTypeName}Dto[]` : `${baseTypeName}Dto`;
-        typeDecorator = "IsOptional";
+        typeDecorator = `ValidateNested({ each: ${isArrayType} })\n @Type(() => ${baseTypeName}Dto)`;
+        if (field.optional) typeDecorator = `IsOptional()\n @${typeDecorator}`;
 
         swaggerDecorator = useSwagger
           ? field.optional
             ? `@ApiPropertyOptional({ type: () => ${baseTypeName}Dto, ${
-                isList ? "isArray: true" : ""
+                isArrayType ? "isArray: true" : ""
               } })\n`
             : `@ApiProperty({ type: () => ${baseTypeName}Dto, ${
-                isList ? "isArray: true" : ""
+                isArrayType ? "isArray: true" : ""
               } })\n`
           : "";
       }
-    } else {
-      // GESTION DES TYPES SCALAIRES
-      tsType = field.type = !"string" ? capitalize(field.type) : field.type;
+    }
 
-      typeDecorator =
-        {
-          string: "IsString",
-          number: "IsInt",
-          boolean: "IsBoolean",
-          date: "IsDate",
-          role: "IsEnum(Role)",
-        }[typeName] || "IsString";
+    // 2. GESTION DES TYPES SCALAIRES
+    else {
+      // Utilise formatType pour obtenir le type TS final
+      tsType = formatType(rawType);
+
+      let validator;
+      switch (cleanType) {
+        case "string":
+        case "text":
+          validator = "IsString";
+          swaggerBaseType = "String";
+          break;
+        case "uuid":
+          validator = "IsUUID";
+          swaggerBaseType = "String";
+          break;
+        case "json":
+          validator = "IsObject";
+          tsType = isArrayType
+            ? `Record<string, any>[]`
+            : `Record<string, any>`;
+          swaggerBaseType = "Object";
+          break;
+        case "number":
+        case "decimal":
+        case "float":
+          validator = "IsNumber";
+          swaggerBaseType = "Number";
+          break;
+        case "int":
+          validator = "IsInt";
+          swaggerBaseType = "Number";
+          break;
+        case "boolean":
+          validator = "IsBoolean";
+          swaggerBaseType = "Boolean";
+          break;
+        case "date":
+          validator = "IsDateString";
+          swaggerBaseType = "String";
+          break;
+        case "role":
+          validator = "IsEnum(Role)";
+          swaggerBaseType = "String";
+          break;
+        case "enum":
+          validator = `IsEnum(${rawType.replace("[]", "")})`;
+          swaggerBaseType = "String";
+          break;
+        default:
+          validator = "IsString";
+          swaggerBaseType = "String";
+      }
+
+      // 1. Ajout des parenthèses pour les validateurs scalaires simples (ex: IsObject -> IsObject())
+      if (!isArrayType && !validator.includes("(")) {
+        validator = `${validator}()`;
+      }
+
+      // Gère les tableaux de types scalaires et d'Enums
+      if (isArrayType) {
+        if (rawType.toLowerCase().includes("enum")) {
+          validator = `IsArray()\n@IsEnum(${rawType.replace(
+            "[]",
+            ""
+          )}, { each: true })`;
+        } else {
+          // Pour les scalaires simples (string[], number[])
+          const baseValidatorName = validator.replace("()", ""); // Retire les parenthèses ()
+
+          validator = `IsArray()\n@${baseValidatorName}({ each: true })`;
+        }
+      }
+
+      typeDecorator = validator;
+
+      if (field.optional) typeDecorator = `IsOptional()\n@${typeDecorator}`;
+
+      // Swagger pour Scalaires
+      const swaggerProp = isArrayType
+        ? `type: ${swaggerBaseType}, isArray: true`
+        : `type: ${swaggerBaseType}`;
 
       swaggerDecorator = useSwagger
         ? field.optional
-          ? `@ApiPropertyOptional({ example: ${getExampleForField(field)} })\n`
-          : `@ApiProperty({ example: ${getExampleForField(field)}})\n`
+          ? `@ApiPropertyOptional({ example: ${getExampleForField(
+              field
+            )}, ${swaggerProp} })\n`
+          : `@ApiProperty({ example: ${getExampleForField(
+              field
+            )}, ${swaggerProp} })\n`
         : "";
-    } // Si le champ a été filtré (retourné null), on n'affiche rien.
+    }
 
     if (!field.name) return null;
 
-    return `${swaggerDecorator}  @${typeDecorator}()\n  ${field.name}${
+    return `${swaggerDecorator} @${typeDecorator}\n ${field.name}${
       field.optional ? "?" : ""
     }: ${tsType};`;
   };
 
-  // 🛑 UTILISATION DE 'true' pour indiquer que ce sont des DTOs de REQUÊTE
+  // UTILISATION DE 'true' pour indiquer que ce sont des DTOs de REQUÊTE
   const dtoFields = entity.fields
-    .map((f) => generateFieldLine({ ...f, optional: false }, true)) // Pass true for isRequestDto
-    .filter(Boolean) // Supprime les relations Many-to-One (l'objet complet)
+    .map((f) => generateFieldLine({ ...f, optional: false }, true))
+    .filter(Boolean)
     .join("\n\n");
 
   const updateDtoFields = entity.fields
-    .map((f) => generateFieldLine({ ...f, optional: true }, true)) // Pass true for isRequestDto
-    .filter(Boolean) // Supprime les relations Many-to-One (l'objet complet)
+    .map((f) => generateFieldLine({ ...f, optional: true }, true))
+    .filter(Boolean)
     .join("\n\n");
 
-  const commonImports = `import { IsOptional, IsString, IsEnum, IsInt, IsBoolean, IsDate, MinLength } from 'class-validator';
+  const commonImports = `import { IsOptional, IsString, IsEnum, IsInt, IsBoolean, IsDate, MinLength, IsArray, IsUUID, IsObject, IsNumber, IsDateString, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
 ${
   useSwagger
     ? "import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';"
     : ""
 }
 ${enumImport}
-// Importez les DTOs des entités liées ici (ex: import { CreateCommentDto } from '...';)
 `;
 
-  // ✅ Cas AUTH DTO : une seule classe + nom déjà donné (pas de Create/Update)
   if (isAuthDto) {
     return `
 ${commonImports}
@@ -765,42 +694,33 @@ ${dtoFields}
 `;
   }
 
-  // ✅ Cas général : Create + Update
   return `
 ${commonImports}
 
-
 export class Create${entityName}Dto {
 ${dtoFields}
-
-   // Ajustez le rôle si nécessaire.
-   ${
-    useSwagger && entityName == "User"
-      ? "@ApiPropertyOptional({ example: 'admin', type: 'string' })\n  "
-      : ""
-  }${
-    useSwagger && entityName == "User"
-      ? `@IsEnum(Role)
-  role?: Role.ADMIN;
-    `
-      : ""
-  }
+${
+  entityName === "User"
+    ? `\n  ${
+        useSwagger
+          ? "@ApiPropertyOptional({ example: 'USER', enum: Role, default: Role.USER })\n  "
+          : ""
+      }@IsEnum(Role)\n  @IsOptional()\n  role: Role;`
+    : ""
+}
 }
 
 export class Update${entityName}Dto {
 ${updateDtoFields}
-
-   ${
-    useSwagger && entityName == "User"
-      ? "@ApiPropertyOptional({ example: 'admin', type: 'string' })\n  "
-      : ""
-  }${
-    useSwagger && entityName == "User"
-      ? `@IsEnum(Role)
-  role?: Role.ADMIN;
-    `
-      : ""
-  }
+${
+  entityName === "User"
+    ? `\n  ${
+        useSwagger
+          ? "@ApiPropertyOptional({ example: 'USER', enum: Role })\n  "
+          : ""
+      }@IsEnum(Role)\n  @IsOptional()\n  role?: Role;`
+    : ""
+}
 }
 `;
 }
@@ -814,7 +734,7 @@ export async function generateController(entityName, entityPath, useSwagger) {
     : "";
 
   const swaggerClassDecorator = useSwagger
-    ? `@ApiTags('${entityNameCapitalized}')`
+    ? `@ApiTags('${entityNameLower}')`
     : "";
 
   const swaggerMethodDecorator = (summary) =>
@@ -822,62 +742,72 @@ export async function generateController(entityName, entityPath, useSwagger) {
 
   return `
 /**
- * ${entityNameCapitalized}Controller gère les endpoints de l'API pour l'entité ${entityNameCapitalized}.
- * Il utilise les cas d'utilisation (Use Cases) pour orchestrer les différentes actions métiers liées à l'entité.
+ * ${entityNameCapitalized}Controller handles HTTP endpoints
+ * for the ${entityNameCapitalized} entity.
+ *
+ * This controller is responsible only for:
+ * - HTTP transport
+ * - Request/response handling
+ * - Returning API messages
+ *
+ * Business logic is delegated to the service layer.
  */
 
-import { Controller, Get, Post, Body, Param, Put, Delete, Injectable } from "@nestjs/common";
+import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
 ${swaggerImports}
-import { ${entityNameCapitalized}Service } from '${entityPath}/infrastructure/services/${entityNameLower}.service';
+import { ${entityNameCapitalized}Service } from '${entityPath}/application/services/${entityNameLower}.service';
 import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
 
-@Injectable()
 ${swaggerClassDecorator}
 @Controller('${entityNameLower}')
 export class ${entityNameCapitalized}Controller {
   constructor(private readonly service: ${entityNameCapitalized}Service) {}
 
   ${
-    entityNameLower != "user"
-      ? `// 📌 Créer un ${entityNameLower}
+    entityNameLower !== "user"
+      ? `
+  // Create a new ${entityNameLower}
   @Post()
-  ${swaggerMethodDecorator(`Create a new ${entityNameLower}`)}async create(
-    @Body() dto: Create${entityNameCapitalized}Dto,
-  ) {
-    return await this.service.create(dto);
-  }`
+  ${swaggerMethodDecorator(`Create a new ${entityNameLower}`)}
+  async create(@Body() dto: Create${entityNameCapitalized}Dto) {
+    await this.service.create(dto);
+    return { message: '${entityNameCapitalized} created successfully' };
+  }
+  `
       : ""
   }
 
-  // 📌 Mettre à jour un ${entityNameLower}
+  // Update an existing ${entityNameLower}
   @Put(':id')
-  ${swaggerMethodDecorator(`Update a ${entityNameLower}`)}async update(
+  ${swaggerMethodDecorator(`Update a ${entityNameLower}`)}
+  async update(
     @Param('id') id: string,
     @Body() dto: Update${entityNameCapitalized}Dto,
   ) {
-    return await this.service.update(id, dto);
+    await this.service.update(id, dto);
+    return { message: '${entityNameCapitalized} updated successfully' };
   }
 
-  // 📌 Récupérer un ${entityNameLower} par ID
+  // Get a ${entityNameLower} by ID
   @Get(':id')
-  ${swaggerMethodDecorator(
-    `Get a ${entityNameLower} by ID`
-  )}async getById(@Param('id') id: string) {
+  ${swaggerMethodDecorator(`Get a ${entityNameLower} by ID`)}
+  async getById(@Param('id') id: string) {
     return await this.service.getById(id);
   }
 
-  // 📌 Récupérer tous les ${entityNameLower}s
+  // Get all ${entityNameLower}s
   @Get()
-  ${swaggerMethodDecorator(`Get all ${entityNameLower}s`)}async getAll() {
+  ${swaggerMethodDecorator(`Get all ${entityNameLower}s`)}
+  async getAll() {
     return await this.service.getAll();
   }
 
-  // 📌 Supprimer un ${entityNameLower}
+  // Delete a ${entityNameLower}
   @Delete(':id')
-  ${swaggerMethodDecorator(
-    `Delete a ${entityNameLower} by ID`
-  )}async delete(@Param('id') id: string) {
-    return await this.service.delete(id);
+  ${swaggerMethodDecorator(`Delete a ${entityNameLower} by ID`)}
+  async delete(@Param('id') id: string) {
+    await this.service.delete(id);
+    return { message: '${entityNameCapitalized} deleted successfully' };
   }
 }
 `;
@@ -904,7 +834,16 @@ export function LoggerMiddleware(
   res: Response,
   next: NextFunction,
 ) {
-  console.log(\`[Request] \${req.method} \${req.originalUrl} - \${res.statusCode}\`);
+  if (process.env.NODE_ENV === 'production') {
+    return next();
+  }
+
+  res.on('finish', () => {
+    console.log(
+      \`[Request] \${req.method} \${req.originalUrl} - \${res.statusCode}\`,
+    );
+  });
+
   next();
 }
 `,
@@ -955,21 +894,23 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
   private getDefaultMessage(method: string): string {
     switch (method.toUpperCase()) {
       case 'POST':
-        return 'Création réussie';
+        return 'Resource created successfully';
       case 'PUT':
       case 'PATCH':
-        return 'Mise à jour réussie';
+        return 'Resource updated successfully';
       case 'DELETE':
-        return 'Suppression réussie';
+        return 'Resource deleted successfully';
+      case 'GET':
+        return 'Request processed successfully';
       default:
-        return 'Requête traitée avec succès';
+        return 'Request processed successfully';
     }
   }
 }
 `,
   });
 
-  // 📌 public Decorator
+  // public Decorator
   await createFile({
     path: `${basePath}/decorators/public.decorator.ts`,
     contente: `import { SetMetadata } from '@nestjs/common';
@@ -979,7 +920,12 @@ export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
 `,
   });
 
-  // 📌 Auth role Decorator
+  await createFile({
+    path: `${basePath}/decorators/current-user.decorator.ts`,
+    contente: `import { createParamDecorator, ExecutionContext } from '@nestjs/common';\nexport const CurrentUser = createParamDecorator((data, ctx: ExecutionContext) => ctx.switchToHttp().getRequest().user);`,
+  });
+
+  // Auth role Decorator
   await createFile({
     path: `${basePath}/decorators/role.decorator.ts`,
     contente: `import { SetMetadata } from '@nestjs/common';
@@ -993,7 +939,7 @@ export const Roles = (...roles: string[]) => SetMetadata('roles', roles);
   // Chemin vers main.ts
   const mainTsPath = "src/main.ts";
 
-  // ✅ 1. Mise à jour des imports
+  //  1. Mise à jour des imports
   const importPattern = "import { AppModule } from './app.module';";
   const importReplacer = `import { AppModule } from 'src/app.module'
 import { AllExceptionsFilter } from 'src/common/filters/all-exceptions.filter'
@@ -1001,7 +947,7 @@ import { ResponseInterceptor } from 'src/common/interceptors/response.intercepto
 import { LoggerMiddleware } from 'src/common/middlewares/logger.middleware'
 import { ValidationPipe } from '@nestjs/common';`;
 
-  // ✅ 2. Injection dans le contenu de bootstrap()
+  //  2. Injection dans le contenu de bootstrap()
   const contentPattern = `const app = await NestFactory.create(AppModule);`;
 
   const contentReplacer = `
@@ -1015,7 +961,7 @@ import { ValidationPipe } from '@nestjs/common';`;
   // 📋 Middleware pour logger toutes les requêtes entrantes
   app.use(LoggerMiddleware);`;
 
-  // ✅ Appels
+  //  Appels
   await updateFile({
     path: mainTsPath,
     pattern: importPattern,
@@ -1054,6 +1000,43 @@ export async function generateRepository(entityName, orm) {
   const entityNameLower = entityName.toLowerCase();
   const entityPath = `src/${entityNameLower}`;
 
+  // Générateur de méthode spécifique (ex: findByEmail pour Auth)
+  const isUser = entityNameLower === "user";
+  const getExtraMethods = (ormType) => {
+    if (!isUser) return "";
+
+    switch (ormType) {
+      case "typeorm":
+        return `
+async findByEmail(email: string): Promise<${entityNameCapitalized}Entity | null> {
+  const record = await this.repository.findOne({ where: { email } as any });
+  return record ? this.mapper.toDomain(record) : null;
+}`;
+      case "prisma":
+        return `
+async findByEmail(email: string): Promise<${entityNameCapitalized}Entity | null> {
+  const record = await this.prisma.${entityNameLower}.findFirst({ where: { email } });
+  return record ? this.mapper.toDomain(record) : null;
+}`;
+      case "mongoose":
+        return `
+async findByEmail(email: string): Promise<${entityNameCapitalized}Entity | null> {
+  const record = await this.model.findOne({ email }).exec();
+  return record ? this.mapper.toDomain(record) : null;
+}`;
+      case "sequelize":
+        return `
+async findByEmail(email: string): Promise<${entityNameCapitalized}Entity | null> {
+  const record = await this.model.findOne({ where: { email } });
+  return record ? this.mapper.toDomain(record) : null;
+}`;
+      default:
+        return "";
+    }
+  };
+
+  const extraMethods = getExtraMethods(orm);
+
   // Gère le switch en fonction de l'ORM choisi
   switch (orm) {
     case "typeorm":
@@ -1065,9 +1048,9 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ${entityNameCapitalized}Entity } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.entity';
 import { ${entityNameCapitalized} } from 'src/entities/${entityNameCapitalized}.entity';
-import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/application/interfaces/${entityNameLower}.repository.interface';
+import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/domain/interfaces/${entityNameLower}.repository.interface';
 import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
-import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/domain/mappers/${entityNameLower}.mapper';
+import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/infrastructure/mappers/${entityNameLower}.mapper';
 
 @Injectable()
 export class ${entityNameCapitalized}Repository implements I${entityNameCapitalized}Repository {
@@ -1096,6 +1079,8 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
 
     return this.mapper.toDomain(record);
   }
+
+  ${extraMethods}
 
   // update
   async update(id: string, data: Update${entityNameCapitalized}Dto): Promise<${entityNameCapitalized}Entity> {
@@ -1126,9 +1111,9 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
         contente: `import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
-import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/application/interfaces/${entityNameLower}.repository.interface';
+import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/domain/interfaces/${entityNameLower}.repository.interface';
 import { ${entityNameCapitalized}Entity } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.entity';
-import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/domain/mappers/${entityNameLower}.mapper';
+import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/infrastructure/mappers/${entityNameLower}.mapper';
 
 @Injectable()
 export class ${entityNameCapitalized}Repository implements I${entityNameCapitalized}Repository {
@@ -1156,6 +1141,8 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
 
     return this.mapper.toDomain(record);
   }
+
+  ${extraMethods}
 
   // update
   async update(id: string, data: Update${entityNameCapitalized}Dto): Promise<${entityNameCapitalized}Entity> {
@@ -1194,9 +1181,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ${entityNameCapitalized}Entity } from '${entityPath}/domain/entities/${entityNameLower}.entity';
 import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
-import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/application/interfaces/${entityNameLower}.repository.interface';
+import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/domain/interfaces/${entityNameLower}.repository.interface';
 import { ${entityNameCapitalized} } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.schema';
-import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/domain/mappers/${entityNameLower}.mapper';
+import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/infrastructure/mappers/${entityNameLower}.mapper';
 
 @Injectable()
 export class ${entityNameCapitalized}Repository implements I${entityNameCapitalized}Repository {
@@ -1223,6 +1210,8 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
 
     return this.mapper.toDomain(record);
   }
+
+  ${extraMethods}
 
   // update
   async update(id: string, data: Update${entityNameCapitalized}Dto): Promise<${entityNameCapitalized}Entity> {
@@ -1254,9 +1243,9 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
 import { InjectModel } from '@nestjs/sequelize';
 import { Model } from 'sequelize-typescript';
 import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
-import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/application/interfaces/${entityNameLower}.repository.interface';
+import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/domain/interfaces/${entityNameLower}.repository.interface';
 import { ${entityNameCapitalized}Entity } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.entity';
-import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/domain/mappers/${entityNameLower}.mapper';
+import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/infrastructure/mappers/${entityNameLower}.mapper';
 
 @Injectable()
 export class ${entityNameCapitalized}Repository implements I${entityNameCapitalized}Repository {
@@ -1283,6 +1272,8 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
 
     return this.mapper.toDomain(record);
   }
+
+  ${extraMethods}
 
   // update
   async update(id: string, data: Update${entityNameCapitalized}Dto): Promise<${entityNameCapitalized}Entity> {
@@ -1338,23 +1329,60 @@ function decapitalize(str) {
   return str.charAt(0).toLowerCase() + str.slice(1);
 }
 
+/**
+ * Mappe le type de champ interne (sélectionné par l'utilisateur) au type
+ * TypeScript ou DTO/Classe/Enum correspondant pour la génération de code.
+ *
+ * @param {string} type - Le type de base sélectionné (string, number, array, DTO, Enum, etc.)
+ * @returns {string} Le type formaté pour la génération de code (ex: 'string', 'number', 'Article[]', 'UserRoleEnum')
+ */
 function formatType(type) {
-  switch (type) {
+  // 1. Gestion des types simples
+  switch (type.toLowerCase()) {
     case "number":
+    case "decimal":
       return "number";
+
     case "boolean":
       return "boolean";
-    case "Date":
+
+    case "date":
       return "Date";
-    default:
+
+    case "json":
+      return "Record<string, any>";
+
+    case "string":
+    case "text":
+    case "uuid":
       return "string";
   }
+
+  //2. Vérifie si c'est un Array
+  // Gère les Arrays de scalaires (ex: 'string[]')
+  if (type.endsWith("[]")) {
+    // Applique le formatage au type interne et ajoute '[]'
+    return `${formatType(type.slice(0, -2))}[]`;
+  }
+
+  if (type.match(/^[A-Za-z][A-Za-z0-9_]*$/)) {
+    return type;
+  }
+
+  return "any";
 }
 
+/**
+ * Gère les cas spéciaux (comme le rôle utilisateur) avant l'application du formatage.
+ * * @param {object} field - L'objet champ avec { name, type }
+ * @returns {string} Le type final formaté.
+ */
 function getFormattedType(field) {
-  if (field.name === "role" && field.type === "string") {
-    return "Role"; // 🔁 Remplacer le type string par Role
+  // Cas spécial pour la propriété 'role'
+  if (field.name === "role" && field.type.toLowerCase().startsWith("string")) {
+    return "Role";
   }
+
   return formatType(field.type);
 }
 
@@ -1418,10 +1446,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       errorDetails = exception;
     }
 
-    this.logger.error(
-      \`Exception on \${request.method} \${request.url}\`,
-      JSON.stringify({ message, status, errorDetails, exception }),
-    );
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.error(
+        \`Exception on \${request.method} \${request.url}\`,
+        JSON.stringify({ message, status, errorDetails, exception }),
+      );
+    }
 
     response.status(status).json({
       statusCode: status,
@@ -1494,10 +1524,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       errorDetails = exception;
     }
 
-    this.logger.error(
-      \`Exception on \${request.method} \${request.url}\`,
-      JSON.stringify({ message, status, errorDetails, exception }),
-    );
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.error(
+        \`Exception on \${request.method} \${request.url}\`,
+        JSON.stringify({ message, status, errorDetails, exception }),
+      );
+    }
 
     response.status(status).json({
       statusCode: status,
@@ -1571,10 +1603,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       errorDetails = exception;
     }
 
-    this.logger.error(
-      \`Exception on \${request.method} \${request.url}\`,
-      JSON.stringify({ message, status, errorDetails, exception }),
-    );
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.error(
+        \`Exception on \${request.method} \${request.url}\`,
+        JSON.stringify({ message, status, errorDetails, exception }),
+      );
+    }
 
     response.status(status).json({
       statusCode: status,
@@ -1647,10 +1681,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       errorDetails = exception;
     }
 
-    this.logger.error(
-      \`Exception on \${request.method} \${request.url}\`,
-      JSON.stringify({ message, status, errorDetails, exception }),
-    );
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.error(
+        \`Exception on \${request.method} \${request.url}\`,
+        JSON.stringify({ message, status, errorDetails, exception }),
+      );
+    }
 
     response.status(status).json({
       statusCode: status,
@@ -1770,4 +1806,29 @@ export class AllExceptionsFilter implements ExceptionFilter {
   }
 }
 `.trim();
+}
+
+export async function getPackageManager(flags) {
+  const managers = ["npm", "yarn", "pnpm"];
+
+  // 1. Vérification du flag
+  if (
+    flags.packageManager &&
+    managers.includes(flags.packageManager.toLowerCase())
+  ) {
+    return flags.packageManager.toLowerCase();
+  }
+
+  // 2. Mode interactif
+  const answers = await actualInquirer.prompt([
+    {
+      type: "list",
+      name: "packageManager",
+      message: "Choose your package manager:",
+      choices: managers,
+      default: "npm",
+    },
+  ]);
+
+  return answers.packageManager;
 }

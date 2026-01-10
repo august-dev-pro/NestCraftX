@@ -18,23 +18,23 @@ const {
 } = require("../utils");
 
 async function setupCleanArchitecture(inputs) {
-  logInfo("Génération de la structure Clean Architecture");
-  // log("inputs entitiesData: ", inputs.entitiesData.entities);
+  logInfo("Generating Clean Architecture structure");
 
   const entitiesData = inputs.entitiesData;
   const dbConfig = inputs.dbConfig;
   const useSwagger = inputs.useSwagger;
+  const useAuth = inputs.useAuth;
 
   const srcPath = "src";
   const baseFolders = [
     "application/use-cases",
     "application/dtos",
-    "application/interfaces",
+    "domain/interfaces",
     "domain/entities",
     "domain/enums",
-    "domain/mappers",
+    "infrastructure/mappers",
     "infrastructure/repositories",
-    "infrastructure/services",
+    "application/services",
     "infrastructure/adapters",
     "presentation/controllers",
   ];
@@ -56,14 +56,16 @@ async function setupCleanArchitecture(inputs) {
       pattern: "imports: [",
       replacement: `imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // Rendre ConfigModule accessible globalement
-      envFilePath: '.env', // Charger les variables d'environnement
+     isGlobal: true, // Make ConfigModule globally accessible
+     envFilePath: '.env', // Load environment variables
     }),`,
     });
 
     for (const entity of entitiesData.entities) {
       const entityNameCapitalized = capitalize(entity.name);
       const entityNameLower = decapitalize(entity.name);
+
+      if (entityNameLower == "session") continue;
 
       const entityPath = `${srcPath}/${entityNameLower}`;
 
@@ -81,32 +83,40 @@ async function setupCleanArchitecture(inputs) {
         });
       }
 
-      // 📌 1. Entité
+      // 1. Entité
       const entityContent = await generateEntityFileContent(entity);
       await createFile({
         path: `${entityPath}/domain/entities/${entityNameLower}.entity.ts`,
         contente: entityContent,
       });
 
-      // 📌 2. Interface Repository
-      await createFile({
-        path: `${entityPath}/application/interfaces/${entityNameLower}.repository.interface.ts`,
-        contente: `import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
-import { ${entityNameCapitalized}Entity } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.entity';
+      let findByEmailMethod = "";
+      if (entityNameLower == "user") {
+        findByEmailMethod = `
+        findByEmail(email: string): Promise<${entityNameCapitalized}Entity | null>;
+        `;
+      }
 
-export interface I${entityNameCapitalized}Repository {
-  create(data: Create${entityNameCapitalized}Dto): Promise<${entityNameCapitalized}Entity>;
-  findById(id: string): Promise<${entityNameCapitalized}Entity | null>;
-  findAll(): Promise<${entityNameCapitalized}Entity[]>;
-  update(id: string, data: Update${entityNameCapitalized}Dto): Promise<${entityNameCapitalized}Entity | null>;
-  delete(id: string): Promise<void>;
-}`,
+      // 2. Interface Repository
+      await createFile({
+        path: `${entityPath}/domain/interfaces/${entityNameLower}.repository.interface.ts`,
+        contente: `import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
+        import { ${entityNameCapitalized}Entity } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.entity';
+
+        export interface I${entityNameCapitalized}Repository {
+          create(data: Create${entityNameCapitalized}Dto): Promise<${entityNameCapitalized}Entity>;
+          findById(id: string): Promise<${entityNameCapitalized}Entity | null>;
+          findAll(): Promise<${entityNameCapitalized}Entity[]>;
+          update(id: string, data: Update${entityNameCapitalized}Dto): Promise<${entityNameCapitalized}Entity | null>;
+          delete(id: string): Promise<void>;
+          ${findByEmailMethod}
+        }`,
       });
 
-      // 📌 3. Repository Implémentation
+      // 3. Repository Implémentation
       await generateRepository(entity.name, dbConfig.orm);
 
-      // 📌 4. Use Cases
+      // 4. Use Cases
       const useCases = ["Create", "GetById", "GetAll", "Update", "Delete"];
       useCases.forEach(async (useCase) => {
         let content = "";
@@ -120,7 +130,7 @@ export interface I${entityNameCapitalized}Repository {
  */
 import { Inject, Logger } from '@nestjs/common';
 import { Create${entityName}Dto } from 'src/${entity.name}/application/dtos/${entity.name}.dto';
-import { I${entityName}Repository } from 'src/${entity.name}/application/interfaces/${entity.name}.repository.interface';
+import { I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
 export class Create${entityName}UseCase {
@@ -151,7 +161,7 @@ export class Create${entityName}UseCase {
  * Use Case pour récupérer un ${entityName} par son ID.
  */
 import { Inject, Logger } from '@nestjs/common';
-import { I${entityName}Repository } from 'src/${entity.name}/application/interfaces/${entity.name}.repository.interface';
+import { I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
 export class GetById${entityName}UseCase {
@@ -182,7 +192,7 @@ export class GetById${entityName}UseCase {
  * Use Case pour récupérer tous les ${entityName}s.
  */
 import { Inject, Logger } from '@nestjs/common';
-import { I${entityName}Repository } from 'src/${entity.name}/application/interfaces/${entity.name}.repository.interface';
+import { I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
 export class GetAll${entityName}UseCase {
@@ -214,7 +224,7 @@ export class GetAll${entityName}UseCase {
  */
 import { Inject, Logger } from '@nestjs/common';
 import { Update${entityName}Dto } from 'src/${entity.name}/application/dtos/${entity.name}.dto';
-import { I${entityName}Repository } from 'src/${entity.name}/application/interfaces/${entity.name}.repository.interface';
+import { I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
 export class Update${entityName}UseCase {
@@ -252,7 +262,7 @@ export class Update${entityName}UseCase {
  * Use Case pour supprimer un ${entityName}.
  */
 import { Inject, Logger } from '@nestjs/common';
-import { I${entityName}Repository } from 'src/${entity.name}/application/interfaces/${entity.name}.repository.interface';
+import { I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 
 export class Delete${entityName}UseCase {
   private readonly logger = new Logger(Delete${entityName}UseCase.name);
@@ -291,15 +301,15 @@ export class Delete${entityName}UseCase {
         });
       });
 
-      // 📌 5. DTOs
+      // 5. DTOs
       const DtoFileContent = await generateDto(entity, useSwagger);
       await createFile({
         path: `${entityPath}/application/dtos/${entity.name}.dto.ts`,
         contente: DtoFileContent,
       });
 
-      // 📌 6. Enums
-      await createFile({
+      // 6. Enums
+      /* await createFile({
         path: `${entityPath}/domain/enums/${entityNameLower}.enum.ts`,
         contente: `// Enumération des différents états possibles pour ${entityNameCapitalized}
 export enum ${entityNameCapitalized}Enum {
@@ -310,7 +320,7 @@ export enum ${entityNameCapitalized}Enum {
   // Vous pouvez ajouter d'autres états si nécessaire, comme 'PENDING', 'ARCHIVED', etc.
 }
 `,
-      });
+      }); */
 
       if (entity.name.toLowerCase() === "user") {
         await createFile({
@@ -325,16 +335,16 @@ export enum Role {
         });
       }
 
-      // 📌 7. Mapper
+      // 7. Mapper
       const mapperFileContent = await generateMapper(entity);
       await createFile({
-        path: `${entityPath}/domain/mappers/${entityNameLower}.mapper.ts`,
+        path: `${entityPath}/infrastructure/mappers/${entityNameLower}.mapper.ts`,
         contente: mapperFileContent,
       });
 
-      // 📌 8. Service
+      // 8. Service
       await createFile({
-        path: `${entityPath}/infrastructure/services/${entityNameLower}.service.ts`,
+        path: `${entityPath}/application/services/${entityNameLower}.service.ts`,
         contente: `
 import { Injectable } from '@nestjs/common';
 import { Create${entityNameCapitalized}UseCase } from 'src/${entityNameLower}/application/use-cases/create-${entityNameLower}.use-case';
@@ -374,7 +384,7 @@ export class ${entityNameCapitalized}Service {
 `.trim(),
       });
 
-      // 📌 9. Adapter
+      // 9. Adapter
       await createFile({
         path: `${entityPath}/infrastructure/adapters/${entityNameLower}.adapter.ts`,
         contente: `
@@ -405,7 +415,7 @@ export class ${entityNameCapitalized}Adapter {
 `,
       });
 
-      // 📌 10. Controller
+      // 10. Controller
       const controllerContente = await generateController(
         entity.name,
         entityPath,
@@ -416,14 +426,15 @@ export class ${entityNameCapitalized}Adapter {
         contente: controllerContente,
       });
 
-      // 📌 11. Module
+      // 11. Module
       let importsBlock = [];
       let providersBlock = [];
       let extraImports = "";
+      let forwardRefImport = "";
 
       if (dbConfig.orm === "prisma") {
-        extraImports = `import { PrismaService } from 'src/prisma/prisma.service';`;
-        providersBlock.push("PrismaService");
+        extraImports = `import { PrismaModule } from 'src/prisma/prisma.module';`;
+        importsBlock.push("PrismaModule");
       } else if (dbConfig.orm === "typeorm") {
         extraImports = `import { ${entityNameCapitalized} } from 'src/entities/${entityNameCapitalized}.entity';\nimport { TypeOrmModule } from '@nestjs/typeorm';`;
         importsBlock.push(
@@ -437,8 +448,14 @@ import { ${entityNameCapitalized}, ${entityNameCapitalized}Schema } from '${enti
         );
       }
 
+      if (entityNameLower == "user" && useAuth) {
+        extraImports += "\nimport { AuthModule } from 'src/auth/auth.module';";
+        importsBlock.push("forwardRef(() => AuthModule)");
+        forwardRefImport = " forwardRef,";
+      }
+
       // Ajoute l'import du service
-      extraImports += `\nimport { ${entityNameCapitalized}Service } from '${entityPath}/infrastructure/services/${entityNameLower}.service';`;
+      extraImports += `\nimport { ${entityNameCapitalized}Service } from '${entityPath}/application/services/${entityNameLower}.service';`;
 
       // Always necessary providers
       providersBlock.push(
@@ -447,7 +464,6 @@ import { ${entityNameCapitalized}, ${entityNameCapitalized}Schema } from '${enti
         useClass: ${entityNameCapitalized}Repository,
         }`,
         `${entityNameCapitalized}Service`,
-        `${entityNameCapitalized}Repository`,
         `Create${entityNameCapitalized}UseCase`,
         `Update${entityNameCapitalized}UseCase`,
         `GetById${entityNameCapitalized}UseCase`,
@@ -468,7 +484,7 @@ import { ${entityNameCapitalized}, ${entityNameCapitalized}Schema } from '${enti
  * - Mapper
  * - Service
  */
-import { Module } from '@nestjs/common';
+import {${forwardRefImport} Module } from '@nestjs/common';
 ${extraImports}
 import { ${entityNameCapitalized}Controller } from '${entityPath}/presentation/controllers/${entityNameLower}.controller';
 import { ${entityNameCapitalized}Repository } from '${entityPath}/infrastructure/repositories/${entityNameLower}.repository';
@@ -477,7 +493,7 @@ import { Update${entityNameCapitalized}UseCase } from '${entityPath}/application
 import { GetById${entityNameCapitalized}UseCase } from '${entityPath}/application/use-cases/getById-${entityNameLower}.use-case';
 import { GetAll${entityNameCapitalized}UseCase } from '${entityPath}/application/use-cases/getAll-${entityNameLower}.use-case';
 import { Delete${entityNameCapitalized}UseCase } from '${entityPath}/application/use-cases/delete-${entityNameLower}.use-case';
-import { ${entityNameCapitalized}Mapper } from '${entityPath}/domain/mappers/${entityNameLower}.mapper';
+import { ${entityNameCapitalized}Mapper } from '${entityPath}/infrastructure/mappers/${entityNameLower}.mapper';
 
 @Module({
   imports: [
@@ -525,9 +541,12 @@ import { APP_INTERCEPTOR } from '@nestjs/core';`,
   },`,
     });
 
-    logSuccess(`structure generé avec succes !`);
+    logSuccess(`Structure generated successfully!`);
   } catch (error) {
-    logError(`process currency have error: ${error}`);
+    logError(
+      `Process encountered an error during Clean Architecture setup: ${error}`
+    );
+    throw error;
   }
 }
 

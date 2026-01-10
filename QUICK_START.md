@@ -1,4 +1,4 @@
-# Quick Start - NestCraftX v0.2.0
+# Quick Start - NestCraftX v0.2.3
 
 ## Installation
 
@@ -71,14 +71,14 @@ nestcraftx info
 
 ## Options Principales
 
-| Option          | Description                                                   | Valeurs                         |
-| --------------- | ------------------------------------------------------------- | ------------------------------- |
-| `--light`       | Architecture MVP simplifiee                                   | -                               |
-| `--full`        | Architecture complete (defaut)                                | -                               |
-| `--orm`         | Choix de l'ORM                                                | `prisma`, `typeorm`, `mongoose` |
-| `--auth`        | Active JWT auth                                               | -                               |
-| `--swagger`     | Active Swagger docs                                           | -                               |
-| `--docker`      | Genere Docker files                                           | `true` (defaut), `false`        |
+| Option          | Description                                                   | Valeurs                                       |
+| --------------- | ------------------------------------------------------------- | --------------------------------------------- |
+| `--light`       | Architecture MVP simplifiee                                   | -                                             |
+| `--full`        | Architecture complete (defaut)                                | -                                             |
+| `--orm`         | Choix de l'ORM                                                | `prisma`, `typeorm`, `mongoose (coming soon)` |
+| `--auth`        | Active JWT auth                                               | -                                             |
+| `--swagger`     | Active Swagger docs                                           | -                                             |
+| `--docker`      | Genere Docker files                                           | `true` (defaut), `false`                      |
 | `--interactive` | Force le mode interactif pour la saisie des entités/relations |
 
 ## Exemples Pratiques
@@ -149,4 +149,4 @@ Le CLI genere automatiquement :
 
 ---
 
-**NestCraftX v0.2.2** - Clean Architecture Made Simple
+**NestCraftX v0.2.3** - Clean Architecture Made Simple

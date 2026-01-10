@@ -1,4 +1,3 @@
-const fs = require("fs");
 const { logInfo } = require("../loggers/logInfo");
 const { runCommand } = require("../shell");
 const { createDirectory, createFile, updateFile } = require("../userInput");
@@ -6,495 +5,724 @@ const { logSuccess } = require("../loggers/logSuccess");
 const { generateDto } = require("../utils");
 
 async function setupAuth(inputs) {
-  logInfo("Adding authentication with JWT and Passport...");
+  logInfo(
+    "🚀 Déploiement de l'architecture Auth Ultime (Mappers, DTOs, Multi-ORM)..."
+  );
 
-  const dbConfig = inputs.dbConfig;
-  const useSwagger = inputs.useSwagger;
-  const mode = inputs.mode || "full";
+  const { dbConfig, useSwagger, mode = "full" } = inputs;
+  const isFull = mode === "full";
 
+  // 1. INSTALLATION DES DÉPENDANCES
   await runCommand(
     `npm install @nestjs/jwt @nestjs/passport passport passport-jwt bcrypt uuid`,
-    "Failed to install authentication dependencies"
+    "Erreur install deps auth"
   );
   await runCommand(
     `npm install -D @types/passport-jwt @types/bcrypt @types/uuid`,
-    "Failed to install dev dependencies"
+    "Erreur install dev-deps auth"
   );
 
-  const authPaths = {
-    authPath: "src/auth",
-    authServicesPath: "src/auth/services",
-    authControllersPath: "src/auth/controllers",
-    authStrategyPath: "src/auth/strategy",
-    authGuardsPath: "src/auth/guards",
-    authDecoratorPath: "src/auth/decorator",
+  // 2. DÉFINITION DES CHEMINS (CLEAN ARCHITECTURE)
+  const paths = {
+    root: "src/auth",
+    application: isFull ? "src/auth/application" : "src/auth/services",
+    interfaces: isFull ? "src/auth/domain/interfaces" : "",
+    services: isFull ? "src/auth/application/services" : "src/auth/services",
+    appDtos: isFull ? "src/auth/application/dtos" : "src/auth/dtos",
+    domain: isFull ? "src/auth/domain" : "src/auth/",
+    entities: isFull ? "src/auth/domain/entities" : "src/auth/entities",
+    infra: isFull ? "src/auth/infrastructure" : "src/auth",
+    controllers: isFull
+      ? "src/auth/presentation/controllers"
+      : "src/auth/controllers",
+    persistence: isFull
+      ? "src/auth/infrastructure/persistence"
+      : "src/auth/persistence",
+    mappers: isFull ? "src/auth/infrastructure/mappers" : "src/auth/mappers",
+    guards: isFull ? "src/auth/infrastructure/guards" : "src/auth/guards",
+    strategies: isFull
+      ? "src/auth/infrastructure/strategies"
+      : "src/auth/strategies",
+    decorators: "src/common/decorators",
+    enums: isFull
+      ? "import { Role } from 'src/user/domain/enums/role.enum';"
+      : "import { Role } from 'src/common/enums/role.enum';",
   };
-  const authPath = "src/auth"; // Create directories
-  await Object.values(authPaths).forEach(async (path) => {
-    await createDirectory(path);
-  });
 
-  let ormImports = "";
-  let ormModuleImport = "";
-  let prismaProvider = ""; // To add PrismaService only if needed
-  let userModulePath =
-    mode === "light" ? "src/user/user.module" : "src/user/user.module";
-  let userSchemaPath =
-    mode === "light"
-      ? "src/user/entities/user.schema"
-      : "src/user/domain/entities/user.schema";
-
-  if (dbConfig.orm === "typeorm") {
-    ormImports = `import { TypeOrmModule } from '@nestjs/typeorm';
-  import { User } from 'src/entities/User.entity';`;
-    ormModuleImport = `TypeOrmModule.forFeature([User]),`;
-  } else if (dbConfig.orm === "mongoose") {
-    ormImports = `import { MongooseModule } from '@nestjs/mongoose';
-  import { User, UserSchema } from '${userSchemaPath}';`;
-    ormModuleImport = `MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),`;
-    prismaProvider = ""; // Do not add PrismaService
-  } else if (dbConfig.orm === "prisma") {
-    ormImports = "";
-    ormModuleImport = "";
-    prismaProvider = "PrismaService,";
+  for (const path of Object.values(paths)) {
+    if (path.startsWith("src/") && !path.includes("common"))
+      await createDirectory(path);
   }
 
-  const userModuleImport =
-    mode === "light" ? "src/user/user.module" : "src/user/user.module";
+  // --- 3. COUCHE DOMAINE (ENTITÉS & INTERFACES) ---
 
   await createFile({
-    path: `${authPath}/auth.module.ts`,
+    path: `${paths.entities}/session.entity.ts`,
     contente: `
-  import { Module } from '@nestjs/common';
-  import { JwtModule, JwtService } from '@nestjs/jwt';
-  import { PassportModule } from '@nestjs/passport';
-  ${ormImports}
-  import { AuthService } from '${authPaths.authServicesPath}/auth.service';
-  ${
-    dbConfig.orm === "prisma"
-      ? "import { PrismaService } from 'src/prisma/prisma.service';"
-      : ""
+export class Session {
+  id: string;
+  token: string;
+  userId: string;
+  expiresAt: Date;
+  createdAt?: Date;
+}`.trim(),
+  });
+
+  if (isFull) {
+    await createFile({
+      path: `${paths.interfaces}/session.repository.interface.ts`,
+      contente: `
+import { Session } from '${paths.entities}/session.entity';
+import { CreateSessionDto } from '${paths.appDtos}/create-session.dto';
+
+export interface ISessionRepository {
+  save(dto: CreateSessionDto): Promise<Session>;
+  findByToken(token: string): Promise<Session | null>;
+  findById(id: string): Promise<Session | null>;
+  deleteByToken(token: string): Promise<void>;
+  deleteByUserId(userId: string): Promise<void>;
+  deleteById(userId: string): Promise<void>;
+}`.trim(),
+    });
   }
-  import { AuthController } from '${
-    authPaths.authControllersPath
-  }/auth.controller';
-  import { UserModule } from '${userModuleImport}';
-  import { JwtStrategy } from '${authPaths.authStrategyPath}/jwt.strategy';
-  import { AuthGuard } from '${authPaths.authGuardsPath}/auth.guard';
 
-  @Module({
-    imports: [
-      UserModule,
-      ${ormModuleImport}
-      PassportModule,
-      JwtModule.register({ secret: 'your-secret-key', signOptions: { expiresIn: '1h' } }),
-    ],
-    controllers: [AuthController],
-    providers: [
-      ${prismaProvider}
-      AuthService,
-      JwtStrategy,
-      AuthGuard,
-      JwtService
-    ],
-    exports: [AuthService],
-  })
-  export class AuthModule {}
-  `.trim(),
-  }); // 📌 Auth Service
+  // --- 4. COUCHE APPLICATION (DTOS & SERVICES) ---
 
+  await createFile({
+    path: `${paths.appDtos}/create-session.dto.ts`,
+    contente: `export class CreateSessionDto { refreshToken: string; userId: string; expiresAt: Date; }`,
+  });
+
+  // Définition dynamique des types et injections
+  const repoType = isFull ? "ISessionRepository" : "SessionRepository";
+  const repoImport = isFull
+    ? `import { ISessionRepository } from '${paths.interfaces}/session.repository.interface';`
+    : `import { SessionRepository } from '${paths.persistence}/session.repository';`;
+  const injectDecorator = isFull ? `@Inject('ISessionRepository') ` : "";
+
+  await createFile({
+    path: `${paths.services}/session.service.ts`,
+    contente: `
+import { Injectable${
+      isFull ? ", Inject" : ""
+    }, UnauthorizedException } from '@nestjs/common';
+import { CreateSessionDto } from '${paths.appDtos}/create-session.dto';
+${repoImport}
+
+@Injectable()
+export class SessionService {
+  constructor(${injectDecorator}private readonly repo: ${repoType}) {}
+
+  async create(data: CreateSessionDto) {
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    return this.repo.save(data);
+  }
+
+  async validate(token: string) {
+    const session = await this.repo.findByToken(token);
+    if (!session || new Date(session.expiresAt) < new Date()) return null;
+    return session;
+  }
+
+  async validateById(sessionId: string): Promise<boolean> {
+    const session = await this.repo.findById(sessionId);
+
+    if (!session) return false;
+
+    const now = new Date();
+    if (session.expiresAt && session.expiresAt < now) {
+      await this.revokeById(sessionId);
+      return false;
+    }
+
+    return true;
+  }
+
+  async revoke(token: string): Promise<void> {
+    const session = await this.validate(token);
+
+    if (!session) {
+      throw new UnauthorizedException('Invalid or Expired session');
+    }
+
+    await this.repo.deleteById(token);
+  }
+
+  async revokeById(id: string): Promise<void> {
+    return this.repo.deleteById(id);
+  }
+}`.trim(),
+  });
+
+  // 📌 Auth Service
   let enumImport;
   let userDtoPath;
-  let authDtoPath;
   let userRepoPath;
   let userRepoType;
   if (mode === "light") {
-    userDtoPath = "src/user/dto";
-    authDtoPath = "src/user/dto";
+    userDtoPath = "src/user/dtos";
     userRepoPath = "src/user/repositories/user.repository";
     userRepoType = "UserRepository";
     enumImport = "import { Role } from 'src/common/enums/role.enum';";
   } else {
     userDtoPath = "src/user/application/dtos";
-    authDtoPath = "src/user/application/dtos";
-    userRepoPath = "src/user/application/interfaces/user.repository.interface";
+    userRepoPath = "src/user/domain/interfaces/user.repository.interface";
     userRepoType = "IUserRepository";
     enumImport = "import { Role } from 'src/user/domain/enums/role.enum';";
   }
-
   await createFile({
-    path: `${authPaths.authServicesPath}/auth.service.ts`,
-    contente: `import {
-    Injectable,
-    UnauthorizedException,
-    NotFoundException,
-    ConflictException,
-    Inject,
-  } from '@nestjs/common';
-  import { JwtService } from '@nestjs/jwt';
-  import * as bcrypt from 'bcrypt';
-  import { v4 as uuidv4 } from 'uuid';
+    path: `${paths.services}/auth.service.ts`,
+    contente: `
+import { Injectable, ConflictException, UnauthorizedException, Inject, NotFoundException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 
+import { SessionService } from './session.service';
+import { LoginCredentialDto } from '${paths.appDtos}/loginCredential.dto';
+import { RefreshTokenDto } from '${paths.appDtos}/refreshToken.dto';
+import { SendOtpDto } from '${paths.appDtos}/sendOtp.dto';
+import { VerifyOtpDto } from '${paths.appDtos}/verifyOtp.dto';
+import { ForgotPasswordDto } from '${paths.appDtos}/forgotPassword.dto';
+import { ResetPasswordDto } from '${paths.appDtos}/resetPassword.dto';
+ ${
+   mode === "light"
+     ? `import { UserRepository } from '${userRepoPath}';
+  import { CreateUserDto } from '${userDtoPath}/user.dto';`
+     : `import { IUserRepository } from '${userRepoPath}';
+  import { CreateUserDto } from '${userDtoPath}/user.dto';`
+ }
+
+@Injectable()
+export class AuthService {
+  private otps = new Map<string, string>();
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly sessionService: SessionService,
   ${
-    mode === "light"
-      ? `import { UserRepository } from '${userRepoPath}';
-  import { CreateUserDto } from '${userDtoPath}/user.dto';`
-      : `import { IUserRepository } from '${userRepoPath}';
-  import { CreateUserDto } from '${userDtoPath}/user.dto';`
-  }
-  import { LoginCredentialDto } from '${authDtoPath}/loginCredential.dto';
-  import { RefreshTokenDto } from '${authDtoPath}/refreshToken.dto';
-  import { SendOtpDto } from '${authDtoPath}/sendOtp.dto';
-  import { VerifyOtpDto } from '${authDtoPath}/verifyOtp.dto';
-  import { ForgotPasswordDto } from '${authDtoPath}/forgotPassword.dto';
-  import { ResetPasswordDto } from '${authDtoPath}/resetPassword.dto';
-
-  @Injectable()
-  export class AuthService {
-    private refreshTokens = new Map<string, string>();
-    private otps = new Map<string, string>();
-
-    constructor(
-      private readonly jwtService: JwtService,
-      ${
     mode === "light"
       ? `private readonly userRepository: UserRepository,`
       : `@Inject('IUserRepository')
-      private readonly userRepository: IUserRepository,`
+    private readonly userRepository: IUserRepository,`
   }
-    ) {}
+  ) {}
 
-    // 🔒 Hash the user password
-    async hashPassword(password: string): Promise<string> {
-      return bcrypt.hash(password, 10);
-    }
+  // 🔒 Hash the user password
+   async hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, 10);
+   }
 
-    // 🧪 Compare a plain password with a hash
-    async comparePassword(password: string, hash: string): Promise<boolean> {
-      return bcrypt.compare(password, hash);
-    }
+   // 🧪 Compare a plain password with a hash
+   async comparePassword(password: string, hash: string): Promise<boolean> {
+    return bcrypt.compare(password, hash);
+   }
 
-    // 🧾 Registration (register)
-    async register(dto: CreateUserDto): Promise<{ message: string }> {
-      const existing = await this.userRepository.findAll();
-      if (existing.find((user) => user.getEmail() === dto.email)) {
-        throw new ConflictException('Email already in use');
-      }
+   // 🧾 Registration (register)
+   async register(dto: CreateUserDto): Promise<{ message: string }> {
+    const existing = await this.userRepository.findByEmail(dto.email);
+    if (existing) {
+     throw new ConflictException('Email already in use');
+    }
 
-      const password = await this.hashPassword(dto.password);
-      await this.userRepository.create({ ...dto, password });
+    const password = await this.hashPassword(dto.password);
+    await this.userRepository.create({ ...dto, password });
 
-      return { message: 'Registration successful' };
-    }
+    return { message: 'Registration successful' };
+   }
 
-    // 🔑 Login
-    async login(dto: LoginCredentialDto) {
-      const users = await this.userRepository.findAll();
-      const user = users.find((u) => u.getEmail() === dto.email);
-      if (!user || !(await this.comparePassword(dto.password, user.getPassword()))) {
-        throw new UnauthorizedException('Invalid credentials');
-      }
+  // 🔑 Login
+  async login(dto: LoginCredentialDto) {
+    const user = await this.userRepository.findByEmail(dto.email);
+    if (!user || !(await bcrypt.compare(dto.password, user.getPassword()))) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
-      const payload = { sub: user.getId(), email: user.getEmail() };
-      const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
-      const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+    const refreshToken = this.jwtService.sign(
+      { sub: user.getId() },
+      { expiresIn: '7d' },
+    );
 
-      this.refreshTokens.set(user.getId(), refreshToken);
+    const session = await this.sessionService.create({
+      userId: user.getId(),
+      refreshToken: refreshToken,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 jours
+    });
 
-      return { accessToken, refreshToken };
-    }
+    const payload = {
+      sub: user.getId(),
+      email: user.getEmail(),
+      sid: session.id,
+      role: user.getRole(),
+    };
 
-    // 🔁 Refresh an access token
-    async refreshToken(dto: RefreshTokenDto) {
-      try {
-        const payload = this.jwtService.verify(dto.refreshToken);
-        const stored = this.refreshTokens.get(payload.sub);
-        if (stored !== dto.refreshToken) throw new UnauthorizedException();
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
 
-        const accessToken = this.jwtService.sign(
-          { sub: payload.sub, email: payload.email },
-          { expiresIn: '15m' },
-        );
-        return { accessToken };
-      } catch {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-    }
-
-    // 🚪 Logout
-    async logout(dto: RefreshTokenDto) {
-      const payload = this.jwtService.verify(dto.refreshToken);
-      this.refreshTokens.delete(payload.sub);
-      return { message: 'Logged out successfully' };
-    }
-
-    // 📲 Send OTP
-    async sendOtp(dto: SendOtpDto) {
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      this.otps.set(dto.email, otp);
-      console.log(\`[OTP] for \${dto.email} is \${otp}\`);
-      return { message: 'OTP sent' };
-    }
-
-    // ✅ Verify OTP
-    async verifyOtp(dto: VerifyOtpDto) {
-      const valid = this.otps.get(dto.email);
-      if (valid === dto.otp) {
-        this.otps.delete(dto.email);
-        return { message: 'OTP verified' };
-      }
-      throw new UnauthorizedException('Invalid OTP');
-    }
-
-    // 📬 Forgot Password
-    async forgotPassword(dto: ForgotPasswordDto) {
-      const users = await this.userRepository.findAll();
-      const user = users.find((u) => u.getEmail() === dto.email);
-      if (!user) throw new NotFoundException('User not found');
-
-      const token = uuidv4();
-      console.log(\`[ResetToken] for \${dto.email} is \${token}\`);
-      return { message: 'Reset token sent' };
-    }
-
-    // 🔄 Reset Password
-    async resetPassword(dto: ResetPasswordDto) {
-      const users = await this.userRepository.findAll();
-      const user = users.find((u) => u.getEmail() === dto.email);
-      if (!user) throw new UnauthorizedException('Invalid reset token');
-
-      const password = await this.hashPassword(dto.newPassword);
-      await this.userRepository.update(user.getId(), { password });
-
-      return { message: 'Password reset successful' };
-    }
-
-      // 👤 Get Profile
-    async getProfile(user: any) {
-      const found = await this.userRepository.findById(user.userId);
-      if (!found) throw new NotFoundException('User not found');
-      const email = found.getEmail();
-      return { email: email };
-    }
-
-    // 🔧 Generate token manually
-    generateToken(payload: any) {
-      return this.jwtService.sign(payload);
-    }
-  }
-  `,
-  }); // 📌 Auth Controller
-  await createFile({
-    path: `${authPaths.authControllersPath}/auth.controller.ts`,
-    contente: `import { Controller, Post, Body, UseGuards, Get, Req } from '@nestjs/common';
-  import { Request } from 'express';
-  import { AuthService } from "${authPaths.authServicesPath}/auth.service";
-  import { JwtAuthGuard } from "${authPaths.authGuardsPath}/jwt-auth.guard";
-  import { CreateUserDto } from '${userDtoPath}/user.dto';
-  import { LoginCredentialDto } from '${authDtoPath}/loginCredential.dto';
-  import { RefreshTokenDto } from '${authDtoPath}/refreshToken.dto';
-  import { SendOtpDto } from '${authDtoPath}/sendOtp.dto';
-  import { VerifyOtpDto } from '${authDtoPath}/verifyOtp.dto';
-  import { ForgotPasswordDto } from '${authDtoPath}/forgotPassword.dto';
-  import { ResetPasswordDto } from '${authDtoPath}/resetPassword.dto';
-  ${useSwagger ? "import { ApiBearerAuth } from '@nestjs/swagger';" : ""}
-
-  @Controller('auth')
-  export class AuthController {
-    constructor(private readonly authService: AuthService) {}
-
-    // 📝 Create user account (👤)
-    @Post('register')
-    async register(@Body() body: CreateUserDto) {
-      return this.authService.register(body);
-    }
-
-    // 🔐 User login (🔑)
-    @Post('login')
-    async login(@Body() body: LoginCredentialDto) {
-      return this.authService.login(body);
-    }
-
-    // ♻️ Refresh access token (🔁)
-    @Post('refresh')
-    async refreshToken(@Body() body: RefreshTokenDto) {
-      return this.authService.refreshToken(body);
-    }
-
-    // 🚪 User logout (🚫)
-    @Post('logout')
-    async logout(@Body() body: RefreshTokenDto) {
-      return this.authService.logout(body);
-    }
-
-    // 📤 Send OTP to email (📧)
-    @Post('send-otp')
-    async sendOtp(@Body() body: SendOtpDto) {
-      return this.authService.sendOtp(body);
-    }
-
-    // ✅ Verify sent OTP (✔️)
-    @Post('verify-otp')
-    async verifyOtp(@Body() body: VerifyOtpDto) {
-      return this.authService.verifyOtp(body);
-    }
-
-    // 🔁 Forgot password (📨)
-    @Post('forgot-password')
-    async forgotPassword(@Body() body: ForgotPasswordDto) {
-      return this.authService.forgotPassword(body);
-    }
-
-    // 🔄 Reset password (🔓)
-    @Post('reset-password')
-    async resetPassword(@Body() body: ResetPasswordDto) {
-      return this.authService.resetPassword(body);
-    }
-
-    // 👤 Get connected user profile (🧑‍💼)
-    ${useSwagger ? "@ApiBearerAuth()" : ""}
-    @UseGuards(JwtAuthGuard)
-    @Get('me')
-    async getProfile(@Req() req: Request) {
-      if (req.user) return this.authService.getProfile(req.user);
-    }
+    return {
+      message: 'Login successful',
+      accessToken,
+      refreshToken,
+    };
   }
 
-  `,
-  }); // 📌 JWT Strategy
+  // 🔁 Refresh an access token
+  async refreshToken(token: RefreshTokenDto) {
+    const session = await this.sessionService.validate(token.refreshToken);
+    if (!session) throw new UnauthorizedException('Session expired or invalid');
+    const payload = this.jwtService.decode(token.refreshToken) as any;
+    return { accessToken: this.jwtService.sign({ sub: payload.sub, email: payload.email }, { expiresIn: '15m' }) };
+  }
+
+  // 📲 Send OTP
+   async sendOtp(dto: SendOtpDto) {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    this.otps.set(dto.email, otp);
+    console.log(\`[OTP] for \${dto.email} is \${otp}\`);
+    return { message: 'OTP sent' };
+   }
+
+   // Verify OTP
+   async verifyOtp(dto: VerifyOtpDto) {
+    const valid = this.otps.get(dto.email);
+    if (valid === dto.otp) {
+     this.otps.delete(dto.email);
+     return { message: 'OTP verified' };
+    }
+    throw new UnauthorizedException('Invalid OTP');
+   }
+
+   // 📬 Forgot Password
+   async forgotPassword(dto: ForgotPasswordDto) {
+    const existingUser = await this.userRepository.findByEmail(dto.email);
+    if (!existingUser) throw new NotFoundException('User not found');
+
+    const token = uuidv4();
+    console.log(\`[ResetToken] for \${dto.email} is \${token}\`);
+    return { message: 'Reset token sent' };
+   }
+
+   // 🔄 Reset Password
+   async resetPassword(dto: ResetPasswordDto) {
+    const existingUser = await this.userRepository.findByEmail(dto.email);
+    if (!existingUser) throw new UnauthorizedException('Invalid reset token');
+
+    const password = await this.hashPassword(dto.newPassword);
+    await this.userRepository.update(existingUser.getId(), { password });
+
+    return { message: 'Password reset successful' };
+   }
+
+  // 🔧 Generate token manually
+   generateToken(payload: any) {
+    return this.jwtService.sign(payload);
+   }
+
+  async logout(token: string) { await this.sessionService.revoke(token); return { success: true }; }
+}`.trim(),
+  });
+
+  // --- 5. COUCHE INFRASTRUCTURE (PERSISTENCE & MAPPERS) ---
+
+  // Génération du Mapper
+  await createFile({
+    path: `${paths.mappers}/session.mapper.ts`,
+    contente: `
+import { Session } from '${paths.entities}/session.entity';
+
+export class SessionMapper {
+  static toDomain(raw: any): Session {
+    const session = new Session();
+    session.id = raw.id || raw._id?.toString();
+    session.token = raw.token;
+    session.userId = raw.userId;
+    session.expiresAt = raw.expiresAt;
+    return session;
+  }
+
+  static toPersistence(domain: any) {
+    return {
+      token: domain.token,
+      userId: domain.userId,
+      expiresAt: domain.expiresAt,
+    };
+  }
+}`.trim(),
+  });
+
+  // Implémentation des Repositories selon l'ORM
+
+  // On prépare l'entête dynamiquement
+  const interfaceImport = isFull
+    ? `import { ISessionRepository } from '${paths.interfaces}/session.repository.interface';`
+    : "";
+  const implementsClause = isFull ? "implements ISessionRepository " : "";
+
+  let repoContent = "";
+  if (dbConfig.orm === "typeorm") {
+    repoContent = `
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { SessionMapper } from '${paths.mappers}/session.mapper';
+${interfaceImport}
+import { Session as SessionEntity } from 'src/entities/Session.entity';
+
+@Injectable()
+export class SessionRepository ${implementsClause}{
+  constructor(@InjectRepository(SessionEntity) private readonly repo: Repository<SessionEntity>) {}
+  async save(dto: any) { const s = await this.repo.save(dto); return SessionMapper.toDomain(s); }
+  async findByToken(token: string) { return SessionMapper.toDomain(await this.repo.findOne({ where: { refreshToken: token } })); }
+  async deleteByToken(token: string) { await this.repo.delete({ refreshToken: token }); }
+  async deleteByUserId(userId: string) { await this.repo.delete({ userId }); }
+  async deleteById(id: string) { await this.repo.delete({ id }); }
+  async findById(id: string): Promise<any | null> {
+    const session = await this.repo.findOne({
+      where: { id },
+      select: ['id', 'expiresAt']
+    });
+
+    if (!session) return null;
+    return SessionMapper.toDomain(session);
+  }
+}`;
+  } else if (dbConfig.orm === "prisma") {
+    repoContent = `
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { SessionMapper } from '${paths.mappers}/session.mapper';
+${interfaceImport}
+
+@Injectable()
+export class SessionRepository ${implementsClause}{
+  constructor(private readonly prisma: PrismaService) {}
+
+   async save(data: any) {
+    const s = await this.prisma.session.create({ data });
+    return SessionMapper.toDomain(s);
+  }
+
+  async findByToken(token: string) {
+    return SessionMapper.toDomain(
+      await this.prisma.session.findFirst({ where: { refreshToken: token } }),
+    );
+  }
+
+  async deleteByToken(token: string) {
+    await this.prisma.session.deleteMany({ where: { refreshToken: token } });
+  }
+
+  async deleteByUserId(userId: string) {
+    await this.prisma.session.deleteMany({ where: { userId } });
+  }
+
+  async deleteById(userId: string) {
+    await this.prisma.session.delete({ where: { id: userId } });
+  }
+
+  async findById(id: string): Promise<any | null> {
+    const session = await this.prisma.session.findUnique({
+      where: { id },
+      select: { id: true, expiresAt: true },
+    });
+
+    if (!session) return null;
+    return SessionMapper.toDomain(session);
+  }
+}`;
+  } else if (dbConfig.orm === "mongoose") {
+    repoContent = `
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { SessionMapper } from '${paths.mappers}/session.mapper';
+${interfaceImport}
+import { SessionSchema } from './session.schema';
+
+@Injectable()
+export class SessionRepository ${implementsClause}{
+  constructor(@InjectModel(SessionSchema.name) private readonly model: Model<SessionSchema>) {}
+  async save(data: any) { const s = await new this.model(data).save(); return SessionMapper.toDomain(s); }
+  async findByToken(token: string) { return SessionMapper.toDomain(await this.model.findOne({ refreshToken: token }).exec()); }
+  async deleteByToken(token: string) { await this.model.deleteOne({ refreshToken: token }).exec(); }
+  async deleteByUserId(userId: string) { await this.model.deleteMany({ userId }).exec(); }
+}`;
+  }
 
   await createFile({
-    path: `${authPaths.authStrategyPath}/jwt.strategy.ts`,
-    contente: `import { Injectable } from '@nestjs/common';
-        import { PassportStrategy } from '@nestjs/passport';
-        import { ExtractJwt, Strategy } from 'passport-jwt';
-        @Injectable()
-        export class JwtStrategy extends PassportStrategy(Strategy) {
-          constructor() {
-            super({
-              jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-              ignoreExpiration: false,
-              secretOrKey: 'your-secret-key',
-            });
-          }
-          async validate(payload: any) {
-            return {
-              userId: payload.sub,
-              email: payload.email,
-            };        }
-        }`,
-  }); // 📌 Auth Guard
+    path: `${paths.persistence}/session.repository.ts`,
+    contente: repoContent.trim(),
+  });
+
+  // --- 6. INFRASTRUCTURE WEB (CONTROLLER, GUARD, STRATEGY) ---
 
   await createFile({
-    path: `${authPaths.authGuardsPath}/auth.guard.ts`,
-    contente: `import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-          import { Reflector } from '@nestjs/core';
-          import { JwtService } from '@nestjs/jwt';
-          @Injectable()
-          export class AuthGuard implements CanActivate {
-          constructor(private reflector: Reflector, private jwtService: JwtService) {}
-          canActivate(context: ExecutionContext): boolean {
-          const request = context.switchToHttp().getRequest();
-          const authHeader = request.headers.authorization;
-          if (!authHeader) return false;
-          try {
-            const token = authHeader.split(' ')[1];
-            this.jwtService.verify(token);
-            return true;
-          } catch (e) {
-            return false;
-          }
-        }
-      }`,
-  }); // 📌 role Guard
+    path: `${paths.controllers}/auth.controller.ts`, //
+    contente: `
+import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
+import { AuthService } from '${paths.services}/auth.service';
+import { LoginCredentialDto } from '${paths.appDtos}/loginCredential.dto';
+import { RefreshTokenDto } from '${paths.appDtos}/refreshToken.dto';
+import { JwtAuthGuard } from '${paths.guards}/jwt-auth.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { CreateUserDto } from '${userDtoPath}/user.dto';
+import { SendOtpDto } from '${paths.appDtos}/sendOtp.dto';
+import { VerifyOtpDto } from '${paths.appDtos}/verifyOtp.dto';
+import { ForgotPasswordDto } from '${paths.appDtos}/forgotPassword.dto';
+import { ResetPasswordDto } from '${paths.appDtos}/resetPassword.dto';
+${useSwagger ? "import { ApiBearerAuth } from '@nestjs/swagger';" : ""}
+
+@ApiTags('auth')
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  // 📝 Create user account (👤)
+  @Post('register')
+  register(@Body() body: CreateUserDto) {
+  return this.authService.register(body);
+  }
+
+  // 🔐 User login (🔑)
+  @Post('login')
+  @ApiOperation({ summary: 'User login' })
+  login(@Body() dto: LoginCredentialDto) { return this.authService.login(dto); }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token' })
+  refreshToken(@Body() dto: RefreshTokenDto) {
+  return this.authService.refreshToken(dto); }
+
+  // 📤 Send OTP to email (📧)
+  @Post('send-otp')
+  sendOtp(@Body() dto: SendOtpDto) {
+  return this.authService.sendOtp(dto);
+  }
+
+  // Verify sent OTP (✔️)
+  @Post('verify-otp')
+  verifyOtp(@Body() dto: VerifyOtpDto) {
+  return this.authService.verifyOtp(dto);
+  }
+
+  // 🔁 Forgot password (📨)
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+  return this.authService.forgotPassword(dto);
+  }
+
+  // 🔄 Reset password (🔓)
+  @Post('reset-password')
+  resetPassword(@Body() dto: ResetPasswordDto) {
+  return this.authService.resetPassword(dto);
+  }
+
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  @ApiOperation({ summary: 'Logout user' })
+  logout(@Body() dto: RefreshTokenDto) { return this.authService.logout(dto.refreshToken); }
+
+  // 👤 Get connected user profile (🧑‍💼)
+  ${useSwagger ? "@ApiBearerAuth()" : ""}
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  @ApiOperation({ summary: 'Get current user profile' })
+  getMe(@CurrentUser() user: any) { return user; }
+}`.trim(),
+  });
 
   await createFile({
-    path: `${authPaths.authGuardsPath}/role.guard.ts`,
+    path: `${paths.strategies}/jwt.strategy.ts`,
+    contente: `
+import { Injectable } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { ConfigService } from '@nestjs/config';
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor(config: ConfigService) {
+    const jwtSecret = config.get<string>('JWT_SECRET');
+    if (!jwtSecret) {
+      throw new Error('JWT_SECRET is not defined in configuration');
+    }
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: jwtSecret,
+    });
+  }
+
+   async validate(payload: any) {
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      sid: payload.sid,
+      role: payload.role,
+    };
+  }
+
+  }`.trim(),
+  });
+
+  await createFile({
+    path: `${paths.guards}/jwt-auth.guard.ts`,
+    contente: `
+import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Reflector } from '@nestjs/core';
+import { IS_PUBLIC_KEY } from 'src/common/decorators/public.decorator';
+import { SessionService } from '${paths.services}/session.service';
+
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  constructor(
+    private reflector: Reflector,
+    private sessionService: SessionService,
+  ) {
+    super();
+  }
+
+ async canActivate(context: ExecutionContext) {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(), context.getClass(),
+    ]);
+    if (isPublic) return true;
+
+    const canActivate = await super.canActivate(context);
+    if (!canActivate) return false;
+
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+
+    if (!user || !user.sid) {
+      throw new UnauthorizedException('Invalid token payload');
+    }
+
+    const isSessionValid = await this.sessionService.validateById(user.sid);
+    if (!isSessionValid) {
+      throw new UnauthorizedException('Session has been revoked');
+    }
+
+    return true;
+  }
+}`.trim(),
+  });
+
+  // role Guard
+  await createFile({
+    path: `${paths.guards}/role.guard.ts`,
     contente: `import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
   import { Reflector } from '@nestjs/core';
-  ${enumImport}
+  ${paths.enums}
   import { ROLES_KEY } from 'src/common/decorators/role.decorator';
   import { IS_PUBLIC_KEY } from 'src/common/decorators/public.decorator';
 
   @Injectable()
   export class RolesGuard implements CanActivate {
-    constructor(private reflector: Reflector) {}
+   constructor(private reflector: Reflector) {}
 
-    canActivate(context: ExecutionContext): boolean {
-      // Check if the route is public
-      const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]);
+   canActivate(context: ExecutionContext): boolean {
+    // Check if the route is public
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+     context.getHandler(),
+     context.getClass(),
+    ]);
 
-      if (isPublic) {
-        return true; // Allow access without authentication
-      }
+    if (isPublic) {
+     return true; // Allow access without authentication
+    }
 
-      // Retrieve required roles for route access
-      const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]);
+    // Retrieve required roles for route access
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
+     context.getHandler(),
+     context.getClass(),
+    ]);
 
-      if (!requiredRoles) {
-        return true; // If no roles are required, access is authorized
-      }
+    if (!requiredRoles) {
+     return true; // If no roles are required, access is authorized
+    }
 
-      // Retrieve user from request.user (added by JwtAuthGuard)
-      const request = context.switchToHttp().getRequest();
-      const user = request.user;
+    // Retrieve user from request.user (added by JwtAuthGuard)
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
 
-      console.log('🔍 Required Roles:', requiredRoles);
-      console.log('👤 User Role:', user?.role);
+    console.log('🔍 Required Roles:', requiredRoles);
+    console.log('👤 User Role:', user?.role);
 
-      // Check if the user has one of the required roles
-      return user && user.role && requiredRoles.includes(user.role);
-    }
+    // Check if the user has one of the required roles
+    return user && user.role && requiredRoles.includes(user.role);
+   }
   }
   `,
-  }); // 📌 jwt Auth Guard
+  });
+
+  // --- 7. CABLAGE FINAL DU MODULE ---
+
+  let dbImports = "";
+  let dbProviders = "";
+  if (dbConfig.orm === "typeorm") {
+    dbImports =
+      "import { TypeOrmModule } from '@nestjs/typeorm';\nimport { Session as SessionEntity } from 'src/entities/Session.entity';";
+    dbProviders = "TypeOrmModule.forFeature([SessionEntity]),";
+  } else if (dbConfig.orm === "mongoose") {
+    dbImports =
+      "import { MongooseModule } from '@nestjs/mongoose';\nimport { SessionSchema, SessionMongoSchema } from './infrastructure/persistence/session.schema';";
+    dbProviders =
+      "MongooseModule.forFeature([{ name: SessionSchema.name, schema: SessionMongoSchema }]),";
+  } else if (dbConfig.orm === "prisma") {
+    dbImports = "import { PrismaModule } from 'src/prisma/prisma.module';";
+    dbProviders = "PrismaModule,";
+  }
 
   await createFile({
-    path: `${authPaths.authGuardsPath}/jwt-auth.guard.ts`,
-    contente: `import { Injectable, ExecutionContext } from '@nestjs/common';
-  import { Reflector } from '@nestjs/core';
-  import { AuthGuard } from '@nestjs/passport';
-  import { Observable } from 'rxjs';
-  import { IS_PUBLIC_KEY } from 'src/common/decorators/public.decorator';
+    path: `${paths.root}/auth.module.ts`,
+    contente: `
+import { Module, forwardRef } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { UserModule } from '../user/user.module';
+${dbImports}
+import { AuthService } from '${paths.services}/auth.service';
+import { SessionService } from '${paths.services}/session.service';
+import { AuthController } from '${paths.controllers}/auth.controller';
+import { JwtStrategy } from '${paths.strategies}/jwt.strategy';
+import { SessionRepository } from '${paths.persistence}/session.repository';
 
-  @Injectable()
-  export class JwtAuthGuard extends AuthGuard('jwt') {
-    constructor(private reflector: Reflector) {
-      super();
-    }
+@Module({
+  imports: [
+    ${dbProviders}
+    forwardRef(() => UserModule),
+    PassportModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        secret: config.get('JWT_SECRET'),
+        signOptions: { expiresIn: '15m' },
+      }),
+    }),
+  ],
+  controllers: [AuthController],
+  providers: [
+    AuthService,
+    SessionService,
+    JwtStrategy,
+    ${
+      isFull
+        ? "{ provide: 'ISessionRepository', useClass: SessionRepository }"
+        : "SessionRepository"
+    }
 
-    canActivate(
-      context: ExecutionContext,
-    ): boolean | Promise<boolean> | Observable<boolean> {
-      const req = context.switchToHttp().getRequest();
-      const token = req.headers.authorization;
+  ],
+  exports: [AuthService, SessionService],
+})
+export class AuthModule {}`.trim(),
+  });
 
-      /* if (token) {
-    console.log('Token found in Authorization header:', token);
-  } else {
-    console.log('No token found in Authorization header');
-  } */
-
-
-      const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]);
-      if (isPublic) {
-        return true;
-      }
-      return super.canActivate(context);
-    }
-  }
-  `,
-  }); // 📌 auth DTOs in user entity
-
+  // 📌 auth DTOs in user entity
   const dtos = [
     {
       name: "loginCredential",
@@ -547,23 +775,22 @@ async function setupAuth(inputs) {
         },
       ],
     },
-  ]; // ✅ Generation of each DTO
+  ];
 
-  const dtosPath =
-    mode === "light" ? "src/user/dto" : "src/user/application/dtos";
+  // Generation of each DTO
   for (const dto of dtos) {
     const DtoFileContent = await generateDto(dto, useSwagger, true, mode); // you must adapt your generateDto function to receive a dto with `name` and `fields`
     await createFile({
-      path: `${dtosPath}/${dto.name}.dto.ts`,
+      path: `${paths.appDtos}/${dto.name}.dto.ts`,
       contente: DtoFileContent,
     });
-  } // Modification of AppModule
+  }
 
+  // Modification of AppModule
   const appModulePath = "src/app.module.ts";
-
   const addAuthModuleInterface = `UserModule,`;
   const replaceWithAuthModule = `UserModule,
-    AuthModule,`;
+   AuthModule,`;
   await updateFile({
     path: appModulePath,
     pattern: addAuthModuleInterface,
@@ -580,17 +807,17 @@ async function setupAuth(inputs) {
 
   const addNestModuleInterface = `providers: [`;
   const replaceWithNestModule = `providers: [
-      // 🛡️ Uncomment these lines to apply guards to all routes automatically
-      /*
-      {
-        provide: APP_GUARD,
-        useClass: JwtAuthGuard, // 🛡️ Global AuthGuard
-      },
-      {
-        provide: APP_GUARD,
-        useClass: RolesGuard, // 🛡️ Global RoleGuard
-      },
-      */
+    // 🛡️ Uncomment these lines to apply guards to all routes automatically
+    /*
+    {
+     provide: APP_GUARD,
+     useClass: JwtAuthGuard, // 🛡️ Global AuthGuard
+    },
+    {
+     provide: APP_GUARD,
+     useClass: RolesGuard, // 🛡️ Global RoleGuard
+    },
+    */
   `;
 
   await updateFile({
@@ -605,6 +832,9 @@ async function setupAuth(inputs) {
     replacement: replaceWithNestModule,
   });
 
-  logSuccess("Authentication successfully configured ✅");
+  logSuccess(
+    ` Authentification Enterprise avec support ${dbConfig.orm.toUpperCase()} et Mappers terminée !`
+  );
 }
+
 module.exports = { setupAuth };

@@ -329,8 +329,6 @@ export async function createDirectory(directoryPath) {
     if (!fs.existsSync(directoryPath)) {
       fs.mkdirSync(directoryPath, { recursive: true });
       // console.log(`Dossier créé : ${directoryPath}`);
-    } else {
-      console.log(`Le dossier existe déjà : ${directoryPath}`);
     }
   } catch (error) {
     console.error(
@@ -341,54 +339,38 @@ export async function createDirectory(directoryPath) {
 }
 
 export async function createFile(fileData) {
-  // console.log("creating file....");
   try {
     if (!fs.existsSync(fileData.path)) {
       fs.writeFileSync(`${fileData.path}`, `${fileData.contente}`);
     } else {
-      console.log(`Le fichier existe déjà : ${fileData.path}`);
+      console.log(`Existing file : ${fileData.path}`);
       fs.writeFileSync(`${fileData.path}`, `${fileData.contente}`);
     }
   } catch (error) {
-    console.error(
-      `Erreur lors de la création du fichier ${fileData.path}:`,
-      error
-    );
+    console.error(`Erreur creating file ${fileData.path}:`, error);
   }
 }
 
 export async function updateFile({ path, pattern, replacement }) {
   try {
     let mainTs = fs.readFileSync(path, "utf8");
-
-    // Si pattern est une string, on le convertit en RegExp
-    /*   const regexPattern =
-      typeof pattern === "string" ? new RegExp(pattern, "g") : pattern;
-
-    if (!regexPattern.test(mainTs)) {
-      console.warn(`Pattern not found in ${path}. No changes made.`);
-      return;
-    } */
-
     const updatedContent = mainTs.replace(pattern, replacement);
-    await fs.writeFileSync(path, updatedContent, "utf-8");
-    // console.log(`✅ Updated file: ${path}`);
+    fs.writeFileSync(path, updatedContent, "utf-8");
+    // console.log(` Updated file: ${path}`);
   } catch (error) {
-    console.error(`❌ Error updating file ${path}:`, error);
+    console.error(` Error updating file ${path}:`, error);
   }
 }
 
 export async function safeUpdateAppModule(entity) {
-  // logInfo(`🧩 Vérification de AppModule pour: ${entity}`);
   const filePath = "src/app.module.ts";
   const moduleName = `${capitalize(entity)}Module`;
   const importLine = `import { ${moduleName} } from 'src/${entity}/${entity}.module';`;
 
   let content = fs.readFileSync(filePath, "utf-8");
 
-  // --- Étape 1 : Ajout de l'import si nécessaire
+  // Étape 1 : Ajout de l'import si nécessaire
   if (!content.includes(importLine)) {
-    // logInfo(`➡️ Ajout de l'import pour ${moduleName}`);
     const importMarker = `import { ConfigModule } from '@nestjs/config';`;
 
     if (content.includes(importMarker)) {
@@ -400,19 +382,17 @@ export async function safeUpdateAppModule(entity) {
       content = fs.readFileSync(filePath, "utf-8");
     } else {
       logInfo(
-        "⚠️ Impossible de trouver le point d'insertion de l'import (ConfigModule manquant)"
+        "  Impossible de trouver le point d'insertion de l'import (ConfigModule manquant)"
       );
     }
-  } /* else {
-    logInfo(`✅ Import déjà présent pour ${moduleName}`);
-  } */
+  }
 
-  // --- Étape 2 : Vérifier le bloc des imports du @Module
+  // Étape 2 : Vérifier le bloc des imports du @Module
   const importsBlockRegex = /imports:\s*\[((.|\n)*?)\]/m;
   const match = content.match(importsBlockRegex);
 
   if (!match) {
-    logInfo("❌ Impossible de trouver le bloc 'imports' dans AppModule.");
+    logInfo("  Impossible de trouver le bloc 'imports' dans AppModule.");
     return;
   }
 
@@ -420,7 +400,6 @@ export async function safeUpdateAppModule(entity) {
   const isAlreadyImportedInModule = currentImportsBlock.includes(moduleName);
 
   if (!isAlreadyImportedInModule) {
-    // logInfo(`🛠 Ajout de ${moduleName} dans le tableau 'imports'`);
     const updatedBlock = currentImportsBlock.trim().endsWith(",")
       ? `${currentImportsBlock.trim()} ${moduleName},`
       : `${currentImportsBlock.trim()}, ${moduleName},`;
@@ -430,11 +409,7 @@ export async function safeUpdateAppModule(entity) {
       `imports: [${updatedBlock}]`
     );
     fs.writeFileSync(filePath, newContent, "utf-8");
-  } /* else {
-    logInfo(`✅ ${moduleName} est déjà présent dans le tableau 'imports'`);
-  } */
-
-  // logInfo(`🎉 AppModule mis à jour avec succès pour: ${entity}`);
+  }
 }
 
 export function capitalize(str) {
