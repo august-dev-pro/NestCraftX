@@ -2,7 +2,7 @@
 
 Toutes les modifications notables apportées à NestCraftX seront documentées dans ce fichier.
 
-## [0.2.3] - 10-01-2026
+## [0.2.4] - 10-01-2026
 
 ### Ajouté
 
@@ -74,7 +74,7 @@ Toutes les modifications notables apportées à NestCraftX seront documentées d
 
 ## Notes de migration
 
-### De 0.1.x à 0.2.3
+### De 0.1.x à 0.2.4
 
 **Changements non-bloquants** : La version 0.2.x est rétrocompatible.
 

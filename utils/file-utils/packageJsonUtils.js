@@ -30,6 +30,12 @@ async function updatePackageJson(inputs, scripts, devDependencies = {}) {
       ...devDependencies,
     };
 
+    if (inputs.dbConfig.orm === "prisma") {
+      packageJson.prisma = {
+        seed: "ts-node prisma/seed.ts",
+      };
+    }
+
     // 4. Réécrire le fichier (avec une indentation de 2 espaces pour la lisibilité)
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 

@@ -7,7 +7,26 @@
 ![TypeORM](https://img.shields.io/badge/ORM-TypeORM-red)
 ![Mongoose](https://img.shields.io/badge/ORM-Mongoose-pink)
 
-**NestCraftX** is a modern and powerful Node.js CLI for automatically generating NestJS projects with clean and maintainable architecture. It implements modern best practices: **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma/TypeORM/Mongoose**, **JWT Auth with auto-generated secrets**, **Swagger**, **Docker**, and much more.
+**NestCraftX** is a modern and powerful Node.js CLI for automatically generating NestJS projects and content with a clean, maintainable, and production-ready architecture.
+
+It scaffolds everything you need to get started:
+
+- Modules, Controllers & Services (Fully typed)
+- Repositories & Mappers (For clean data flow and separation of concerns)
+- DTOs (With built-in validation)
+- Entities / Schemas (Prisma, TypeORM, or Mongoose)
+- Authentication (JWT with Refresh Tokens & auto-generated secrets)
+- DevOps Ready (Docker, Docker-Compose & Swagger UI)
+
+It implements modern best practices: **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma/TypeORM/Mongoose**, **JWT Auth with auto-generated secrets**, **Swagger**, **Docker**, and much more.
+
+Key Features:
+
+- Dual-Architecture: Choose between Light (MVP) or Full (Clean Architecture / DDD).
+
+- Interactive Relations: Define 1-N or N-N relationships directly in the terminal.
+
+- Smart Config: Automated Swagger decorators, auto-documented .env files, and pre-configured database connections.
 
 > Version 0.2.3: Major improvement - Interactive demo with flags, Auth refactored via UserService, professional templates (gitignore, README), clean code maintained by the community!
 
@@ -526,28 +545,39 @@ open http://localhost:3000/api/docs
 
 ## Roadmap
 
-### Version 0.3.0
+### Version 0.2.x (Current Focus)
 
-- [ ] `generate` command to add entities to an existing project
-- [ ] MySQL and SQLite support
-- [ ] Automatic unit test generation
-- [ ] CI/CD templates (GitHub Actions, GitLab CI)
-- [ ] GraphQL support
+- [x] Light & Full Architecture engines.
 
-### Version 0.4.0
+- [x] Inquirer.js interactive prompts.
 
-- [ ] Web interface for project configuration
-- [ ] Database seeding generation
-- [ ] Microservices support
-- [ ] Redis integration
-- [ ] WebSocket support
+- [ ] Stability: Deep testing for Prisma, TypeORM and Mongoose integrations.
 
-### Version 1.0.0
+- [ ] Documentation: Complete API examples in README.
 
-- [ ] Complete online documentation
-- [ ] Support for other frameworks (Express, Fastify)
-- [ ] Community templates marketplace
-- [ ] CLI plugins system
+### Version 0.3.0 (Expansion)
+
+- [ ] New Databases: Full support for MySQL and SQLite.
+
+- [ ] Scaffolding: generate command to add new modules/entities to an existing project.
+
+- [ ] Testing: Automated unit test generation for services and controllers.
+
+### Version 0.5.0 (Enterprise Features)
+
+- [ ] Redis Integration: Choice of session management (Redis, Map, or Database).
+
+- [ ] CI/CD: Ready-to-use templates for GitHub Actions and GitLab CI.
+
+- [ ] Seeding: Advanced database seeding generation.
+
+### Version 1.0.0 (The Milestone)
+
+- [ ] Microservices: Support for hybrid applications and microservices.
+
+- [ ] Web UI: Optional visual interface for project configuration.
+
+- [ ] Community: Official documentation site and plugin system.
 
 ---
 

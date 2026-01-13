@@ -431,21 +431,13 @@ async function setupTypeOrmSeeding(inputs) {
 
   // --- Scripts in package.json ---
   const typeOrmScripts = {
-    // Standard TypeORM command to run migrations and seeders
     "typeorm:migrate:run":
       "typeorm-ts-node-commonjs migration:run -d ./src/database/typeorm.config.ts",
     "typeorm:seed":
       "typeorm-extension seed:run -d src/database/typeorm.config.ts",
-    "db:schema:drop":
-      "npm run typeorm schema:drop -- -d src/database/data-source.ts",
-    "db:migration:gen":
-      "npm run typeorm migration:generate -- src/database/migrations/Default -d src/database/data-source.ts",
-    "db:migration:run":
-      "npm run typeorm migration:run -- -d src/database/data-source.ts",
-    "db:migration:revert":
-      "npm run typeorm migration:revert -- -d src/database/data-source.ts",
-    seed: `${inputs.packageManager} run build && ${inputs.packageManager} run typeorm:seed`,
+    seed: "npm run typeorm:seed",
   };
+
   await updatePackageJson(inputs, typeOrmScripts);
 
   // --- Creating structure and Seeder ---

@@ -455,7 +455,7 @@ export class SessionRepository ${implementsClause}{
 
   // --- 6. INFRASTRUCTURE WEB (CONTROLLER, GUARD, STRATEGY) ---
 
-  await createFile({
+  /*   await createFile({
     path: `${paths.controllers}/auth.controller.ts`, //
     contente: `
 import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
@@ -529,6 +529,92 @@ export class AuthController {
   @Get('me')
   @ApiOperation({ summary: 'Get current user profile' })
   getMe(@CurrentUser() user: any) { return user; }
+}`.trim(),
+  }); */
+  await createFile({
+    path: `${paths.controllers}/auth.controller.ts`,
+    contente: `
+import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
+import { AuthService } from '${paths.services}/auth.service';
+import { LoginCredentialDto } from '${paths.appDtos}/loginCredential.dto';
+import { RefreshTokenDto } from '${paths.appDtos}/refreshToken.dto';
+import { JwtAuthGuard } from '${paths.guards}/jwt-auth.guard';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { CreateUserDto } from '${userDtoPath}/user.dto';
+import { SendOtpDto } from '${paths.appDtos}/sendOtp.dto';
+import { VerifyOtpDto } from '${paths.appDtos}/verifyOtp.dto';
+import { ForgotPasswordDto } from '${paths.appDtos}/forgotPassword.dto';
+import { ResetPasswordDto } from '${paths.appDtos}/resetPassword.dto';
+${
+  useSwagger
+    ? "import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';"
+    : ""
+}
+
+${useSwagger ? "@ApiTags('auth')" : ""}
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  // 📝 Create user account (👤)
+  @Post('register')
+  register(@Body() body: CreateUserDto) {
+    return this.authService.register(body);
+  }
+
+  // 🔐 User login (🔑)
+  ${useSwagger ? "@ApiOperation({ summary: 'User login' })" : ""}
+  @Post('login')
+  login(@Body() dto: LoginCredentialDto) {
+    return this.authService.login(dto);
+  }
+
+  ${useSwagger ? "@ApiOperation({ summary: 'Refresh access token' })" : ""}
+  @Post('refresh')
+  refreshToken(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshToken(dto);
+  }
+
+  // 📤 Send OTP to email (📧)
+  @Post('send-otp')
+  sendOtp(@Body() dto: SendOtpDto) {
+    return this.authService.sendOtp(dto);
+  }
+
+  // Verify sent OTP (✔️)
+  @Post('verify-otp')
+  verifyOtp(@Body() dto: VerifyOtpDto) {
+    return this.authService.verifyOtp(dto);
+  }
+
+  // 🔁 Forgot password (📨)
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  // 🔄 Reset password (🔓)
+  @Post('reset-password')
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
+  }
+
+  ${useSwagger ? "@ApiBearerAuth()" : ""}
+  ${useSwagger ? "@ApiOperation({ summary: 'Logout user' })" : ""}
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  logout(@Body() dto: RefreshTokenDto) {
+    return this.authService.logout(dto.refreshToken);
+  }
+
+  // 👤 Get connected user profile (🧑‍💼)
+  ${useSwagger ? "@ApiBearerAuth()" : ""}
+  ${useSwagger ? "@ApiOperation({ summary: 'Get current user profile' })" : ""}
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  getMe(@CurrentUser() user: any) {
+    return user;
+  }
 }`.trim(),
   });
 

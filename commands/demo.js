@@ -13,12 +13,14 @@ const { setupSwagger } = require("../utils/setups/setupSwagger");
 const { setupDatabase } = require("../utils/setups/setupDatabase");
 const { configureDocker } = require("../utils/configs/configureDocker");
 const { generateEnvFile, writeEnvFile } = require("../utils/envGenerator");
+const { setupBootstrapLogger } = require("../utils/setups/setupLogger");
 const actualInquirer = inquirer.default || inquirer;
 
 async function demoCommand(flags = {}) {
   console.log("\n🎯 Generating demonstration project...\n");
-  logInfo('Configuring "blog-demo" project'); // Prépare les questions à poser uniquement si le flag n'est pas passé
+  logInfo('Configuring "blog-demo" project');
 
+  // Prépare les questions à poser uniquement si le flag n'est pas passé
   const questions = [];
   if (flags.light === undefined) {
     questions.push({
@@ -78,11 +80,13 @@ async function demoCommand(flags = {}) {
       ],
       default: "npm",
     });
-  } // Pose uniquement les questions nécessaires
+  }
 
+  // Pose uniquement les questions nécessaires
   const answers =
-    questions.length > 0 ? await actualInquirer.prompt(questions) : {}; // Fusionne les réponses interactives et les flags (flags prioritaire)
+    questions.length > 0 ? await actualInquirer.prompt(questions) : {};
 
+  // Fusionne les réponses interactives et les flags (flags prioritaire)
   const options = { ...answers, ...flags };
   const packageManager = options.packageManager || "npm";
   const isLight = !!options.light;
@@ -218,6 +222,8 @@ async function demoCommand(flags = {}) {
 
   if (useSwagger) {
     await setupSwagger(demoInputs.swaggerInputs);
+  } else {
+    await setupBootstrapLogger();
   }
 
   if (useDocker) {
@@ -230,10 +236,10 @@ async function demoCommand(flags = {}) {
   writeEnvFile(envContent);
 
   console.log("\n" + "=".repeat(60));
-  logSuccess("✨ Demonstration project created successfully!");
+  logSuccess("Demonstration project created successfully!");
   console.log("=".repeat(60));
 
-  console.log('\n📊 Project "blog-demo" configured with:');
+  console.log('\nProject "blog-demo" configured with:');
   console.log("  ✅ 3 Entities: User, Post, Comment");
   console.log("  ✅ Entity Relationships");
   if (useAuth) console.log("  ✅ Integrated JWT Auth");
@@ -253,34 +259,35 @@ async function demoCommand(flags = {}) {
   );
 
   console.log("\n🚀 To get started:");
-  console.log("  1️⃣ cd blog-demo"); // Instructions spécifiques selon le moteur choisi
+  console.log(" 1- cd blog-demo");
+
+  // Instructions spécifiques selon le moteur choisi
+  const pm = demoInputs.packageManager;
+  const run = pm === "yarn" ? "" : "run "; // yarn n'a pas besoin de 'run'
   if (orm === "prisma" || orm === "typeorm") {
     console.log(
-      "\n  2️⃣ Create a PostgreSQL database with the name specified in the .env (default 'blog_demo')."
+      "\n  2- Create a PostgreSQL database with the name specified in the .env (default 'blog_demo')."
     );
-    console.log("    Example (psql) :");
-    console.log("     createdb blog_demo");
+    console.log("    Example (psql) : createdb blog_demo");
     console.log(
-      "\n  3️⃣ Open the generated .env file and replace the values with your actual connection details:"
+      "\n  3- Open the generated .env file and replace the values with your actual connection details:"
     );
-    console.log("     POSTGRES_USER=<your_user>");
-    console.log("     POSTGRES_PASSWORD=<your_password>");
-    console.log("     POSTGRES_DB=blog_demo");
-    console.log("     POSTGRES_HOST=localhost");
-    console.log("     POSTGRES_PORT=5432");
-    console.log("\n  4️⃣ Run migrations and seeds:");
+    console.log("   POSTGRES_USER=<your_user>");
+    console.log("   POSTGRES_PASSWORD=<your_password>");
+    console.log("   POSTGRES_DB=blog_demo");
+    console.log("   POSTGRES_HOST=localhost");
+    console.log("   POSTGRES_PORT=5432");
+    console.log("\n  4- Run migrations and seeds:");
     if (orm === "prisma") {
-      console.log(`    ${demoInputs.packageManager} prisma migrate reset`);
-      console.log(`     ${demoInputs.packageManager} prisma migrate dev`);
-      console.log(`     ${demoInputs.packageManager} prisma db seed`);
+      console.log(`   npx prisma migrate reset`);
+      console.log(`   npx prisma migrate dev`);
+      console.log(`   npx prisma db seed`);
     } else {
-      console.log(
-        `     ${demoInputs.packageManager} run typeorm:migration:run`
-      );
-      console.log(`     ${demoInputs.packageManager} run typeorm:seed`);
+      console.log(`   ${pm} ${run}typeorm:migration:run`);
+      console.log(`   ${pm} ${run}typeorm:seed`);
     }
   } else if (orm === "mongoose") {
-    console.log("\n  2️⃣ MongoDB: You can use either a local server or Docker.");
+    console.log("\n  2- MongoDB: You can use either a local server or Docker.");
     console.log(
       "    By default, the project uses: MONGO_URI=mongodb://localhost:27017/blog_demo"
     );
@@ -288,19 +295,19 @@ async function demoCommand(flags = {}) {
       "    The database will be created automatically upon first write operation."
     );
     console.log(
-      "\n  3️⃣ Open the generated .env file and replace the MONGO_URI variable if necessary:"
+      "\n  3- Open the generated .env file and replace the MONGO_URI variable if necessary:"
     );
     console.log(
       "     MONGO_URI=mongodb://<user>:<password>@localhost:27017/blog_demo"
     );
-    console.log("\n  4️⃣ Run the seed script (if present):");
-    console.log(`     ${demoInputs.packageManager} run seed`);
+    console.log("\n  4- Run the seed script (if present):");
+    console.log(`   ${pm} ${run}seed`);
   }
 
-  console.log("\n  5️⃣ Run the project:");
+  console.log("\n  5- Run the project:");
   console.log(`     ${demoInputs.packageManager} run start:dev`);
   if (useSwagger)
-    console.log("  6️⃣ Open Swagger UI : http://localhost:3000/api/docs");
+    console.log("  6- Open Swagger UI : http://localhost:3000/api/docs");
 
   console.log("\n📚 Main Endpoints:");
   if (useAuth) {

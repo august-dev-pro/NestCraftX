@@ -3,17 +3,41 @@
 demo
 ![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node.js](https://img.shields.io/badge/node-%3E=14.0.0-green.svg)
-![Version](https://img.shields.io/badge/version-0.2.3-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-0.2.4-brightgreen.svg)
 
-**NestCraftX** est un CLI Node.js moderne et puissant pour generer automatiquement des projets NestJS avec une architecture propre et maintenable. Il implemente les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma/TypeORM/Mongoose**, **JWT Auth avec secrets auto-generes**, **Swagger**, **Docker**, et plus encore.
+**NestCraftX** est un CLI Node.js moderne et puissant pour generer automatiquement des projets NestJS et leur contenu avec une architecture propre, maintenable et prête pour la production.
 
-> Version 0.2.3 : Amélioration majeure - Démo interactif avec flags, Auth refactorisée via UserService, templates professionnels (gitignore, README), code propre et maintenir par la communauté !
+Il échafaude tout ce dont vous avez besoin pour commencer :
+
+- Modules, Contrôleurs & Services (Entièrement typés)
+
+- Repositories & Mappers (Pour un flux de données propre)
+
+- DTOs (Prêts pour la validation)
+
+- Entités / Schémas (Prisma, TypeORM, ou Mongoose)
+
+- Authentification (JWT avec Refresh Tokens & secrets auto-générés)
+
+- Prêt pour le DevOps (Docker, Docker-Compose & Swagger UI)
+
+Il implemente les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma/TypeORM/Mongoose**, **JWT Auth avec secrets auto-generes**, **Swagger**, **Docker**, et plus encore.
+
+Fonctionnalités Clés :
+
+- **Dual-Architecture** : Choisissez entre une structure Light (idéale pour les MVP) ou Full (basée sur la Clean Architecture / DDD).
+
+- **Relations Interactives** : Définissez vos relations 1-N ou N-N directement dans le terminal via un prompt interactif.
+
+- **Configuration Intelligente** : Décorateurs Swagger automatisés, fichiers Docker initialisés, fichiers .env auto-documentés et connexions aux bases de données pré-configurées.
+
+> Version 0.2.4 : Amélioration majeure - Démo interactif avec flags, Authentification integré, templates professionnels (gitignore, README), code propre et maintenir par la communauté !
 
 ---
 
 ## Sommaire
 
-- [Nouveautes v0.2.3](#nouveautes-v023)
+- [Nouveautes v0.2.4](#nouveautes-v023)
 - [Objectif du projet](#objectif-du-projet)
 - [Prérequis](#prérequis)
 - [Installation](#installation)
@@ -28,7 +52,7 @@ demo
 
 ---
 
-## Nouveautes v0.2.3
+## Nouveautes v0.2.4
 
 ### Deux Modes d'Architecture
 
@@ -543,28 +567,33 @@ open http://localhost:3000/api/docs
 
 ## Roadmap
 
-### Version 0.3.0
+### Version 0.2.x (Objectif Actuel)
 
-- [ ] Commande `generate` pour ajouter des entités à un projet existant
-- [ ] Support MySQL et SQLite
-- [ ] Génération de tests unitaires automatiques
-- [ ] Templates de CI/CD (GitHub Actions, GitLab CI)
-- [ ] Support GraphQL
+- [x] Moteurs d'architecture Light & Full.
 
-### Version 0.4.0
+- [x] Prompts interactifs avec Inquirer.js.
 
-- [ ] Interface web pour configurer les projets
-- [ ] Génération de seeds pour les bases de données
-- [ ] Support des microservices
-- [ ] Intégration Redis
-- [ ] WebSocket support
+- [ ] Stabilité : Tests approfondis et stabilisation des intégrations Mongoose et TypeORM.
+
+### Version 0.3.0 (Expansion)
+
+- [ ] Nouvelles bases de données : Support complet pour MySQL et SQLite.
+
+- [ ] Scaffolding : Commande `generate` pour ajouter des modules/entités à un projet existant.
+
+- [ ] Tests : Génération automatique des tests unitaires pour les services et contrôleurs.
+
+### Version 0.5.0 (Fonctionnalités Avancées)
+
+- [ ] Intégration Redis : Choix de la gestion de session (Redis, Map (dev), ou registre DB).
+- [ ] CI/CD : Templates prêts à l'emploi pour GitHub Actions et GitLab CI.
+- [ ] Seeding : Génération avancée de scripts de "seeding" pour la base de données.
 
 ### Version 1.0.0
 
-- [ ] Documentation complète en ligne
-- [ ] Support d'autres frameworks (Express, Fastify)
-- [ ] Marketplace de templates communautaires
-- [ ] CLI plugins system
+- [ ] Microservices : Support pour les applications hybrides et les microservices.
+- [ ] Interface Web : Interface visuelle optionnelle pour configurer vos projets.
+- [ ] Communauté : Site de documentation officiel et système de plugins.
 
 ---
 
@@ -621,7 +650,7 @@ Merci à tous les contributeurs et à la communauté NestJS !
 
 ---
 
-**NestCraftX v0.2.3** - Clean Architecture Made Simple
+**NestCraftX v0.2.4** - Clean Architecture Made Simple
 
 Pour plus d'informations:
 

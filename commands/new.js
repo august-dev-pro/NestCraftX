@@ -25,7 +25,7 @@ async function newCommand(projectName, flags = {}) {
     console.log("\n Welcome to NestCraftX CLI \n");
 
     let currentProjectName = "";
-    let isValid = false; // Première demande (affiche le placeholder 'my-app') // 🇫🇷 Nom du projet [my-app] :
+    let isValid = false;
 
     currentProjectName = readline.question(
       `${info("[?]")} Project name [my-app] : `
@@ -238,8 +238,6 @@ function buildFullModeFromFlags(projectName, flags) {
   return inputs;
 }
 
-// L'ancienne version buildFullModeInputs n'était pas utilisée et a été mise à jour/simplifiée.
-
 async function executeProjectSetup(inputs) {
   try {
     logInfo("Starting project generation...");
@@ -269,7 +267,7 @@ async function executeProjectSetup(inputs) {
 
     printSuccessSummary(inputs);
   } catch (error) {
-    // 🇫🇷 Erreur lors de la creation du projet: ${error.message}
+    // Erreur lors de la creation du projet: ${error.message}
     logError(`Error during project creation: ${error.message}`);
     throw error;
   }
@@ -291,8 +289,9 @@ function printSuccessSummary(inputs) {
   console.log(`  Entities: ${inputs.entitiesData.entities.length}`);
 
   console.log("\n🚀 Next Steps:");
-  console.log(`  1. cd ${inputs.projectName}`); // --- SPECIFIC ORM/DB INSTRUCTIONS ---
+  console.log(`  1. cd ${inputs.projectName}`);
 
+  // --- SPECIFIC ORM/DB INSTRUCTIONS ---
   if (inputs.dbConfig.orm === "prisma" || inputs.dbConfig.orm === "typeorm") {
     // Instructions for PostgreSQL (Prisma and TypeORM)
     console.log("\n  2. Create an empty PostgreSQL database.");
@@ -318,17 +317,18 @@ function printSuccessSummary(inputs) {
 
     console.log("\n  4. Run the project:");
     console.log(`   - ${inputs.packageManager} run start:dev`);
-  } // --- ENDPOINTS / SWAGGER ---
+  }
 
+  // --- ENDPOINTS / SWAGGER ---
   if (inputs.useSwagger) {
     console.log(
       `  6. Open Swagger UI : http://localhost:3000/${inputs.swaggerInputs.endpoint}`
     );
   }
 
-  console.log("\nUseful commands:"); // 🇫🇷 Verifier l'environnement
-  console.log("  - nestcraftx test   Check environment"); // 🇫🇷 Informations sur le CLI
-  console.log("  - nestcraftx info   CLI information"); // 🇫🇷 Aide complete
+  console.log("\nUseful commands:");
+  console.log("  - nestcraftx test   Check environment");
+  console.log("  - nestcraftx info   CLI information");
   console.log("  - nestcraftx --help  Complete help\n");
 }
 

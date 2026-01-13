@@ -1,4 +1,4 @@
-# Quick Start - NestCraftX v0.2.3
+# Quick Start - NestCraftX v0.2.4
 
 ## Installation
 
@@ -166,4 +166,4 @@ The CLI automatically generates:
 
 ---
 
-**NestCraftX v0.2.3** - Clean Architecture Made Simple
+**NestCraftX v0.2.4** - Clean Architecture Made Simple

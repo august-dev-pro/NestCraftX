@@ -51,6 +51,7 @@ switch (command) {
 
   case "--version":
   case "-v":
+  case "version":
     const pkg = require("../package.json");
     console.log("NestCraftX v" + pkg.version);
     break;

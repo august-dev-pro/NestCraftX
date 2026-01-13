@@ -12,6 +12,7 @@ const {
   generateDto,
   generateMiddlewares,
   generateMongooseSchemaFileContent,
+  pluralize,
 } = require("../utils");
 
 async function setupLightArchitecture(inputs) {
@@ -239,7 +240,15 @@ async findByEmail(email: string): Promise<${entityName}Entity | null> {
   if (orm === "prisma") {
     const fieldParams = scalarFields.map((f) => `raw.${f.name}`).join(", ");
 
-    return `import { Injectable, Logger } from '@nestjs/common';
+    return `/**
+ * PostRepository handles data persistence
+ * for the Post entity.
+ *
+ * This layer abstracts the database engine (Prisma/TypeORM)
+ * and provides a clean interface for data operations.
+ */
+
+    import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Create${entityName}Dto, Update${entityName}Dto } from '../dtos/${entityLower}.dto';
 import { ${entityName}Entity } from '../entities/${entityLower}.entity';
@@ -290,7 +299,15 @@ export class ${entityName}Repository {
   if (orm === "typeorm") {
     const fieldParams = scalarFields.map((f) => `raw.${f.name}`).join(", ");
 
-    return `import { Injectable, Logger } from '@nestjs/common';
+    return `/**
+ * PostRepository handles data persistence
+ * for the Post entity.
+ *
+ * This layer abstracts the database engine (Prisma/TypeORM)
+ * and provides a clean interface for data operations.
+ */
+
+    import { Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ${entityName} } from 'src/entities/${entityName}.entity';
@@ -347,7 +364,15 @@ export class ${entityName}Repository {
   if (orm === "mongoose") {
     const fieldParams = scalarFields.map((f) => `obj.${f.name}`).join(", ");
 
-    return `import { Injectable, Logger } from '@nestjs/common';
+    return `/**
+ * PostRepository handles data persistence
+ * for the Post entity.
+ *
+ * This layer abstracts the database engine (Prisma/TypeORM)
+ * and provides a clean interface for data operations.
+ */
+
+    import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ${entityName} } from '../entities/${entityLower}.schema';
@@ -406,7 +431,15 @@ export class ${entityName}Repository {
 }`;
   }
 
-  return `import { Injectable, Logger } from '@nestjs/common';
+  return `/**
+ * PostRepository handles data persistence
+ * for the Post entity.
+ *
+ * This layer abstracts the database engine (Prisma/TypeORM)
+ * and provides a clean interface for data operations.
+ */
+
+  import { Injectable, Logger } from '@nestjs/common';
 import { Create${entityName}Dto, Update${entityName}Dto } from '../dtos/${entityLower}.dto';
 import { ${entityName}Entity } from '../entities/${entityLower}.entity';
 
@@ -439,7 +472,18 @@ export class ${entityName}Repository {
 }
 
 function generateLightService(entityName, entityLower) {
-  return `import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+  return `/**
+ * PostService handles business logic
+ * for the Post entity.
+ *
+ * It acts as a bridge between the Controller and the Repository.
+ * Responsibilities include:
+ * - Data validation and transformation
+ * - Orchestrating use cases
+ * - Managing transactions
+ */
+
+  import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ${entityName}Repository } from '../repositories/${entityLower}.repository';
 import { Create${entityName}Dto, Update${entityName}Dto } from '../dtos/${entityLower}.dto';
 import { ${entityName}Entity } from '../entities/${entityLower}.entity';
@@ -551,99 +595,6 @@ ${
 }
   @Delete(':id')
   async delete(@Param('id') id: string) {
-    await this.service.delete(id);
-    return { message: '${entityName} deleted successfully' };
-  }
-}`;
-}
-
-function generateLightController(entityName, entityLower, useSwagger) {
-  // Swagger imports (optional)
-  const swaggerImports = useSwagger
-    ? `import { ApiTags, ApiOperation, ApiResponse, ApiCreatedResponse } from '@nestjs/swagger';\n`
-    : "";
-
-  // Swagger class decorator (optional)
-  const swaggerClassDecorator = useSwagger
-    ? `@ApiTags('${entityLower}')\n`
-    : "";
-
-  // Swagger method decorator helper
-  const swaggerMethodDecorator = (summary) =>
-    useSwagger ? `@ApiOperation({ summary: '${summary}' })\n  ` : "";
-
-  return `import { Controller, Get, Post, Put, Delete, Body, Param, Logger } from '@nestjs/common';
-${swaggerImports}import { ${entityName}Service } from '../services/${entityLower}.service';
-import { Create${entityName}Dto, Update${entityName}Dto } from '../dtos/${entityLower}.dto';
-
-${swaggerClassDecorator}@Controller('${entityLower}')
-export class ${entityName}Controller {
-  private readonly logger = new Logger(${entityName}Controller.name);
-
-  constructor(private readonly service: ${entityName}Service) {}
-
-  /**
-   * Create a new ${entityLower}
-   */
-  @Post()
-  ${swaggerMethodDecorator(`Create a new ${entityLower}`)}${
-    useSwagger
-      ? `@ApiCreatedResponse({ description: '${entityName} created successfully' })\n  `
-      : ""
-  }async create(@Body() dto: Create${entityName}Dto) {
-    await this.service.create(dto);
-    return { message: '${entityName} created successfully' };
-  }
-
-  /**
-   * Get all ${entityLower}s
-   */
-  @Get()
-  ${swaggerMethodDecorator(`Get all ${entityLower}s`)}${
-    useSwagger
-      ? `@ApiResponse({ status: 200, description: 'Success' })\n  `
-      : ""
-  }async findAll() {
-    return await this.service.findAll();
-  }
-
-  /**
-   * Get a ${entityLower} by id
-   */
-  @Get(':id')
-  ${swaggerMethodDecorator(`Get ${entityLower} by id`)}${
-    useSwagger
-      ? `@ApiResponse({ status: 200, description: 'Success' })\n  `
-      : ""
-  }async findById(@Param('id') id: string) {
-    return await this.service.findById(id);
-  }
-
-  /**
-   * Update a ${entityLower}
-   */
-  @Put(':id')
-  ${swaggerMethodDecorator(`Update ${entityLower}`)}${
-    useSwagger
-      ? `@ApiResponse({ status: 200, description: 'Updated' })\n  `
-      : ""
-  }async update(
-    @Param('id') id: string,
-    @Body() dto: Update${entityName}Dto,
-  ) {
-    await this.service.update(id, dto);
-    return { message: '${entityName} updated successfully' };
-  }
-
-  /**
-   * Delete a ${entityLower}
-   */
-  @Delete(':id')
-  ${swaggerMethodDecorator(`Delete ${entityLower}`)}${
-    useSwagger
-      ? `@ApiResponse({ status: 200, description: 'Deleted' })\n  `
-      : ""
-  }async delete(@Param('id') id: string) {
     await this.service.delete(id);
     return { message: '${entityName} deleted successfully' };
   }

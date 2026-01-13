@@ -9,6 +9,7 @@ const {
 const { logSuccess } = require("../loggers/logSuccess");
 const { logInfo } = require("../loggers/logInfo");
 const { updatePackageJson } = require("../file-utils/packageJsonUtils");
+const { logWarning } = require("../loggers/logWarning");
 
 /* async function setupMongoose(inputs) {
   logInfo("📦 Installation de Mongoose et @nestjs/mongoose...");
@@ -100,7 +101,12 @@ function mapTypeToMongoose(type) {
 }
 
 async function setupMongoose(inputs) {
+  logWarning(
+    `Mongoose integration is currently in Beta (v0.2.x). \nSome manual import fixes and corrections might be required in the generated files.`
+  );
+
   logInfo("📦 Installing Mongoose and @nestjs/mongoose...");
+
   await runCommand(
     `${inputs.packageManager} install @nestjs/mongoose mongoose`,
     "Mongoose and its dependencies successfully installed!"
@@ -138,7 +144,7 @@ async function setupMongoose(inputs) {
 
   // --- Generating Mongoose Entities (Schemas) ---
   logInfo("📁 Generating Mongoose schemas (src/schemas)...");
-  await createDirectory("src/schemas"); // This variable will store MongooseModule.forFeature imports for app.module.ts
+  await createDirectory("src/schemas");
 
   let forFeatureImports = [];
 
@@ -151,8 +157,9 @@ async function setupMongoose(inputs) {
     let fieldsContent = "";
     let extraImports = "";
     let mongooseImportCode =
-      "import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';\n"; // Conditional addition of import * as mongoose
+      "import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';\n";
 
+    // Conditional addition of import * as mongoose
     if (
       entity.fields.some(
         (f) => mapTypeToMongoose(f.type) === "mongoose.Schema.Types.Mixed"
@@ -175,12 +182,12 @@ async function setupMongoose(inputs) {
       // (Exclusion logic should be done, but here we simplify Mongoose)
 
       const mongooseType = mapTypeToMongoose(field.type);
-      const tsType = field.type; // We use the DTO type directly (string, number, Date, MonEnum, T[]) // 'id', 'createdAt', 'updatedAt' fields are managed by Mongoose (@Schema({timestamps: true})) // Simplified 'required' logic
+      const tsType = field.type;
 
       const isRequired =
         field.name.toLowerCase() !== "isactive" &&
         field.name.toLowerCase() !== "password";
-      const requiredOption = isRequired ? ", required: true" : ""; // If the type is an enum, add the import
+      const requiredOption = isRequired ? ", required: true" : "";
 
       if (
         mongooseType === "String" &&
@@ -194,16 +201,17 @@ async function setupMongoose(inputs) {
    @Prop({ type: ${mongooseType}${requiredOption} })
    ${field.name}: ${tsType};
   `;
-    } // --- Mongoose Relations (References) ---
+    }
 
+    // --- Mongoose Relations (References) ---
     for (const relation of inputs.entitiesData.relations) {
       const relFrom = relation.from;
-      const relTo = relation.to; // If the current entity must have a reference (foreign key)
+      const relTo = relation.to;
 
       if (relTo.toLowerCase() === entityNameLower) {
         const targetEntity = capitalize(relFrom);
         mongooseImportCode += "import * as mongoose from 'mongoose';\n";
-        extraImports += `import { ${targetEntity} } from './${targetEntity}.schema';\n`; // 1-n or 1-1 : unique reference
+        extraImports += `import { ${targetEntity} } from './${targetEntity}.schema';\n`;
 
         if (
           relation.type === "1-n" ||
@@ -216,7 +224,9 @@ async function setupMongoose(inputs) {
    @Prop({ type: mongoose.Schema.Types.ObjectId, ref: '${targetEntity}' })
    ${fkName}: ${targetEntity};
   `;
-        } // n-n : array reference (non-standard Mongoose, but common)
+        }
+
+        // n-n : array reference (non-standard Mongoose, but common)
         else if (relation.type === "n-n") {
           const collectionName = `${relFrom.toLowerCase()}s`;
           fieldsContent += `
@@ -226,8 +236,9 @@ async function setupMongoose(inputs) {
   `;
         }
       }
-    } // --- Final Generation of Schemas/Documents File ---
+    }
 
+    // --- Final Generation of Schemas/Documents File ---
     const content = `${mongooseImportCode}
   ${extraImports}
 
@@ -245,13 +256,15 @@ async function setupMongoose(inputs) {
     await createFile({
       path: `src/schemas/${entityName}.schema.ts`,
       contente: content,
-    }); // Storing import information for app.module.ts
+    });
 
     forFeatureImports.push(
       `{ name: ${entityName}.name, schema: ${schemaName} }`
     );
-  } // --- Final Update of app.module.ts --- // 3. Adding entity (schema) imports at the beginning of app.module.ts
+  }
 
+  // --- Final Update of app.module.ts --- //
+  // 3. Adding entity (schema) imports at the beginning of app.module.ts
   const schemaImports = inputs.entitiesData.entities
     .map((entity) => {
       const entityName = capitalize(entity.name);
@@ -297,13 +310,15 @@ async function setupMongooseSeeding(inputs) {
   await runCommand(
     `${inputs.packageManager} install bcrypt`,
     "❌ Failed to install bcrypt"
-  ); // --- Scripts in package.json ---
+  );
 
+  // --- Scripts in package.json ---
   const mongooseScripts = {
     seed: "ts-node src/database/seed.ts",
   };
-  await updatePackageJson(inputs, mongooseScripts); // --- Creating seed.ts file ---
+  await updatePackageJson(inputs, mongooseScripts);
 
+  // --- Creating seed.ts file ---
   await createDirectory("src/database");
   const seedTsContent = generateMongooseSeedContent(
     inputs.entitiesData.entities

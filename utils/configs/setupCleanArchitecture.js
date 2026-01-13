@@ -308,20 +308,6 @@ export class Delete${entityName}UseCase {
         contente: DtoFileContent,
       });
 
-      // 6. Enums
-      /* await createFile({
-        path: `${entityPath}/domain/enums/${entityNameLower}.enum.ts`,
-        contente: `// Enumération des différents états possibles pour ${entityNameCapitalized}
-export enum ${entityNameCapitalized}Enum {
-  // Décommentez et ajustez les valeurs de l'énumération selon les besoins de votre entité.
-  // Exemple :
-  // ACTIVE = 'ACTIVE', // Représente l'état actif de l'entité
-  // INACTIVE = 'INACTIVE', // Représente l'état inactif de l'entité
-  // Vous pouvez ajouter d'autres états si nécessaire, comme 'PENDING', 'ARCHIVED', etc.
-}
-`,
-      }); */
-
       if (entity.name.toLowerCase() === "user") {
         await createFile({
           path: `${entityPath}/domain/enums/role.enum.ts`,
@@ -345,7 +331,17 @@ export enum Role {
       // 8. Service
       await createFile({
         path: `${entityPath}/application/services/${entityNameLower}.service.ts`,
-        contente: `
+        contente: `/**
+ * PostService handles business logic
+ * for the Post entity.
+ *
+ * It acts as a bridge between the Controller and the Repository.
+ * Responsibilities include:
+ * - Data validation and transformation
+ * - Orchestrating use cases
+ * - Managing transactions
+ */
+
 import { Injectable } from '@nestjs/common';
 import { Create${entityNameCapitalized}UseCase } from 'src/${entityNameLower}/application/use-cases/create-${entityNameLower}.use-case';
 import { Update${entityNameCapitalized}UseCase } from 'src/${entityNameLower}/application/use-cases/update-${entityNameLower}.use-case';

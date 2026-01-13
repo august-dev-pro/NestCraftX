@@ -438,12 +438,11 @@ async function setupPrismaSeeding(inputs) {
 
   // --- Scripts in package.json ---
   const prismaScripts = {
-    "prisma:migrate": `${inputs.packageManager} prisma migrate dev --name init`,
-    "prisma:seed": `${inputs.packageManager} prisma db seed`,
-    "prisma:reset": `${inputs.packageManager} prisma migrate reset`,
-    "prisma:migrate:prod": `${inputs.packageManager} prisma migrate deploy`,
-    "prisma:seed": `${inputs.packageManager} prisma db seed`,
-    seed: `ts-node prisma/seed.ts`,
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
+    "prisma:reset": "prisma migrate reset",
+    "prisma:migrate:prod": "prisma migrate deploy",
+    seed: "ts-node prisma/seed.ts",
   };
 
   await updatePackageJson(inputs, prismaScripts);
@@ -551,14 +550,14 @@ function generatePrismaSeedContent(entities) {
 
   if (usersToCreate.length === 0) {
     console.log(
-      'ℹ️ Demo users already exist. Reset the database if you want to reseed.',
+      '! Demo users already exist. Reset the database if you want to reseed.',
     );
   } else {
     await prisma.user.createMany({
       data: usersToCreate,
     });
 
-    console.log(\`✅ 👥 \${usersToCreate.length} demo users created\`);
+    console.log(\`👥 \${usersToCreate.length} demo users created\`);
   }
 
    const allUsers = await prisma.user.findMany({ select: { id: true } });
@@ -598,7 +597,7 @@ function generatePrismaSeedContent(entities) {
     },
    ];
    await prisma.post.createMany({ data: postsData, skipDuplicates: true });
-   console.log('📝 Articles created.');
+   console.log('📝 5 Articles created.');
 
    const allPosts = await prisma.post.findMany({ select: { id: true } });
    const postIds = allPosts.map(p => p.id);
@@ -612,7 +611,7 @@ function generatePrismaSeedContent(entities) {
     { content: 'Thanks for the content! I would like to see a complete tutorial with NestJS + Prisma.', postId: postIds[2], userId: userIds[3] },
    ];
    await prisma.comment.createMany({ data: commentsData, skipDuplicates: true });
-   console.log('💬 Comments created.');
+   console.log('💬 5 Comments created.');
 
    console.log('✅ Seeding finished successfully! 🚀');
   }

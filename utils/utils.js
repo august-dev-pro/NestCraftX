@@ -114,103 +114,6 @@ ${jsonFields}
 `;
 }
 
-/* export async function generateMapper(entity) {
-  const entityName = capitalize(entity.name);
-
-  console.log("entity: ", entity);
-
-  // 1. Définir les types scalaires pour le filtrage
-  //  CORRECTION 1
-  const SCALAR_TYPES = [
-    "string",
-    "text", // AJOUTÉ
-    "uuid", // AJOUTÉ
-    "json", // AJOUTÉ
-    "number",
-    "int",
-    "float",
-    "decimal", // AJOUTÉ
-    "boolean",
-    "date",
-    "role",
-    "enum", // AJOUTÉ
-  ];
-
-  // Logic pour filtrer les champs qui doivent aller en base de données (scalaires + FKs)
-  const filterPersistenceFields = (f) => {
-    const typeName = f.type.toLowerCase();
-
-    // Un champ doit être conservé s'il est scalaire OU s'il est une clé étrangère (...Id).
-    // Tous les autres champs (objets de relation ou listes de relations) sont filtrés.
-    return (
-      SCALAR_TYPES.includes(typeName) || f.name.toLowerCase().endsWith("id")
-    );
-  };
-
-  // verification de l'existance de user entity
-  const isUserWithRole =
-    entity.name.toLowerCase() === "user" &&
-    entity.fields.some((f) => f.name.toLowerCase() === "role");
-
-  // La fonction toDomain utilise TOUS les champs (y compris les relations)
-  const domainArgs = ["data.id"]
-    .concat(["data.createdAt", "data.updatedAt"])
-    .concat(entity.fields.map((f) => `data.${f.name}`))
-    .join(",\n   ");
-
-  // CORRECTION 1 : Filtrer les champs pour la création (toPersistence)
-  const toPersistenceFields = entity.fields
-    .filter(filterPersistenceFields)
-    .map((f) => `${f.name}: dto.${f.name},`)
-    .join("\n   ");
-
-  // CORRECTION 2 : Filtrer les champs pour la mise à jour (toUpdatePersistence)
-  const toUpdateFields = entity.fields
-    .filter(filterPersistenceFields)
-    .map(
-      (f) => `if (dto.${f.name} !== undefined) data.${f.name} = dto.${f.name};`
-    )
-    .join("\n  ");
-
-  return `
-import { Injectable } from '@nestjs/common';
-import { ${entityName}Entity } from 'src/${decapitalize(
-    entity.name
-  )}/domain/entities/${decapitalize(entity.name)}.entity';
-import { Create${entityName}Dto, Update${entityName}Dto } from 'src/${
-    entity.name
-  }/application/dtos/${decapitalize(entity.name)}.dto';
-
-${
-  isUserWithRole
-    ? "import { Role } from 'src/modules/user/domain/enums/role.enum';"
-    : ""
-}
-
-
-@Injectable()
-export class ${entityName}Mapper {
- toDomain(data: any): ${entityName}Entity {
-  return new ${entityName}Entity(
-   ${domainArgs}
-  );
- }
-
- toPersistence(dto: Create${entityName}Dto): any {
-  return {
-   ${toPersistenceFields}
-  };
- }
-
- toUpdatePersistence(dto: Update${entityName}Dto): any {
-  const data: any = {};
-  ${toUpdateFields}
-  return data;
- }
-}
-`;
-} */
-
 export async function generateMapper(entity) {
   const entityName = capitalize(entity.name);
 
@@ -259,7 +162,14 @@ export async function generateMapper(entity) {
 
   // ... (Logique isUserWithRole inchangée)
 
-  return `
+  return `/**
+ * PostMapper transforms data between
+ * different layers (Persistence <-> Domain <-> DTO).
+ *
+ * Ensures that the internal database structure
+ * never leaks into the API responses.
+ */
+
 import { Injectable } from '@nestjs/common';
 import { ${entityName}Entity } from 'src/${decapitalize(
     entity.name
@@ -759,7 +669,7 @@ import { ${entityNameCapitalized}Service } from '${entityPath}/application/servi
 import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
 
 ${swaggerClassDecorator}
-@Controller('${entityNameLower}')
+@Controller('${pluralize(entityNameLower)}')
 export class ${entityNameCapitalized}Controller {
   constructor(private readonly service: ${entityNameCapitalized}Service) {}
 
@@ -795,9 +705,9 @@ export class ${entityNameCapitalized}Controller {
     return await this.service.getById(id);
   }
 
-  // Get all ${entityNameLower}s
+  // Get all ${pluralize(entityNameLower)}
   @Get()
-  ${swaggerMethodDecorator(`Get all ${entityNameLower}s`)}
+  ${swaggerMethodDecorator(`Get all ${pluralize(entityNameLower)}`)}
   async getAll() {
     return await this.service.getAll();
   }
@@ -951,6 +861,7 @@ import { ValidationPipe } from '@nestjs/common';`;
   const contentPattern = `const app = await NestFactory.create(AppModule);`;
 
   const contentReplacer = `
+  const app = await NestFactory.create(AppModule);
 
   // 🔒 Global filter pour gérer toutes les exceptions
   app.useGlobalFilters(new AllExceptionsFilter())
@@ -1043,7 +954,15 @@ async findByEmail(email: string): Promise<${entityNameCapitalized}Entity | null>
       // Implémentation du repository pour TypeORM
       await createFile({
         path: `${entityPath}/infrastructure/repositories/${entityNameLower}.repository.ts`,
-        contente: `import { Injectable, NotFoundException } from '@nestjs/common';
+        contente: `/**
+ * PostRepository handles data persistence
+ * for the Post entity.
+ *
+ * This layer abstracts the database engine (Prisma/TypeORM)
+ * and provides a clean interface for data operations.
+ */
+
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ${entityNameCapitalized}Entity } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.entity';
@@ -1831,4 +1750,13 @@ export async function getPackageManager(flags) {
   ]);
 
   return answers.packageManager;
+}
+
+export function pluralize(name) {
+  if (name.endsWith("y")) {
+    return name.slice(0, -1) + "ies"; // Category -> Categories
+  } else if (name.endsWith("s")) {
+    return name; // Déjà un pluriel
+  }
+  return name + "s"; // User -> Users
 }
