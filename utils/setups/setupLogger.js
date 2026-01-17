@@ -32,6 +32,16 @@ async function setupBootstrapLogger() {
       path: mainTsPath,
       pattern: "const app = await NestFactory.create(AppModule);",
       replacement: `const app = await NestFactory.create(AppModule);
+
+      // Global validation & transformation
+      app.useGlobalPipes(
+        new ValidationPipe({
+          transform: true,
+          whitelist: true,
+          forbidNonWhitelisted: true,
+        }),
+      );
+
       const configService = app.get(ConfigService);
       const port = configService.get<number>('PORT', 3000);
       const host = configService.get<string>('HOST', '0.0.0.0');`,

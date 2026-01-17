@@ -1,8 +1,8 @@
-# Guide de Migration NestCraftX : v0.1.x → v0.2.4
+# Guide de Migration NestCraftX : v0.1.x → v0.2.5
 
 ## Vue d'ensemble
 
-La version **0.2.4** marque une étape majeure dans la maturité de NestCraftX. Nous passons d'un simple script de génération à un véritable outil CLI professionnel avec une expérience utilisateur (UX) totalement repensée.
+La version **0.2.5** marque une étape majeure dans la maturité de NestCraftX. Nous passons d'un simple script de génération à un véritable outil CLI professionnel avec une expérience utilisateur (UX) totalement repensée.
 
 **Points clés de la mise à jour :**
 
@@ -20,7 +20,7 @@ La version **0.2.4** marque une étape majeure dans la maturité de NestCraftX. 
 Bien que le mode interactif reste accessible pour la compatibilité, la commande sémantique recommandée est désormais `new`.
 
 - **Ancien (v0.1.x) :** `nestcraftx start`
-- **Nouveau (v0.2.4) :** `nestcraftx new mon-projet`
+- **Nouveau (v0.2.5) :** `nestcraftx new mon-projet`
 
 ### Nouveaux Flags Professionnels
 
@@ -54,7 +54,7 @@ C'est l'architecture robuste de la v0.1.x, mais affinée. Les services sont main
 
 ---
 
-## 3. Gestionnaire de Paquets (Nouveauté v0.2.4)
+## 3. Gestionnaire de Paquets (Nouveauté v0.2.5)
 
 Le flag `--pm` (ou `--packageManager`) vous permet de définir votre outil favori. Si vous ne le spécifiez pas, le CLI vous proposera une liste de choix interactive.
 
@@ -71,7 +71,7 @@ Le flag `--pm` (ou `--packageManager`) vous permet de définir votre outil favor
 Le système de génération de secrets a été renforcé pour utiliser des algorithmes cryptographiques plus sûrs.
 
 **Ancien comportement :** Saisie manuelle ou secrets courts.
-**Nouveau comportement (v0.2.4) :** - `JWT_SECRET` : 64 caractères hexadécimaux uniques.
+**Nouveau comportement (v0.2.5) :** - `JWT_SECRET` : 64 caractères hexadécimaux uniques.
 
 - `DATABASE_URL` : Auto-construit selon l'ORM choisi (Prisma/TypeORM/Mongoose).
 
@@ -124,4 +124,4 @@ Seriez-vous intéressé par un script d'automatisation pour mettre à jour vos v
 
 ---
 
-**NestCraftX v0.2.4** — _Clean Architecture Made Simple._ [Accéder au Dépôt GitHub](https://github.com/august-dev-pro/NestCraftX)
+**NestCraftX v0.2.5** — _Clean Architecture Made Simple._ [Accéder au Dépôt GitHub](https://github.com/august-dev-pro/NestCraftX)

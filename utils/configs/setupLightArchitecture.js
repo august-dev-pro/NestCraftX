@@ -78,7 +78,9 @@ async function setupLightArchitecture(inputs) {
 
       if (dbConfig.orm === "mongoose") {
         const mongooseSchemaContent = await generateMongooseSchemaFileContent(
-          entity
+          entity,
+          entitiesData,
+          mode
         );
         await createFile({
           path: `${entityPath}/entities/${entityNameLower}.schema.ts`,
@@ -362,7 +364,10 @@ export class ${entityName}Repository {
   }
 
   if (orm === "mongoose") {
-    const fieldParams = scalarFields.map((f) => `obj.${f.name}`).join(", ");
+    const fieldParams = scalarFields
+      .filter((f) => f.name !== "role")
+      .map((f) => `obj.${f.name}`)
+      .join(", ");
 
     return `/**
  * PostRepository handles data persistence
@@ -394,7 +399,7 @@ export class ${entityName}Repository {
       obj._id.toString(),
       obj.createdAt,
       obj.updatedAt,
-      ${fieldParams}
+      ${fieldParams}${isUser ? ", obj.role" : ""}
     );
   }
 
@@ -404,29 +409,24 @@ export class ${entityName}Repository {
   }
 
   async findById(id: string): Promise<${entityName}Entity | null> {
-    const result = await this.model.findById(id);
+    const result = await this.model.findById(id).exec();
     return result ? this.toEntity(result) : null;
   }
 
   ${extraMethods}
 
-  async findByEmail(email: string): Promise<${entityName}Entity | null> {
-  const result = await this.model.findOne({ email }).exec();
-  return result ? this.toEntity(result) : null;
-  }
-
   async findAll(): Promise<${entityName}Entity[]> {
-    const results = await this.model.find();
+    const results = await this.model.find().exec();
     return results.map(r => this.toEntity(r));
   }
 
   async update(id: string, data: Update${entityName}Dto): Promise<${entityName}Entity | null> {
-    const result = await this.model.findByIdAndUpdate(id, data, { new: true });
+    const result = await this.model.findByIdAndUpdate(id, data, { new: true }).exec();
     return result ? this.toEntity(result) : null;
   }
 
   async delete(id: string): Promise<void> {
-    await this.model.findByIdAndDelete(id);
+    await this.model.findByIdAndDelete(id).exec();
   }
 }`;
   }
@@ -495,108 +495,143 @@ export class ${entityName}Service {
   constructor(private readonly repository: ${entityName}Repository) {}
 
   async create(dto: Create${entityName}Dto): Promise<${entityName}Entity> {
-    this.logger.log('Creating new ${entityLower}');
-    return await this.repository.create(dto);
+    this.logger.log('Creating a new ${entityName}');
+    const result = await this.repository.create(dto);
+    this.logger.log(\`${entityName} created successfully with ID: \${result.getId()}\`);
+    return result;
   }
 
   async findById(id: string): Promise<${entityName}Entity> {
+    this.logger.log(\`Fetching ${entityName} with ID: \${id}\`);
     const entity = await this.repository.findById(id);
+
     if (!entity) {
+      this.logger.warn(\`${entityName} with ID: \${id} not found\`);
       throw new NotFoundException(\`${entityName} with id \${id} not found\`);
     }
+
     return entity;
   }
 
   async findAll(): Promise<${entityName}Entity[]> {
-    return await this.repository.findAll();
+    this.logger.log('Fetching all ${entityName} records');
+    const results = await this.repository.findAll();
+    this.logger.log(\`Successfully retrieved \${results.length} ${entityName}(s)\`);
+    return results;
   }
 
   async update(id: string, dto: Update${entityName}Dto): Promise<${entityName}Entity> {
+    this.logger.log(\`Updating ${entityName} with ID: \${id}\`);
+
+    // Validate existence before update
     await this.findById(id);
+
     const updated = await this.repository.update(id, dto);
+
     if (!updated) {
-      throw new NotFoundException(\`Failed to update ${entityName}\`);
+      this.logger.error(\`Update failed for ${entityName} \${id} - entity disappeared\`);
+      throw new NotFoundException(\`${entityName} update failed\`);
     }
+
+    this.logger.log(\`${entityName} with ID: \${id} updated successfully\`);
     return updated;
   }
 
   async delete(id: string): Promise<void> {
+    this.logger.log(\`Deleting ${entityName} with ID: \${id}\`);
+
+    // Validate existence before deletion
     await this.findById(id);
+
     await this.repository.delete(id);
+    this.logger.log(\`${entityName} with ID: \${id} deleted successfully\`);
   }
 }`;
 }
 
 function generateLightController(entityName, entityLower, useSwagger) {
+  const entityCap = capitalize(entityName);
+  const pluralName = pluralize(entityLower);
+
   const swaggerImports = useSwagger
-    ? `import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';\n`
+    ? `import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';\n`
     : "";
-  const swaggerDecorators = useSwagger ? `@ApiTags('${entityLower}')\n` : "";
 
-  return `import { Controller, Get, Post, Put, Delete, Body, Param, Logger } from '@nestjs/common';
-${swaggerImports}import { ${entityName}Service } from '../services/${entityLower}.service';
-import { Create${entityName}Dto, Update${entityName}Dto } from '../dtos/${entityLower}.dto';
+  const swaggerDecorators = useSwagger
+    ? `@ApiTags('${capitalize(pluralName)}')\n`
+    : "";
 
-${swaggerDecorators}@Controller('${entityLower}')
-export class ${entityName}Controller {
-  private readonly logger = new Logger(${entityName}Controller.name);
+  return `import { Controller, Get, Post, Patch, Delete, Body, Param, Logger, HttpCode, HttpStatus } from '@nestjs/common';
+${swaggerImports}import { ${entityCap}Service } from '../services/${entityLower}.service';
+import { Create${entityCap}Dto, Update${entityCap}Dto } from '../dtos/${entityLower}.dto';
 
-  constructor(private readonly service: ${entityName}Service) {}
-${
-  useSwagger
-    ? `
-  @ApiOperation({ summary: 'Create a new ${entityLower}' })
-  @ApiResponse({ status: 201, description: 'Created' })`
-    : ""
-}
+${swaggerDecorators}@Controller('${pluralName}')
+export class ${entityCap}Controller {
+  private readonly logger = new Logger(${entityCap}Controller.name);
+
+  constructor(private readonly service: ${entityCap}Service) {}
+
   @Post()
-  async create(@Body() dto: Create${entityName}Dto) {
-    return await this.service.create(dto);
+  ${
+    useSwagger
+      ? `@ApiOperation({ summary: 'Create a new ${entityLower}' })\n  @ApiResponse({ status: 201, description: 'The record has been successfully created.' })`
+      : ""
   }
-${
-  useSwagger
-    ? `
-  @ApiOperation({ summary: 'Get all ${entityLower}s' })
-  @ApiResponse({ status: 200, description: 'Success' })`
-    : ""
-}
+  async create(@Body() dto: Create${entityCap}Dto) {
+    this.logger.log(\`Creating a new ${entityLower}\`);
+    await this.service.create(dto);
+    return {
+    message: '${entityCap} created successfully',
+    };
+  }
+
   @Get()
+  ${
+    useSwagger
+      ? `@ApiOperation({ summary: 'Get all ${pluralName}' })\n  @ApiResponse({ status: 200, description: 'List of records retrieved.' })`
+      : ""
+  }
   async findAll() {
+    this.logger.log(\`Fetching all ${pluralName}\`);
     return await this.service.findAll();
   }
-${
-  useSwagger
-    ? `
-  @ApiOperation({ summary: 'Get ${entityLower} by id' })
-  @ApiResponse({ status: 200, description: 'Success' })`
-    : ""
-}
+
   @Get(':id')
+  ${
+    useSwagger
+      ? `@ApiOperation({ summary: 'Get ${entityLower} by id' })\n  @ApiParam({ name: 'id', type: String })\n  @ApiResponse({ status: 200, description: 'Record found.' })`
+      : ""
+  }
   async findById(@Param('id') id: string) {
+    this.logger.log(\`Fetching ${entityLower} with id: \${id}\`);
     return await this.service.findById(id);
   }
-${
-  useSwagger
-    ? `
-  @ApiOperation({ summary: 'Update ${entityLower}' })
-  @ApiResponse({ status: 200, description: 'Updated' })`
-    : ""
-}
-  @Put(':id')
-  async update(@Param('id') id: string, @Body() dto: Update${entityName}Dto) {
-    return await this.service.update(id, dto);
+
+  @Patch(':id')
+  ${
+    useSwagger
+      ? `@ApiOperation({ summary: 'Update ${entityLower}' })\n  @ApiParam({ name: 'id', type: String })\n  @ApiResponse({ status: 200, description: 'Record updated.' })`
+      : ""
   }
-${
-  useSwagger
-    ? `
-  @ApiOperation({ summary: 'Delete ${entityLower}' })
-  @ApiResponse({ status: 200, description: 'Deleted' })`
-    : ""
-}
+  async update(@Param('id') id: string, @Body() dto: Update${entityCap}Dto) {
+    this.logger.log(\`Updating ${entityLower} with id: \${id}\`);
+    await this.service.update(id, dto);
+    return { message: '${entityCap} updated successfully' };
+  }
+
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  ${
+    useSwagger
+      ? `@ApiOperation({ summary: 'Delete ${entityLower}' })\n  @ApiParam({ name: 'id', type: String })\n  @ApiResponse({ status: 204, description: 'Record deleted.' })`
+      : ""
+  }
   async delete(@Param('id') id: string) {
+    this.logger.log(\`Deleting ${entityLower} with id: \${id}\`);
     await this.service.delete(id);
-    return { message: '${entityName} deleted successfully' };
+    return {
+      message: '${entityCap} deleted successfully',
+    };;
   }
 }`;
 }

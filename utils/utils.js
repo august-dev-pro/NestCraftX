@@ -211,206 +211,108 @@ export class ${entityName}Mapper {
 `;
 }
 
-export async function generateDto(
+export async function generateDtox(
   entity,
   useSwagger,
   isAuthDto = false,
   mode = "full"
 ) {
   const entityName = capitalize(entity.name);
+  const entityNameLower = entity.name.toLowerCase();
+
+  /* ===============================
+     ENUM IMPORT
+  =============================== */
   let enumImport = "";
   if (entityName === "User") {
     enumImport =
       mode === "light"
-        ? "import { Role } from 'src/common/enums/role.enum';"
-        : "import { Role } from 'src/user/domain/enums/role.enum';";
+        ? "\nimport { Role } from 'src/common/enums/role.enum';"
+        : "\nimport { Role } from 'src/user/domain/enums/role.enum';";
   }
 
-  /* const getExampleForField = (f) => {
-    const fieldName = f.name.toLowerCase();
-
-    if (isAuthDto) {
-      if (fieldName.includes("newpassword")) {
-        return `"Password@123456"`;
-      }
-      if (fieldName.includes("password")) {
-        return `"SecurePass@2024"`;
-      }
-      if (fieldName.includes("otp")) {
-        return `"654321"`;
-      }
-      if (fieldName.includes("token")) {
-        return `"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U"`;
-      }
-      if (fieldName.includes("email")) {
-        return `"user@example.com"`;
-      }
-    }
-
-    if (fieldName.includes("email")) {
-      return `"alice.johnson@example.com"`;
-    }
-    if (fieldName.includes("password")) {
-      return `"SecurePass@2024"`;
-    }
-    if (fieldName.includes("username")) {
-      return `"john_doe"`;
-    }
-    if (fieldName.includes("firstname") || fieldName.includes("first_name")) {
-      return `"John"`;
-    }
-    if (fieldName.includes("lastname") || fieldName.includes("last_name")) {
-      return `"Doe"`;
-    }
-    if (fieldName.includes("phone")) {
-      return `"+1234567890"`;
-    }
-    if (fieldName.includes("title")) {
-      return `"Product Title"`;
-    }
-    if (fieldName.includes("name")) {
-      return `"${entityName} Name"`;
-    }
-    if (fieldName.includes("description")) {
-      return `"A detailed description of the item"`;
-    }
-    if (fieldName.includes("url") || fieldName.includes("image")) {
-      return `"https://example.com/image.png"`;
-    }
-    if (fieldName.includes("price")) {
-      return 99.99;
-    }
-    if (fieldName.includes("amount") || fieldName.includes("total")) {
-      return 1500.5;
-    }
-    if (fieldName.includes("quantity") || fieldName.includes("count")) {
-      return 5;
-    }
-    if (fieldName.includes("discount")) {
-      return 15;
-    }
-    if (fieldName.includes("rate") || fieldName.includes("rating")) {
-      return 4.5;
-    }
-    if (fieldName.includes("role")) {
-      return `"admin"`;
-    }
-    if (fieldName.includes("status")) {
-      return `"active"`;
-    }
-    if (fieldName.includes("type")) {
-      return `"standard"`;
-    }
-    if (fieldName.includes("date") || fieldName.includes("at")) {
-      return `"2024-12-01T10:30:00Z"`;
-    }
-    if (fieldName.includes("time")) {
-      return `"14:30:00"`;
-    }
-    if (fieldName.includes("id") && fieldName !== "id") {
-      return `"550e8400-e29b-41d4-a716-446655440000"`;
-    }
-    if (fieldName.includes("code")) {
-      return `"CODE123456"`;
-    }
-    if (fieldName.includes("reference")) {
-      return `"REF-2024-001"`;
-    }
-
-    switch (f.type.toLowerCase().replace("[]", "")) {
-      case "string":
-      case "text":
-      case "uuid":
-      case "json":
-        return `"${entityName.toLowerCase()}_${f.name}"`;
-      case "number":
-      case "int":
-      case "decimal":
-      case "float":
-        return 42;
-      case "boolean":
-        return true;
-      case "date":
-        return `"2024-01-15T08:00:00Z"`;
-      default:
-        return `"value"`;
-    }
-  }; */
+  /* ===============================
+     SWAGGER HELPERS (PRO)
+  =============================== */
+  const getFieldDescription = (f) => {
+    const name = f.name.toLowerCase();
+    if (name.includes("email")) return "The official email address of the user";
+    if (name.includes("password"))
+      return "Must contain at least 8 characters, one letter and one number";
+    if (name.includes("token")) return "Authentication token";
+    if (name.includes("id") && name !== "id")
+      return `Unique identifier of the related ${name.replace("id", "")}`;
+    return `The ${f.name} of the ${entityNameLower}`;
+  };
 
   const getExampleForField = (f) => {
     const fieldName = f.name.toLowerCase();
     const isArray = f.type.endsWith("[]");
     const cleanType = f.type.toLowerCase().replace("[]", "");
 
-    // 1. Logique pour obtenir une valeur de base (SANS le tableau)
     const getBaseExample = () => {
-      // --- Priorité aux noms de champs (Auth & Common) ---
-      if (fieldName.includes("email")) return `"user@example.com"`;
-      if (fieldName.includes("password")) return `"SecurePass@2024"`;
-      if (fieldName.includes("token")) return `"eyJhbGciOi..."`;
+      if (fieldName.includes("email")) return "user@example.com";
+      if (fieldName.includes("password")) return "SecurePass@2024";
+      if (fieldName.includes("token")) return "eyJhbGciOi...";
       if (fieldName.includes("id") && fieldName !== "id")
-        return `"550e8400-e29b-41d4-a716-446655440000"`;
+        return "550e8400-e29b-41d4-a716-446655440000";
 
       if (fieldName.includes("title") || fieldName.includes("name"))
-        return `"${capitalize(entityName)} Example"`;
-      if (fieldName.includes("description"))
-        return `"A detailed description example"`;
-      if (fieldName.includes("url") || fieldName.includes("image"))
-        return `"https://example.com/image.png"`;
+        return `${capitalize(entityName)} Example`;
+      if (fieldName.includes("content") || fieldName.includes("description"))
+        return "This is a detailed example content.";
+      if (
+        fieldName.includes("url") ||
+        fieldName.includes("image") ||
+        fieldName.includes("avatar")
+      )
+        return "https://images.unsplash.com/photo-123456789";
 
       if (fieldName.includes("price") || fieldName.includes("amount"))
         return 99.99;
       if (fieldName.includes("quantity") || fieldName.includes("count"))
         return 10;
       if (fieldName.includes("status") || fieldName.includes("type"))
-        return `"active"`;
+        return "active";
       if (fieldName.includes("date") || fieldName.includes("at"))
-        return `"2024-12-01T10:30:00Z"`;
+        return "2024-12-01T10:30:00Z";
 
-      // --- Logique par Type ---
       switch (cleanType) {
         case "string":
         case "text":
         case "uuid":
-          return `"${f.name.toLowerCase()}_val"`;
+          return `${f.name.toLowerCase()}_val`;
         case "number":
         case "int":
         case "decimal":
-        case "float":
           return 42;
+        case "float":
+          return 23.5;
         case "boolean":
           return true;
         case "json":
-          // IMPORTANT: On retourne un objet littéral (sous forme de string pour le template)
-          return `{ "key": "value", "active": true }`;
+          return { metadata: "value", version: 1 }; // objet réel
         case "date":
-          return `"2024-01-15T08:00:00Z"`;
+          return new Date().toISOString();
         default:
-          return `"value"`;
+          return `${f.name.toLowerCase()}_val`;
       }
     };
 
-    const baseValue = getBaseExample();
-
-    // 2. Si c'est un tableau, on enveloppe la valeur de base
-    if (isArray) {
-      // On retourne deux exemples pour montrer que c'est une liste
-      return `[${baseValue}, ${baseValue}]`;
-    }
-
-    return baseValue;
+    const base = getBaseExample();
+    return isArray ? [base, base] : base;
   };
 
-  // Géneration de ligne de champ DTO
-  const generateFieldLine = (f, isRequestDto = false) => {
-    if (entityName === "User" && f.name.toLowerCase() === "role") {
-      return null;
-    }
+  /* ===============================
+     FIELD GENERATOR (PRO)
+  =============================== */
+  const generateFieldLine = (f, optional = false) => {
+    if (entityName === "User" && f.name.toLowerCase() === "role") return null;
 
-    const field = { ...f };
-    const rawType = field.type;
-    const cleanType = rawType.toLowerCase().replace("[]", "");
-    const isArrayType = rawType.endsWith("[]");
+    const name = f.name;
+    const type = f.type.toLowerCase();
+    const isArray = type.endsWith("[]");
+    const cleanType = type.replace("[]", "");
 
     const SCALAR_TYPES = [
       "string",
@@ -426,211 +328,377 @@ export async function generateDto(
       "role",
       "enum",
     ];
+    if (!SCALAR_TYPES.includes(cleanType)) return null;
 
-    const isRelation = !SCALAR_TYPES.includes(cleanType);
+    let validators = [];
+    if (optional) validators.push("@IsOptional()");
 
-    let tsType;
-    let typeDecorator;
+    if (name.toLowerCase().includes("email")) {
+      validators.push("@IsEmail()");
+    } else if (name.toLowerCase().includes("password")) {
+      validators.push(
+        "@MinLength(8, { message: 'Password is too short (min 8 characters)' })"
+      );
+    }
+
+    switch (cleanType) {
+      case "string":
+      case "text":
+        validators.push(isArray ? "@IsString({ each: true })" : "@IsString()");
+        if (!isArray) validators.push("@MinLength(2)");
+        break;
+      case "number":
+      case "float":
+        validators.push(
+          isArray ? "@IsNumber({}, { each: true })" : "@IsNumber()"
+        );
+        break;
+      case "int":
+        validators.push(isArray ? "@IsInt({ each: true })" : "@IsInt()");
+        break;
+      case "boolean":
+        validators.push(
+          isArray ? "@IsBoolean({ each: true })" : "@IsBoolean()"
+        );
+        break;
+      case "uuid":
+        validators.push("@IsUUID()");
+        break;
+      case "date":
+        validators.push("@IsDateString()");
+        break;
+    }
+
+    if (isArray) validators.push("@IsArray()");
+
     let swaggerDecorator = "";
-    let swaggerBaseType = "";
+    if (useSwagger) {
+      const decorator = optional ? "@ApiPropertyOptional" : "@ApiProperty";
 
-    // 1. GESTION DES RELATIONS
-    if (isRelation) {
-      const baseTypeName = capitalize(rawType.replace("[]", ""));
-      const isForeignKey = field.name.toLowerCase().endsWith("id");
+      const options = JSON.stringify(
+        {
+          example: getExampleForField(f),
+          description: getFieldDescription(f),
+        },
+        null,
+        2
+      ).replace(/"([^"]+)":/g, "$1:");
 
-      if (isRequestDto) {
-        if (!isForeignKey) {
-          return null;
-        }
-        tsType = "string";
-        typeDecorator = "IsUUID()";
-
-        swaggerDecorator = useSwagger
-          ? field.optional
-            ? `@ApiPropertyOptional({ example: "550e8400-e29b-41d4-a716-446655440000", type: String })\n`
-            : `@ApiProperty({ example: "550e8400-e29b-41d4-a716-446655440000", type: String })\n`
-          : "";
-      } else {
-        if (isForeignKey) {
-          return null;
-        }
-        tsType = isArrayType ? `${baseTypeName}Dto[]` : `${baseTypeName}Dto`;
-
-        typeDecorator = `ValidateNested({ each: ${isArrayType} })\n @Type(() => ${baseTypeName}Dto)`;
-        if (field.optional) typeDecorator = `IsOptional()\n @${typeDecorator}`;
-
-        swaggerDecorator = useSwagger
-          ? field.optional
-            ? `@ApiPropertyOptional({ type: () => ${baseTypeName}Dto, ${
-                isArrayType ? "isArray: true" : ""
-              } })\n`
-            : `@ApiProperty({ type: () => ${baseTypeName}Dto, ${
-                isArrayType ? "isArray: true" : ""
-              } })\n`
-          : "";
-      }
+      swaggerDecorator = `${decorator}(${options})\n  `;
     }
 
-    // 2. GESTION DES TYPES SCALAIRES
-    else {
-      // Utilise formatType pour obtenir le type TS final
-      tsType = formatType(rawType);
-
-      let validator;
-      switch (cleanType) {
-        case "string":
-        case "text":
-          validator = "IsString";
-          swaggerBaseType = "String";
-          break;
-        case "uuid":
-          validator = "IsUUID";
-          swaggerBaseType = "String";
-          break;
-        case "json":
-          validator = "IsObject";
-          tsType = isArrayType
-            ? `Record<string, any>[]`
-            : `Record<string, any>`;
-          swaggerBaseType = "Object";
-          break;
-        case "number":
-        case "decimal":
-        case "float":
-          validator = "IsNumber";
-          swaggerBaseType = "Number";
-          break;
-        case "int":
-          validator = "IsInt";
-          swaggerBaseType = "Number";
-          break;
-        case "boolean":
-          validator = "IsBoolean";
-          swaggerBaseType = "Boolean";
-          break;
-        case "date":
-          validator = "IsDateString";
-          swaggerBaseType = "String";
-          break;
-        case "role":
-          validator = "IsEnum(Role)";
-          swaggerBaseType = "String";
-          break;
-        case "enum":
-          validator = `IsEnum(${rawType.replace("[]", "")})`;
-          swaggerBaseType = "String";
-          break;
-        default:
-          validator = "IsString";
-          swaggerBaseType = "String";
-      }
-
-      // 1. Ajout des parenthèses pour les validateurs scalaires simples (ex: IsObject -> IsObject())
-      if (!isArrayType && !validator.includes("(")) {
-        validator = `${validator}()`;
-      }
-
-      // Gère les tableaux de types scalaires et d'Enums
-      if (isArrayType) {
-        if (rawType.toLowerCase().includes("enum")) {
-          validator = `IsArray()\n@IsEnum(${rawType.replace(
-            "[]",
-            ""
-          )}, { each: true })`;
-        } else {
-          // Pour les scalaires simples (string[], number[])
-          const baseValidatorName = validator.replace("()", ""); // Retire les parenthèses ()
-
-          validator = `IsArray()\n@${baseValidatorName}({ each: true })`;
-        }
-      }
-
-      typeDecorator = validator;
-
-      if (field.optional) typeDecorator = `IsOptional()\n@${typeDecorator}`;
-
-      // Swagger pour Scalaires
-      const swaggerProp = isArrayType
-        ? `type: ${swaggerBaseType}, isArray: true`
-        : `type: ${swaggerBaseType}`;
-
-      swaggerDecorator = useSwagger
-        ? field.optional
-          ? `@ApiPropertyOptional({ example: ${getExampleForField(
-              field
-            )}, ${swaggerProp} })\n`
-          : `@ApiProperty({ example: ${getExampleForField(
-              field
-            )}, ${swaggerProp} })\n`
-        : "";
-    }
-
-    if (!field.name) return null;
-
-    return `${swaggerDecorator} @${typeDecorator}\n ${field.name}${
-      field.optional ? "?" : ""
-    }: ${tsType};`;
+    return `${swaggerDecorator}${validators.join("\n  ")}\n  ${name}${
+      optional ? "?" : ""
+    }: ${formatType(f.type)};`;
   };
 
-  // UTILISATION DE 'true' pour indiquer que ce sont des DTOs de REQUÊTE
-  const dtoFields = entity.fields
-    .map((f) => generateFieldLine({ ...f, optional: false }, true))
-    .filter(Boolean)
-    .join("\n\n");
-
-  const updateDtoFields = entity.fields
-    .map((f) => generateFieldLine({ ...f, optional: true }, true))
-    .filter(Boolean)
-    .join("\n\n");
-
-  const commonImports = `import { IsOptional, IsString, IsEnum, IsInt, IsBoolean, IsDate, MinLength, IsArray, IsUUID, IsObject, IsNumber, IsDateString, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-${
-  useSwagger
-    ? "import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';"
-    : ""
-}
-${enumImport}
-`;
-
+  /* ======================================================
+      AUTH DTO → UN SEUL DTO
+  ====================================================== */
   if (isAuthDto) {
-    return `
-${commonImports}
+    const authFields = entity.fields
+      .map((f) => generateFieldLine(f, false))
+      .filter(Boolean)
+      .join("\n\n  ");
 
+    return `import {
+  IsString, IsInt, IsBoolean, IsEmail, IsArray,
+  IsUUID, IsDateString, MinLength, IsOptional
+} from 'class-validator';
+
+/**
+ * Auth DTO
+ */
 export class ${entityName}Dto {
-${dtoFields}
+  ${authFields}
 }
 `;
   }
 
-  return `
-${commonImports}
+  /* ======================================================
+      CRUD DTOs (Create / Update)
+  ====================================================== */
+  const createFields = entity.fields
+    .map((f) => generateFieldLine(f, false))
+    .filter(Boolean)
+    .join("\n\n  ");
 
+  const updateFields = entity.fields
+    .map((f) => generateFieldLine(f, true))
+    .filter(Boolean)
+    .join("\n\n  ");
+
+  return `import {
+  IsOptional, IsString, IsInt, IsBoolean, IsEmail,
+  IsArray, IsUUID, IsDateString, MinLength, IsEnum
+} from 'class-validator';
+${
+  useSwagger
+    ? "import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';"
+    : ""
+}
+${enumImport}
+${useSwagger ? "" : "import { PartialType } from '@nestjs/mapped-types';"}
+
+/**
+ * DTO for creating a ${entityName}
+ */
 export class Create${entityName}Dto {
-${dtoFields}
-${
-  entityName === "User"
-    ? `\n  ${
-        useSwagger
-          ? "@ApiPropertyOptional({ example: 'USER', enum: Role, default: Role.USER })\n  "
-          : ""
-      }@IsEnum(Role)\n  @IsOptional()\n  role: Role;`
-    : ""
-}
+  ${createFields}
+
+  ${
+    entityName === "User"
+      ? `
+  ${useSwagger ? "@ApiHideProperty()\n " : ""}
+  @IsOptional()
+  @IsEnum(Role)
+  role: Role = Role.USER;`
+      : ""
+  }
 }
 
-export class Update${entityName}Dto {
-${updateDtoFields}
+/**
+ * DTO for updating a ${entityName}
+ */
 ${
-  entityName === "User"
-    ? `\n  ${
-        useSwagger
-          ? "@ApiPropertyOptional({ example: 'USER', enum: Role })\n  "
-          : ""
-      }@IsEnum(Role)\n  @IsOptional()\n  role?: Role;`
+  useSwagger
+    ? `export class Update${entityName}Dto extends PartialType(Create${entityName}Dto) {}`
+    : `export class Update${entityName}Dto {
+  ${updateFields}
+
+  ${
+    entityName === "User"
+      ? `@IsEnum(Role)
+  @IsOptional()
+  role?: Role;`
+      : ""
+  }
+}`
+}
+`;
+}
+
+export async function generateDto(
+  entity,
+  useSwagger,
+  isAuthDto = false,
+  mode = "full"
+) {
+  const entityName = capitalize(entity.name);
+  const entityNameLower = entity.name.toLowerCase();
+
+  /* ===============================
+     ENUM IMPORT
+  =============================== */
+  let enumImport = "";
+  if (entityName === "User") {
+    enumImport =
+      mode === "light"
+        ? "\nimport { Role } from 'src/common/enums/role.enum';"
+        : "\nimport { Role } from 'src/user/domain/enums/role.enum';";
+  }
+
+  /* ===============================
+     SWAGGER HELPERS
+  =============================== */
+  const getFieldDescription = (f) => {
+    const name = f.name.toLowerCase();
+    if (name.includes("email")) return "The official email address of the user";
+    if (name.includes("password"))
+      return "Must contain at least 8 characters, one letter and one number";
+    if (name.includes("token")) return "Authentication token";
+    if (name.includes("id") && name !== "id")
+      return `Unique identifier of the related ${name.replace("id", "")}`;
+    return `The ${f.name} of the ${entityNameLower}`;
+  };
+
+  const getExampleForField = (f) => {
+    const fieldName = f.name.toLowerCase();
+    const isArray = f.type.endsWith("[]");
+    const cleanType = f.type.toLowerCase().replace("[]", "");
+
+    const getBaseExample = () => {
+      if (fieldName.includes("email")) return "user@example.com";
+      if (fieldName.includes("password")) return "SecurePass@2024";
+      if (fieldName.includes("token")) return "eyJhbGciOi...";
+      if (fieldName.includes("id") && fieldName !== "id")
+        return "550e8400-e29b-41d4-a716-446655440000";
+      if (fieldName.includes("title") || fieldName.includes("name"))
+        return `${capitalize(entityName)} Example`;
+      if (cleanType === "boolean") return true;
+      if (cleanType === "number" || cleanType === "int") return 42;
+      return `${f.name.toLowerCase()}_val`;
+    };
+
+    const base = getBaseExample();
+    return isArray ? [base, base] : base;
+  };
+
+  /* ===============================
+     FIELD GENERATOR
+  =============================== */
+  const generateFieldLine = (f, optional = false, forceNoSwagger = false) => {
+    if (entityName === "User" && f.name.toLowerCase() === "role") return null;
+
+    const name = f.name;
+    const cleanType = f.type.toLowerCase().replace("[]", "");
+    const isArray = f.type.endsWith("[]");
+
+    const SCALAR_TYPES = [
+      "string",
+      "text",
+      "uuid",
+      "json",
+      "number",
+      "decimal",
+      "int",
+      "float",
+      "boolean",
+      "date",
+    ];
+    if (!SCALAR_TYPES.includes(cleanType)) return null;
+
+    let validators = [];
+    if (optional) validators.push("@IsOptional()");
+    if (name.toLowerCase().includes("email")) validators.push("@IsEmail()");
+    else if (name.toLowerCase().includes("password"))
+      validators.push(
+        "@MinLength(8, { message: 'Password is too short (min 8 characters)' })"
+      );
+
+    switch (cleanType) {
+      case "string":
+      case "text":
+        validators.push(isArray ? "@IsString({ each: true })" : "@IsString()");
+        if (!isArray && !name.toLowerCase().includes("password"))
+          validators.push("@MinLength(2)");
+        break;
+      case "number":
+      case "int":
+      case "float":
+        validators.push(
+          isArray ? "@IsNumber({}, { each: true })" : "@IsNumber()"
+        );
+        break;
+      case "boolean":
+        validators.push(
+          isArray ? "@IsBoolean({ each: true })" : "@IsBoolean()"
+        );
+        break;
+      case "uuid":
+        validators.push("@IsUUID()");
+        break;
+      case "date":
+        validators.push("@IsDateString()");
+        break;
+    }
+    if (isArray) validators.push("@IsArray()");
+
+    let swaggerDecorator = "";
+    if (useSwagger && !forceNoSwagger) {
+      const decorator = optional ? "@ApiPropertyOptional" : "@ApiProperty";
+      const options = JSON.stringify(
+        {
+          example: getExampleForField(f),
+          description: getFieldDescription(f),
+        },
+        null,
+        2
+      ).replace(/"([^"]+)":/g, "$1:");
+      swaggerDecorator = `${decorator}(${options})\n  `;
+    }
+
+    return `${swaggerDecorator}${validators.join("\n  ")}\n  ${name}${
+      optional ? "?" : ""
+    }: ${formatType(f.type)};`;
+  };
+
+  /* ======================================================
+      AUTH DTO (Strict & Clean)
+  ====================================================== */
+  if (isAuthDto) {
+    const authFields = entity.fields
+      .map((f) => generateFieldLine(f, false))
+      .filter(Boolean)
+      .join("\n\n  ");
+
+    return `import {
+  IsString, IsInt, IsBoolean, IsEmail, IsArray,
+  IsUUID, IsDateString, MinLength, IsOptional
+} from 'class-validator';
+${useSwagger ? "import { ApiProperty } from '@nestjs/swagger';" : ""}
+
+/**
+ * Auth DTO - Strict contract for authentication
+ */
+export class ${entityName}Dto {
+  ${authFields}
+}
+`;
+  }
+
+  /* ======================================================
+      CRUD DTOs (Create / Update)
+  ====================================================== */
+  const createFields = entity.fields
+    .map((f) => generateFieldLine(f, false))
+    .filter(Boolean)
+    .join("\n\n  ");
+
+  const updateFields = entity.fields
+    .map((f) => generateFieldLine(f, true))
+    .filter(Boolean)
+    .join("\n\n  ");
+
+  // On prépare les imports Swagger dynamiquement
+  let swaggerImports = ["ApiProperty", "ApiPropertyOptional", "PartialType"];
+  if (entityName === "User") swaggerImports.push("ApiHideProperty");
+
+  return `import {
+  IsOptional, IsString, IsInt, IsBoolean, IsEmail,
+  IsArray, IsUUID, IsDateString, MinLength, IsEnum
+} from 'class-validator';
+${
+  useSwagger
+    ? `import { ${swaggerImports.join(", ")} } from '@nestjs/swagger';`
     : ""
 }
+${enumImport}
+
+/**
+ * DTO for creating a ${entityName}
+ */
+export class Create${entityName}Dto {
+  ${createFields}
+
+  ${
+    entityName === "User"
+      ? `
+  ${useSwagger ? "@ApiHideProperty()" : ""}
+  @IsOptional()
+  @IsEnum(Role)
+  role: Role = Role.USER;`
+      : ""
+  }
+}
+
+/**
+ * DTO for updating a ${entityName}
+ */
+${
+  useSwagger
+    ? `export class Update${entityName}Dto extends PartialType(Create${entityName}Dto) {}`
+    : `export class Update${entityName}Dto {
+  ${updateFields}
+
+  ${
+    entityName === "User"
+      ? `@IsEnum(Role)
+  @IsOptional()
+  role?: Role;`
+      : ""
+  }
+}`
 }
 `;
 }
@@ -638,58 +706,92 @@ ${
 export async function generateController(entityName, entityPath, useSwagger) {
   const entityNameLower = decapitalize(entityName);
   const entityNameCapitalized = capitalize(entityName);
+  const pluralName = pluralize(entityNameLower);
 
   const swaggerImports = useSwagger
-    ? `import { ApiTags, ApiOperation } from '@nestjs/swagger';`
+    ? `import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';`
     : "";
 
   const swaggerClassDecorator = useSwagger
-    ? `@ApiTags('${entityNameLower}')`
+    ? `@ApiTags('${capitalize(pluralName)}')` // Tags en Majuscule et au pluriel
     : "";
 
-  const swaggerMethodDecorator = (summary) =>
-    useSwagger ? `@ApiOperation({ summary: '${summary}' })\n  ` : "";
-
   return `
-/**
- * ${entityNameCapitalized}Controller handles HTTP endpoints
- * for the ${entityNameCapitalized} entity.
- *
- * This controller is responsible only for:
- * - HTTP transport
- * - Request/response handling
- * - Returning API messages
- *
- * Business logic is delegated to the service layer.
- */
-
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, HttpCode, HttpStatus, Query } from '@nestjs/common';
 ${swaggerImports}
 import { ${entityNameCapitalized}Service } from '${entityPath}/application/services/${entityNameLower}.service';
 import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
 
+
+/**
+ * Controller for ${entityNameCapitalized} management.
+ * Handles incoming HTTP requests and delegates logic to the service layer.
+ */
 ${swaggerClassDecorator}
-@Controller('${pluralize(entityNameLower)}')
+@Controller('${pluralName}')
 export class ${entityNameCapitalized}Controller {
   constructor(private readonly service: ${entityNameCapitalized}Service) {}
 
   ${
     entityNameLower !== "user"
       ? `
-  // Create a new ${entityNameLower}
   @Post()
-  ${swaggerMethodDecorator(`Create a new ${entityNameLower}`)}
+  @HttpCode(HttpStatus.CREATED)
+  ${
+    useSwagger
+      ? `
+  @ApiOperation({ summary: 'Create a new ${entityNameLower}', description: 'Creates a new record for ${entityNameLower} in the database.' })
+  @ApiResponse({ status: 201, description: 'The ${entityNameLower} has been successfully created.' })
+  @ApiResponse({ status: 400, description: 'Invalid input data.' })`
+      : ""
+  }
   async create(@Body() dto: Create${entityNameCapitalized}Dto) {
-    await this.service.create(dto);
-    return { message: '${entityNameCapitalized} created successfully' };
+    const result = await this.service.create(dto);
+    return {
+      message: '${entityNameCapitalized} created successfully',
+      data: result
+    };
   }
   `
       : ""
   }
 
-  // Update an existing ${entityNameLower}
-  @Put(':id')
-  ${swaggerMethodDecorator(`Update a ${entityNameLower}`)}
+  @Get()
+  ${
+    useSwagger
+      ? `
+  @ApiOperation({ summary: 'Get all ${pluralName}', description: 'Retrieves a list of all ${pluralName} available.' })
+  @ApiResponse({ status: 200, description: 'Return all ${pluralName}.' })`
+      : ""
+  }
+  async getAll() {
+    return await this.service.getAll();
+  }
+
+  @Get(':id')
+  ${
+    useSwagger
+      ? `
+  @ApiOperation({ summary: 'Get ${entityNameLower} by ID' })
+  @ApiParam({ name: 'id', description: 'The unique identifier of the ${entityNameLower}' })
+  @ApiResponse({ status: 200, description: 'The ${entityNameLower} has been found.' })
+  @ApiResponse({ status: 404, description: '${entityNameCapitalized} not found.' })`
+      : ""
+  }
+  async getById(@Param('id') id: string) {
+    return await this.service.getById(id);
+  }
+
+  @Patch(':id')
+  ${
+    useSwagger
+      ? `
+  @ApiOperation({ summary: 'Update an existing ${entityNameLower}' })
+  @ApiParam({ name: 'id', description: 'The unique identifier of the ${entityNameLower} to update' })
+  @ApiResponse({ status: 200, description: 'The ${entityNameLower} has been successfully updated.' })
+  @ApiResponse({ status: 404, description: '${entityNameCapitalized} not found.' })`
+      : ""
+  }
   async update(
     @Param('id') id: string,
     @Body() dto: Update${entityNameCapitalized}Dto,
@@ -698,23 +800,17 @@ export class ${entityNameCapitalized}Controller {
     return { message: '${entityNameCapitalized} updated successfully' };
   }
 
-  // Get a ${entityNameLower} by ID
-  @Get(':id')
-  ${swaggerMethodDecorator(`Get a ${entityNameLower} by ID`)}
-  async getById(@Param('id') id: string) {
-    return await this.service.getById(id);
-  }
-
-  // Get all ${pluralize(entityNameLower)}
-  @Get()
-  ${swaggerMethodDecorator(`Get all ${pluralize(entityNameLower)}`)}
-  async getAll() {
-    return await this.service.getAll();
-  }
-
-  // Delete a ${entityNameLower}
   @Delete(':id')
-  ${swaggerMethodDecorator(`Delete a ${entityNameLower} by ID`)}
+  @HttpCode(HttpStatus.NO_CONTENT)
+  ${
+    useSwagger
+      ? `
+  @ApiOperation({ summary: 'Delete a ${entityNameLower}' })
+  @ApiParam({ name: 'id', description: 'The unique identifier of the ${entityNameLower} to delete' })
+  @ApiResponse({ status: 204, description: 'The ${entityNameLower} has been successfully deleted.' })
+  @ApiResponse({ status: 404, description: '${entityNameCapitalized} not found.' })`
+      : ""
+  }
   async delete(@Param('id') id: string) {
     await this.service.delete(id);
     return { message: '${entityNameCapitalized} deleted successfully' };
@@ -965,11 +1061,11 @@ async findByEmail(email: string): Promise<${entityNameCapitalized}Entity | null>
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ${entityNameCapitalized}Entity } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.entity';
+import { ${entityNameCapitalized}Entity } from '${entityPath}/domain/entities/${entityNameLower}.entity';
 import { ${entityNameCapitalized} } from 'src/entities/${entityNameCapitalized}.entity';
-import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/domain/interfaces/${entityNameLower}.repository.interface';
-import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
-import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/infrastructure/mappers/${entityNameLower}.mapper';
+import { I${entityNameCapitalized}Repository } from '${entityPath}/domain/interfaces/${entityNameLower}.repository.interface';
+import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from '${entityPath}/application/dtos/${entityNameLower}.dto';
+import { ${entityNameCapitalized}Mapper } from '${entityPath}/infrastructure/mappers/${entityNameLower}.mapper';
 
 @Injectable()
 export class ${entityNameCapitalized}Repository implements I${entityNameCapitalized}Repository {
@@ -987,14 +1083,12 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
   }
 
   // find by id
-  async findById(id: string): Promise<${entityNameCapitalized}Entity> {
+  async findById(id: string): Promise<${entityNameCapitalized}Entity | null> {
     const record = await this.repository.findOne({
       where: { id },
     });
 
-    if (!record) {
-      throw new NotFoundException(\`${entityNameCapitalized}Entity with id \${id} not found\`);
-    }
+    if (!record) return null;
 
     return this.mapper.toDomain(record);
   }
@@ -1029,10 +1123,10 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
         path: `${entityPath}/infrastructure/repositories/${entityNameLower}.repository.ts`,
         contente: `import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
-import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/domain/interfaces/${entityNameLower}.repository.interface';
-import { ${entityNameCapitalized}Entity } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.entity';
-import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/infrastructure/mappers/${entityNameLower}.mapper';
+import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from '${entityPath}/application/dtos/${entityNameLower}.dto';
+import { I${entityNameCapitalized}Repository } from '${entityPath}/domain/interfaces/${entityNameLower}.repository.interface';
+import { ${entityNameCapitalized}Entity } from '${entityPath}/domain/entities/${entityNameLower}.entity';
+import { ${entityNameCapitalized}Mapper } from '${entityPath}/infrastructure/mappers/${entityNameLower}.mapper';
 
 @Injectable()
 export class ${entityNameCapitalized}Repository implements I${entityNameCapitalized}Repository {
@@ -1049,14 +1143,12 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
   }
 
   // find by id
-  async findById(id: string): Promise<${entityNameCapitalized}Entity> {
+  async findById(id: string): Promise<${entityNameCapitalized}Entity | null> {
     const record = await this.prisma.${entityNameLower}.findUnique({
       where: { id },
     });
 
-    if (!record) {
-      throw new NotFoundException(\`${entityNameCapitalized}Entity with id \${id} not found\`);
-    }
+    if (!record) return null;
 
     return this.mapper.toDomain(record);
   }
@@ -1099,10 +1191,10 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ${entityNameCapitalized}Entity } from '${entityPath}/domain/entities/${entityNameLower}.entity';
-import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
-import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/domain/interfaces/${entityNameLower}.repository.interface';
-import { ${entityNameCapitalized} } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.schema';
-import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/infrastructure/mappers/${entityNameLower}.mapper';
+import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from '${entityPath}/application/dtos/${entityNameLower}.dto';
+import { I${entityNameCapitalized}Repository } from '${entityPath}/domain/interfaces/${entityNameLower}.repository.interface';
+import { ${entityNameCapitalized} } from '${entityPath}/infrastructure/persistence/mongoose/${entityNameLower}.schema';
+import { ${entityNameCapitalized}Mapper } from '${entityPath}/infrastructure/mappers/${entityNameLower}.mapper';
 
 @Injectable()
 export class ${entityNameCapitalized}Repository implements I${entityNameCapitalized}Repository {
@@ -1120,12 +1212,10 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
   }
 
   // find by id
-  async findById(id: string): Promise<${entityNameCapitalized}Entity> {
-    const record = await this.model.findById(id);
+  async findById(id: string): Promise<${entityNameCapitalized}Entity | null> {
+    const record = await this.model.findById(id).exec();
 
-    if (!record) {
-      throw new NotFoundException(\`${entityNameCapitalized}Entity with id \${id} not found\`);
-    }
+    if (!record) return null;
 
     return this.mapper.toDomain(record);
   }
@@ -1135,19 +1225,19 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
   // update
   async update(id: string, data: Update${entityNameCapitalized}Dto): Promise<${entityNameCapitalized}Entity> {
     const toUpdate = this.mapper.toUpdatePersistence(data);
-    const updated = await this.model.findByIdAndUpdate(id, toUpdate, { new: true });
+    const updated = await this.model.findByIdAndUpdate(id, toUpdate, { new: true }).exec();
     return this.mapper.toDomain(updated);
   }
 
   // find all
   async findAll(): Promise<${entityNameCapitalized}Entity[]> {
-    const records = await this.model.find();
+    const records = await this.model.find().exec();
     return records.map(record => this.mapper.toDomain(record));
   }
 
   // delete
   async delete(id: string): Promise<void> {
-    await this.model.findByIdAndDelete(id);
+    await this.model.findByIdAndDelete(id).exec();
   }
 }
 `,
@@ -1161,10 +1251,10 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
         contente: `import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Model } from 'sequelize-typescript';
-import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
-import { I${entityNameCapitalized}Repository } from 'src/${entityNameLower}/domain/interfaces/${entityNameLower}.repository.interface';
-import { ${entityNameCapitalized}Entity } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.entity';
-import { ${entityNameCapitalized}Mapper } from 'src/${entityNameLower}/infrastructure/mappers/${entityNameLower}.mapper';
+import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from '${entityPath}/application/dtos/${entityNameLower}.dto';
+import { I${entityNameCapitalized}Repository } from '${entityPath}/domain/interfaces/${entityNameLower}.repository.interface';
+import { ${entityNameCapitalized}Entity } from '${entityPath}/domain/entities/${entityNameLower}.entity';
+import { ${entityNameCapitalized}Mapper } from '${entityPath}/infrastructure/mappers/${entityNameLower}.mapper';
 
 @Injectable()
 export class ${entityNameCapitalized}Repository implements I${entityNameCapitalized}Repository {
@@ -1203,7 +1293,7 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
 
   // find all
   async findAll(): Promise<${entityNameCapitalized}Entity[]> {
-    const records = await this.model.findAll();
+    const records = await this.model.find();
     return records.map(record => this.mapper.toDomain(record));
   }
 
@@ -1222,22 +1312,367 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
   }
 }
 
-export async function generateMongooseSchemaFileContent(entity) {
+export async function generateMongooseSchemaFileContentx(
+  entity,
+  entitiesData,
+  mode = "full"
+) {
   const entityName = capitalize(entity.name);
-  const fields = entity.fields
-    .map((f) => `  @Prop()\n  ${f.name}: ${formatType(f.type)};`)
-    .join("\n");
+  const entityNameLower = entity.name.toLowerCase();
+  const isFull = mode === "full";
+
+  let extraImports = "";
+
+  // 1. GESTION DES IMPORTS DES RELATIONS (Inclus Session dans Auth)
+  const relatedEntities = entitiesData.relations
+    .filter((rel) => rel.from === entityNameLower || rel.to === entityNameLower)
+    .map((rel) => (rel.from === entityNameLower ? rel.to : rel.from));
+
+  // On retire les doublons et l'entité elle-même
+  const uniqueRelated = [...new Set(relatedEntities)].filter(
+    (e) => e !== entityNameLower
+  );
+
+  uniqueRelated.forEach((target) => {
+    const targetCap = capitalize(target);
+    // EXCEPTION : Si c'est session, le dossier est auth
+    const moduleName = target === "session" ? "auth" : target;
+
+    const importPath =
+      mode === "full"
+        ? `../../../../${moduleName}/infrastructure/persistence/mongoose/${target}.schema`
+        : `../../${moduleName}/entities/${target}.schema`;
+
+    extraImports += `import { ${targetCap} } from '${importPath}';\n`;
+  });
+
+  // GESTION DU ROLE (USER)
+  if (entityNameLower === "user") {
+    const rolePath = isFull
+      ? "../../../domain/enums/role.enum"
+      : "../../common/enums/role.enum";
+    extraImports += `import { Role } from '${rolePath}';\n`;
+  }
+
+  // --- RESTE DE TON CODE (directFields & dynamicRelations) ---
+
+  /*  const directFields = entity.fields.map((f) => {
+
+    const fieldName = f.name;
+    const fieldNameLow = fieldName.toLowerCase();
+
+    if (entityNameLower === "user" && fieldName === "role") {
+      return `  @Prop({ type: String, enum: Role, default: Role.USER })\n  role: Role;`;
+    }
+
+    if (fieldNameLow.endsWith("id")) {
+      const targetEntity = fieldNameLow.replace("id", "");
+      const hasRelation = entitiesData.relations.some(
+        (r) => r.from === targetEntity || r.to === targetEntity
+      );
+
+      if (hasRelation) {
+        const refModel = capitalize(targetEntity);
+        return `  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: ${refModel}.name, required: true })\n  ${fieldName}: mongoose.Types.ObjectId;`;
+      }
+    }
+
+    return `  @Prop({ required: true })\n  ${fieldName}: ${
+      f.type.toLowerCase() === "date" ? "Date" : f.type.toLowerCase()
+    };`;
+  }); */
+
+  const directFields = entity.fields
+    .filter((f) => {
+      // ❌ ignore les champs relationnels objets (post, user, etc.)
+      if (isRelationObjectField(f, entitiesData)) return false;
+
+      // ❌ ignore aussi les champs non scalaires
+      const scalarTypes = [
+        "string",
+        "text",
+        "number",
+        "int",
+        "float",
+        "boolean",
+        "date",
+        "uuid",
+        "json",
+      ];
+
+      return scalarTypes.includes(f.type.toLowerCase());
+    })
+    .map((f) => {
+      const fieldName = f.name;
+      const fieldNameLow = fieldName.toLowerCase();
+
+      if (entityNameLower === "user" && fieldName === "role") {
+        return `  @Prop({ type: String, enum: Role, default: Role.USER })\n  role: Role;`;
+      }
+
+      if (fieldNameLow.endsWith("id")) {
+        const targetEntity = fieldNameLow.replace("id", "");
+        const hasRelation = entitiesData.relations.some(
+          (r) => r.from === targetEntity || r.to === targetEntity
+        );
+
+        if (hasRelation) {
+          const refModel = capitalize(targetEntity);
+          return `  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: ${refModel}.name, required: true })\n  ${fieldName}: mongoose.Types.ObjectId;`;
+        }
+      }
+
+      return `  @Prop({ required: true })\n  ${fieldName}: ${
+        f.type.toLowerCase() === "date" ? "Date" : f.type.toLowerCase()
+      };`;
+    });
+
+  const dynamicRelations = entitiesData.relations
+    .map((rel) => {
+      const isFrom = rel.from === entityNameLower;
+      const isTo = rel.to === entityNameLower;
+      if (!isFrom && !isTo) return null;
+
+      const otherEntity = isFrom ? rel.to : rel.from;
+      const otherCap = capitalize(otherEntity);
+
+      switch (rel.type) {
+        // ==========================================
+        // CASE 1-n
+        // ==========================================
+        case "1-n":
+          if (isTo) {
+            return `  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: ${otherCap}.name, required: true })\n  ${otherEntity}Id: mongoose.Types.ObjectId;`;
+          }
+          return null;
+
+        // ==========================================
+        // CASE n-1
+        // ==========================================
+        case "n-1":
+          if (isFrom) {
+            return `  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: ${otherCap}.name, required: true })\n  ${otherEntity}Id: mongoose.Types.ObjectId;`;
+          }
+          return null;
+
+        // ==========================================
+        // CASE 1-1
+        // ==========================================
+        case "1-1":
+          if (isFrom) {
+            return `  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: ${otherCap}.name, unique: true })\n  ${otherEntity}Id: mongoose.Types.ObjectId;`;
+          }
+          return null;
+
+        // ==========================================
+        // CASE n-n
+        // ==========================================
+        case "n-n":
+          return `  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: ${otherCap}.name }] })\n  ${otherEntity}Ids: mongoose.Types.ObjectId[];`;
+
+        default:
+          return null;
+      }
+    })
+    .filter(Boolean);
+
+  const allFields = [...new Set([...directFields, ...dynamicRelations])].join(
+    "\n\n"
+  );
+
   return `
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import * as mongoose from 'mongoose';
 import { Document } from 'mongoose';
+${extraImports}
 
-@Schema()
-export class ${entityName} extends Document {
-${fields}
+export type ${entityName}Document = ${entityName} & Document;
+
+@Schema({ timestamps: true })
+export class ${entityName} {
+${allFields}
 }
 
 export const ${entityName}Schema = SchemaFactory.createForClass(${entityName});
 `.trim();
+}
+
+export async function generateMongooseSchemaFileContent(
+  entity,
+  entitiesData,
+  mode = "full"
+) {
+  const entityName = capitalize(entity.name);
+  const entityNameLower = entity.name.toLowerCase();
+  const isFull = mode === "full";
+
+  // --- 1. IMPORTS DYNAMIQUES ---
+  const relatedEntities = entitiesData.relations
+    .filter((rel) => rel.from === entityNameLower || rel.to === entityNameLower)
+    .map((rel) => (rel.from === entityNameLower ? rel.to : rel.from));
+
+  const uniqueRelated = [...new Set(relatedEntities)].filter(
+    (e) => e !== entityNameLower
+  );
+
+  let extraImports = "";
+  /*  uniqueRelated.forEach((target) => {
+    const targetCap = capitalize(target);
+    const moduleName = target === "session" ? "auth" : target;
+    const importPath = isFull
+      ? `../../../../${moduleName}/infrastructure/persistence/mongoose/${target}.schema`
+      : `../../${moduleName}/entities/${target}.schema`;
+
+    extraImports += `import { ${targetCap} } from '${importPath}';\n`;
+  }); */
+  uniqueRelated.forEach((target) => {
+    const targetCap = capitalize(target);
+    const moduleName = target === "session" ? "auth" : target;
+
+    let importPath = "";
+
+    if (isFull) {
+      // Mode Clean Architecture (Full)
+      importPath = `../../../../${moduleName}/infrastructure/persistence/mongoose/${target}.schema`;
+    } else {
+      // Mode Light
+      // Si pour Auth tu as fait une exception et mis le schéma dans un sous-dossier :
+      if (target === "session") {
+        importPath = `../../auth/persistence/${target}.schema`;
+      } else {
+        // Pour les autres entités en mode Light (ex: src/post/entities/post.schema.ts)
+        importPath = `../../${moduleName}/entities/${target}.schema`;
+      }
+    }
+
+    extraImports += `import { ${targetCap} } from '${importPath}';\n`;
+  });
+
+  if (entityNameLower === "user") {
+    const rolePath = isFull
+      ? "../../../domain/enums/role.enum"
+      : "../../common/enums/role.enum";
+    extraImports += `import { Role } from '${rolePath}';\n`;
+  }
+
+  // --- 2. LOGIQUE DES RELATIONS DYNAMIQUES (Prioritaire) ---
+  const dynamicRelations = entitiesData.relations
+    .map((rel) => {
+      const isFrom = rel.from === entityNameLower;
+      const isTo = rel.to === entityNameLower;
+      if (!isFrom && !isTo) return null;
+
+      const otherEntity = isFrom ? rel.to : rel.from;
+      const otherCap = capitalize(otherEntity);
+
+      switch (rel.type) {
+        case "1-n":
+          return isTo
+            ? `  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: ${otherCap}.name, required: true })\n  ${otherEntity}Id: mongoose.Types.ObjectId;`
+            : null;
+        case "n-1":
+          return isFrom
+            ? `  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: ${otherCap}.name, required: true })\n  ${otherEntity}Id: mongoose.Types.ObjectId;`
+            : null;
+        case "1-1":
+          return isFrom
+            ? `  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: ${otherCap}.name, unique: true })\n  ${otherEntity}Id: mongoose.Types.ObjectId;`
+            : null;
+        case "n-n":
+          return `  @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: ${otherCap}.name }] })\n  ${otherEntity}Ids: mongoose.Types.ObjectId[];`;
+        default:
+          return null;
+      }
+    })
+    .filter(Boolean);
+
+  // --- 3. FILTRAGE DES CHAMPS DIRECTS (Scalaires uniquement) ---
+  const scalarTypes = [
+    "string",
+    "text",
+    "number",
+    "int",
+    "float",
+    "boolean",
+    "date",
+    "uuid",
+    "json",
+  ];
+
+  const directFields = entity.fields
+    .filter((f) => {
+      const nameLow = f.name.toLowerCase();
+      // On dégage tout ce qui ressemble à une relation pour éviter les doublons avec dynamicRelations
+      const isRelId = uniqueRelated.some(
+        (rel) => nameLow === rel + "id" || nameLow === rel
+      );
+      return scalarTypes.includes(f.type.toLowerCase()) && !isRelId;
+    })
+    .map((f) => {
+      const fieldName = f.name;
+      const rawType = f.type.toLowerCase();
+
+      // 1. Gestion spécifique du Role
+      if (entityNameLower === "user" && fieldName === "role") {
+        return `  @Prop({ type: String, enum: Role, default: Role.USER })\n  role: Role;`;
+      }
+
+      // 2. Mapping des types CLI -> TypeScript/Mongoose
+      let tsType = "string"; // Valeur par défaut
+      let propOptions = "required: true";
+
+      switch (rawType) {
+        case "text":
+        case "uuid":
+        case "string":
+          tsType = "string";
+          break;
+        case "int":
+        case "number":
+        case "float":
+        case "decimal":
+          tsType = "number";
+          break;
+        case "boolean":
+          tsType = "boolean";
+          break;
+        case "date":
+          tsType = "Date";
+          break;
+        case "json":
+          tsType = "Record<string, any>"; // Ou 'any'
+          propOptions = "type: Object, required: true";
+          break;
+        default:
+          tsType = "any";
+      }
+
+      return `  @Prop({ ${propOptions} })\n  ${fieldName}: ${tsType};`;
+    });
+
+  const allFields = [...new Set([...directFields, ...dynamicRelations])].join(
+    "\n\n"
+  );
+
+  return `import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import * as mongoose from 'mongoose';
+import { Document } from 'mongoose';
+${extraImports}
+
+export type ${entityName}Document = ${entityName} & Document;
+
+@Schema({ timestamps: true })
+export class ${entityName} {
+${allFields}
+}
+
+export const ${entityName}Schema = SchemaFactory.createForClass(${entityName});`.trim();
+}
+
+function isRelationObjectField(field, entitiesData) {
+  const typeLower = field.type.toLowerCase();
+
+  return entitiesData.entities?.some((e) => e.name.toLowerCase() === typeLower);
 }
 
 function capitalize(str) {

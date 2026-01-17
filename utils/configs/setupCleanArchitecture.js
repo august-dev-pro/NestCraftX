@@ -15,6 +15,7 @@ const {
   generateRepository,
   generateController,
   generateMongooseSchemaFileContent,
+  pluralize,
 } = require("../utils");
 
 async function setupCleanArchitecture(inputs) {
@@ -24,6 +25,7 @@ async function setupCleanArchitecture(inputs) {
   const dbConfig = inputs.dbConfig;
   const useSwagger = inputs.useSwagger;
   const useAuth = inputs.useAuth;
+  const mode = "full";
 
   const srcPath = "src";
   const baseFolders = [
@@ -31,7 +33,7 @@ async function setupCleanArchitecture(inputs) {
     "application/dtos",
     "domain/interfaces",
     "domain/entities",
-    "domain/enums",
+    // "domain/enums",
     "infrastructure/mappers",
     "infrastructure/repositories",
     "application/services",
@@ -45,7 +47,7 @@ async function setupCleanArchitecture(inputs) {
 
     // ajouter l'import configModule
     await updateFile({
-      path: "src/app.module.ts",
+      path: appModuleTsPath,
       pattern: "import { Module } from '@nestjs/common';",
       replacement: `import { Module } from '@nestjs/common';\nimport { ConfigModule } from '@nestjs/config';`,
     });
@@ -75,10 +77,16 @@ async function setupCleanArchitecture(inputs) {
 
       if (dbConfig.orm === "mongoose") {
         const mongooseSchemaContent = await generateMongooseSchemaFileContent(
-          entity
+          entity,
+          entitiesData,
+          mode
         );
+
+        const schemaPath = `src/${entity.name}/infrastructure/persistence/mongoose`;
+        await createDirectory(schemaPath);
+
         await createFile({
-          path: `src/${entity.name}/domain/entities/${entity.name}.schema.ts`,
+          path: `${schemaPath}/${entity.name}.schema.ts`,
           contente: mongooseSchemaContent,
         });
       }
@@ -103,6 +111,8 @@ async function setupCleanArchitecture(inputs) {
         contente: `import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from 'src/${entityNameLower}/application/dtos/${entityNameLower}.dto';
         import { ${entityNameCapitalized}Entity } from 'src/${entityNameLower}/domain/entities/${entityNameLower}.entity';
 
+        export const I${entityNameCapitalized}RepositoryName = 'I${entityNameCapitalized}Repository';
+
         export interface I${entityNameCapitalized}Repository {
           create(data: Create${entityNameCapitalized}Dto): Promise<${entityNameCapitalized}Entity>;
           findById(id: string): Promise<${entityNameCapitalized}Entity | null>;
@@ -126,31 +136,27 @@ async function setupCleanArchitecture(inputs) {
         switch (useCase) {
           case "Create":
             content = `/**
- * Use Case pour créer un ${entityName}.
+ * Use case to handle the creation of a new ${entityName}.
  */
+
 import { Inject, Logger } from '@nestjs/common';
 import { Create${entityName}Dto } from 'src/${entity.name}/application/dtos/${entity.name}.dto';
-import { I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
+import { I${entityName}RepositoryName, I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
 export class Create${entityName}UseCase {
   private readonly logger = new Logger(Create${entityName}UseCase.name);
 
   constructor(
-    @Inject("I${entityName}Repository")
+    @Inject(I${entityName}RepositoryName)
     private readonly ${entityNameLower}Repository: I${entityName}Repository,
   ) {}
 
   async execute(data: Create${entityName}Dto): Promise<${entityName}Entity> {
-    this.logger.log('Début création ${entityName}');
-    try {
-      const result = await this.${entityNameLower}Repository.create(data);
-      this.logger.log('Création réussie: ', result.getId());
-      return result;
-    } catch (error) {
-      this.logger.error('Erreur lors de la création', error.stack);
-      throw error;
-    }
+    this.logger.log('Starting creation process for ${entityName}');
+    const result = await this.${entityNameLower}Repository.create(data);
+    this.logger.log(\`Successfully created ${entityName} (ID: \${result.getId()})\`);
+    return result;
   }
 }
 `;
@@ -158,30 +164,32 @@ export class Create${entityName}UseCase {
 
           case "GetById":
             content = `/**
- * Use Case pour récupérer un ${entityName} par son ID.
+ * Use case to retrieve a specific ${entityName} by its unique identifier.
  */
-import { Inject, Logger } from '@nestjs/common';
-import { I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
+
+import { Inject, Logger, NotFoundException } from '@nestjs/common';
+import { I${entityName}RepositoryName, I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
 export class GetById${entityName}UseCase {
   private readonly logger = new Logger(GetById${entityName}UseCase.name);
 
   constructor(
-    @Inject("I${entityName}Repository")
+    @Inject(I${entityName}RepositoryName)
     private readonly ${entityNameLower}Repository: I${entityName}Repository,
   ) {}
 
-  async execute(id: string): Promise<${entityName}Entity | null> {
-    // this.logger.log(\`Recherche de ${entityName} par id: \${id}\`);
-    try {
-      const result = await this.${entityNameLower}Repository.findById(id);
-      this.logger.log('Recherche réussie');
-      return result;
-    } catch (error) {
-      this.logger.error('Erreur lors de la recherche', error.stack);
-      throw error;
+  async execute(id: string): Promise<${entityName}Entity> {
+    this.logger.log(\`Fetching ${entityName} (ID: \${id})\`);
+    const result = await this.${entityNameLower}Repository.findById(id);
+
+    if (!result) {
+      this.logger.warn(\`${entityName} \${id} not found\`);
+      throw new NotFoundException(\`${entityName} not found\`);
     }
+
+    this.logger.log(\`Successfully retrieved ${entityName}\`);
+    return result;
   }
 }
 `;
@@ -189,30 +197,26 @@ export class GetById${entityName}UseCase {
 
           case "GetAll":
             content = `/**
- * Use Case pour récupérer tous les ${entityName}s.
+ * Use case to retrieve all ${entityName} records from the database.
  */
+
 import { Inject, Logger } from '@nestjs/common';
-import { I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
+import { I${entityName}RepositoryName, I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
 export class GetAll${entityName}UseCase {
   private readonly logger = new Logger(GetAll${entityName}UseCase.name);
 
   constructor(
-    @Inject("I${entityName}Repository")
+    @Inject(I${entityName}RepositoryName)
     private readonly ${entityNameLower}Repository: I${entityName}Repository,
   ) {}
 
   async execute(): Promise<${entityName}Entity[]> {
-    // this.logger.log('Récupération de tous les ${entityName}s');
-    try {
-      const result = await this.${entityNameLower}Repository.findAll();
-      this.logger.log('Récupération réussie');
-      return result;
-    } catch (error) {
-      this.logger.error('Erreur lors de la récupération', error.stack);
-      throw error;
-    }
+    this.logger.log('Requesting all ${entityName} records');
+    const results = await this.${entityNameLower}Repository.findAll();
+    this.logger.log(\`Retrieved \${results.length} ${entityName}(s)\`);
+    return results;
   }
 }
 `;
@@ -220,38 +224,40 @@ export class GetAll${entityName}UseCase {
 
           case "Update":
             content = `/**
- * Use Case pour mettre à jour un ${entityName} existant.
+ * Use case to update the data of an existing ${entityName}.
  */
-import { Inject, Logger } from '@nestjs/common';
+
+import { Inject, Logger, NotFoundException } from '@nestjs/common';
 import { Update${entityName}Dto } from 'src/${entity.name}/application/dtos/${entity.name}.dto';
-import { I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
+import { I${entityName}RepositoryName, I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
 export class Update${entityName}UseCase {
   private readonly logger = new Logger(Update${entityName}UseCase.name);
 
   constructor(
-    @Inject("I${entityName}Repository")
+    @Inject(I${entityName}RepositoryName)
     private readonly ${entityNameLower}Repository: I${entityName}Repository,
   ) {}
 
-  async execute(id: string, data: Update${entityName}Dto): Promise<${entityName}Entity | null> {
-    // this.logger.log(\`Mise à jour de ${entityName} id: \${id}\`);
+  async execute(id: string, data: Update${entityName}Dto): Promise<${entityName}Entity> {
+    this.logger.log(\`Updating ${entityName} (ID: \${id})\`);
 
-    try {
-      // Vérifier l'existence de l'élément
-      const existing = await this.${entityNameLower}Repository.findById(id);
-      if (!existing) {
-        this.logger.warn(\`${entityName} avec l'id \${id} non trouvé pour la mise à jour\`);
-        throw new Error('${entityName} non trouvé');
-      }
-      const result = await this.${entityNameLower}Repository.update(id, data);
-      this.logger.log('Mise à jour réussie');
-      return result;
-    } catch (error) {
-      this.logger.error('Erreur lors de la mise à jour', error.stack);
-      throw error;
+    const existing = await this.${entityNameLower}Repository.findById(id);
+    if (!existing) {
+      this.logger.warn(\`${entityName} \${id} not found for update\`);
+      throw new NotFoundException(\`${entityName} not found\`);
     }
+
+    const result = await this.${entityNameLower}Repository.update(id, data);
+
+    if (!result) {
+      this.logger.error(\`Update failed for ${entityName} \${id} - entity disappeared\`);
+      throw new NotFoundException(\`${entityName} update failed\`);
+    }
+
+    this.logger.log(\`Successfully updated ${entityName} \${id}\`);
+    return result;
   }
 }
 `;
@@ -259,34 +265,31 @@ export class Update${entityName}UseCase {
 
           case "Delete":
             content = `/**
- * Use Case pour supprimer un ${entityName}.
+ * Use case to permanently remove an ${entityName} from the system.
  */
-import { Inject, Logger } from '@nestjs/common';
-import { I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
+
+import { Inject, Logger, NotFoundException } from '@nestjs/common';
+import { I${entityName}RepositoryName, I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 
 export class Delete${entityName}UseCase {
   private readonly logger = new Logger(Delete${entityName}UseCase.name);
 
   constructor(
-    @Inject("I${entityName}Repository")
+    @Inject(I${entityName}RepositoryName)
     private readonly ${entityNameLower}Repository: I${entityName}Repository,
   ) {}
 
   async execute(id: string): Promise<void> {
-    // this.logger.log(\`Suppression de ${entityName} id: \${id}\`);
-    try {
-      // Vérifier l'existence de l'élément
-      const existing = await this.${entityNameLower}Repository.findById(id);
-      if (!existing) {
-        this.logger.warn(\`${entityName} avec l'id \${id} non trouvé !\`);
-        throw new Error('${entityName} non trouvé');
-      }
-      await this.${entityNameLower}Repository.delete(id);
-      this.logger.log('Suppression réussie');
-    } catch (error) {
-      this.logger.error('Erreur lors de la suppression', error.stack);
-      throw error;
+    this.logger.log(\`Deleting ${entityName} (ID: \${id})\`);
+
+    const existing = await this.${entityNameLower}Repository.findById(id);
+    if (!existing) {
+      this.logger.warn(\`${entityName} \${id} not found for deletion\`);
+      throw new NotFoundException(\`${entityName} not found\`);
     }
+
+    await this.${entityNameLower}Repository.delete(id);
+    this.logger.log(\`Successfully deleted ${entityName} \${id}\`);
   }
 }
 `;
@@ -309,6 +312,7 @@ export class Delete${entityName}UseCase {
       });
 
       if (entity.name.toLowerCase() === "user") {
+        await createDirectory(`${entityPath}/domain/enums`);
         await createFile({
           path: `${entityPath}/domain/enums/role.enum.ts`,
           contente: `// Enumération des rôles utilisateurs
@@ -438,7 +442,7 @@ export class ${entityNameCapitalized}Adapter {
         );
       } else if (dbConfig.orm === "mongoose") {
         extraImports = `import { MongooseModule } from '@nestjs/mongoose';
-import { ${entityNameCapitalized}, ${entityNameCapitalized}Schema } from '${entityPath}/domain/entities/${entityNameLower}.schema';`;
+import { ${entityNameCapitalized}, ${entityNameCapitalized}Schema } from '${entityPath}/infrastructure/persistence/mongoose/${entityNameLower}.schema';`;
         importsBlock.push(
           `MongooseModule.forFeature([{ name: ${entityNameCapitalized}.name, schema: ${entityNameCapitalized}Schema }])`
         );

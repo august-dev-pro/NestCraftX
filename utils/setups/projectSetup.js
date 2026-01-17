@@ -38,7 +38,7 @@ async function createProject(inputs) {
 
   // Remains asynchronous as runCommand likely involves external processes (npm/npx)
   await runCommand(
-    `${inputs.packageManager} add @nestjs/config class-validator class-transformer`,
+    `${inputs.packageManager} add @nestjs/config class-validator class-transformer dotenv`,
     "Failed to install dependencies"
   );
 }

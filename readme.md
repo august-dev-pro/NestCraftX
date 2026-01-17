@@ -1,11 +1,14 @@
-## NestCraftX — Clean Architecture Generator for NestJS
+# NestCraftX — Clean Architecture Generator for NestJS
 
-![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Node.js](https://img.shields.io/badge/node-%3E=14.0.0-green.svg)
-![Version](https://img.shields.io/badge/version-0.2.3-brightgreen.svg)
-![Prisma](https://img.shields.io/badge/ORM-Prisma-lightblue)
-![TypeORM](https://img.shields.io/badge/ORM-TypeORM-red)
-![Mongoose](https://img.shields.io/badge/ORM-Mongoose-pink)
+[![NPM Version](https://img.shields.io/npm/v/nestcraftx?style=flat-square&color=CB3837)](https://www.npmjs.com/package/nestcraftx)
+[![NPM Downloads](https://img.shields.io/npm/dm/nestcraftx?style=flat-square&color=51a2da)](https://www.npmjs.com/package/nestcraftx)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D14.0.0-4dc71f?style=flat-square)](https://nodejs.org)
+
+**ORMs:**
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white)
+![TypeORM](https://img.shields.io/badge/TypeORM-FE0803?style=flat-square&logo=typeorm&logoColor=white)
+![Mongoose](https://img.shields.io/badge/Mongoose-880000?style=flat-square&logo=mongodb&logoColor=green)
 
 **NestCraftX** is a modern and powerful Node.js CLI for automatically generating NestJS projects and content with a clean, maintainable, and production-ready architecture.
 
@@ -28,13 +31,13 @@ Key Features:
 
 - Smart Config: Automated Swagger decorators, auto-documented .env files, and pre-configured database connections.
 
-> Version 0.2.3: Major improvement - Interactive demo with flags, Auth refactored via UserService, professional templates (gitignore, README), clean code maintained by the community!
+> **Version 0.2.5:** Major release — Interactive generation via flags, Auth refactored with session management, professional templates (gitignore, README), and clean code standards maintained by the community!
 
 ---
 
 ## Table of Contents
 
-- [What's New in v0.2.3](#whats-new-in-v023)
+- [What's New in v0.2.5](#whats-new-in-v025)
 - [Project Objective](#project-objective)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
@@ -49,7 +52,7 @@ Key Features:
 
 ---
 
-## What's New in v0.2.3
+## What's New in v0.2.5
 
 ### Two Architecture Modes
 
@@ -286,7 +289,7 @@ nestcraftx info
 
 ✅ **TypeORM ➡️ (PostgreSQL)** - Complete ORM with decorators
 
-✅ **Mongoose ➡️ (MongoDB)** - ODM for MongoDB (Coming soon)
+✅ **Mongoose ➡️ (MongoDB)** - ODM for MongoDB
 
 ✅ Automatic schema configuration
 
@@ -545,39 +548,31 @@ open http://localhost:3000/api/docs
 
 ## Roadmap
 
-### Version 0.2.x (Current Focus)
+### Version 0.2.x — Stabilization
 
-- [x] Light & Full Architecture engines.
+- [x] Light & Full architectures
+- [x] Interactive CLI
+- [x] Multi-ORM support (Prisma / TypeORM / Mongoose)
+- [ ] Comprehensive documentation & realistic examples
 
-- [x] Inquirer.js interactive prompts.
+### Version 0.3.0 — Developer Experience
 
-- [ ] Stability: Deep testing for Prisma, TypeORM and Mongoose integrations.
+- [ ] `generate` command (scaffold modules/entities into existing projects)
+- [ ] SQLite support for zero-config demos & prototyping
+- [ ] Enhanced error handling & colored terminal logs
 
-- [ ] Documentation: Complete API examples in README.
+### Version 0.4.0 — Production Readiness
 
-### Version 0.3.0 (Expansion)
+- [ ] Pluggable session strategies (In-memory / Database / Redis)
+- [ ] Advanced data seeding templates
+- [ ] Project presets (API Only / Auth / Full CRUD)
 
-- [ ] New Databases: Full support for MySQL and SQLite.
+### Version 1.0.0 — Stable Release
 
-- [ ] Scaffolding: generate command to add new modules/entities to an existing project.
-
-- [ ] Testing: Automated unit test generation for services and controllers.
-
-### Version 0.5.0 (Enterprise Features)
-
-- [ ] Redis Integration: Choice of session management (Redis, Map, or Database).
-
-- [ ] CI/CD: Ready-to-use templates for GitHub Actions and GitLab CI.
-
-- [ ] Seeding: Advanced database seeding generation.
-
-### Version 1.0.0 (The Milestone)
-
-- [ ] Microservices: Support for hybrid applications and microservices.
-
-- [ ] Web UI: Optional visual interface for project configuration.
-
-- [ ] Community: Official documentation site and plugin system.
+- [ ] TypeScript-native CLI
+- [ ] Enforced conventions & stable API contracts
+- [ ] Official documentation website
+- [ ] Long-term support (LTS) guarantees
 
 ---
 
@@ -634,7 +629,7 @@ Thanks to all contributors and the NestJS community!
 
 ---
 
-**NestCraftX v0.2.3** - Clean Architecture Made Simple
+**NestCraftX v0.2.5** - Clean Architecture Made Simple
 
 For more information:
 

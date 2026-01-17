@@ -40,6 +40,15 @@ async function setupSwagger(inputs) {
       `async function bootstrap() {
     const app = await NestFactory.create(AppModule);
 
+    // Global validation & transformation
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
+
     // Configuration Swagger
     const config = new DocumentBuilder()
       .setTitle('${inputs.title}')

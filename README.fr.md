@@ -1,43 +1,41 @@
-## NestCraftX — Clean Architecture Generator for NestJS
+# NestCraftX — Générateur de Clean Architecture pour NestJS
 
-demo
-![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Node.js](https://img.shields.io/badge/node-%3E=14.0.0-green.svg)
-![Version](https://img.shields.io/badge/version-0.2.4-brightgreen.svg)
+[![Version NPM](https://img.shields.io/npm/v/nestcraftx?style=flat-square&color=CB3837)](https://www.npmjs.com/package/nestcraftx)
+[![Téléchargements](https://img.shields.io/npm/dm/nestcraftx?style=flat-square&color=51a2da)](https://www.npmjs.com/package/nestcraftx)
+[![Licence: MIT](https://img.shields.io/badge/Licence-MIT-blue.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![Version Node.js](https://img.shields.io/badge/node-%3E%3D14.0.0-4dc71f?style=flat-square)](https://nodejs.org)
 
-**NestCraftX** est un CLI Node.js moderne et puissant pour generer automatiquement des projets NestJS et leur contenu avec une architecture propre, maintenable et prête pour la production.
+**ORMs:**
+![Prisma](https://img.shields.io/badge/Prisma-2D3748?style=flat-square&logo=prisma&logoColor=white)
+![TypeORM](https://img.shields.io/badge/TypeORM-FE0803?style=flat-square&logo=typeorm&logoColor=white)
+![Mongoose](https://img.shields.io/badge/Mongoose-880000?style=flat-square&logo=mongodb&logoColor=green)
 
-Il échafaude tout ce dont vous avez besoin pour commencer :
+**NestCraftX** est un CLI Node.js moderne et puissant pour générer automatiquement des projets NestJS avec une architecture propre, maintenable et prête pour la production.
 
-- Modules, Contrôleurs & Services (Entièrement typés)
+Il échafaude tout ce dont vous avez besoin pour démarrer :
 
-- Repositories & Mappers (Pour un flux de données propre)
+- **Modules, Controllers & Services** (Entièrement typés)
+- **Repositories & Mappers** (Pour un flux de données propre et une séparation des responsabilités)
+- **DTOs** (Avec validation intégrée via class-validator)
+- **Entités / Schémas** (Prisma, TypeORM, ou Mongoose)
+- **Authentification** (JWT avec Refresh Tokens & génération automatique des secrets)
+- **Prêt pour le DevOps** (Docker, Docker-Compose & Swagger UI)
 
-- DTOs (Prêts pour la validation)
+NestCraftX implémente les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Validation stricte**, **Sécurité pré-configurée** et bien plus encore.
 
-- Entités / Schémas (Prisma, TypeORM, ou Mongoose)
+### Fonctionnalités Clés :
 
-- Authentification (JWT avec Refresh Tokens & secrets auto-générés)
+- **Architecture Double :** Choisissez entre le mode _Light_ (idéal pour les MVPs) ou _Full_ (Clean Architecture / DDD).
+- **Relations Interactives :** Définissez vos relations 1-N ou N-N directement depuis votre terminal.
+- **Configuration Intelligente :** Décorateurs Swagger automatiques, fichiers .env auto-documentés et connexions aux bases de données pré-configurées.
 
-- Prêt pour le DevOps (Docker, Docker-Compose & Swagger UI)
-
-Il implemente les meilleures pratiques modernes : **Clean Architecture**, **Domain-Driven Design (DDD)**, **Prisma/TypeORM/Mongoose**, **JWT Auth avec secrets auto-generes**, **Swagger**, **Docker**, et plus encore.
-
-Fonctionnalités Clés :
-
-- **Dual-Architecture** : Choisissez entre une structure Light (idéale pour les MVP) ou Full (basée sur la Clean Architecture / DDD).
-
-- **Relations Interactives** : Définissez vos relations 1-N ou N-N directement dans le terminal via un prompt interactif.
-
-- **Configuration Intelligente** : Décorateurs Swagger automatisés, fichiers Docker initialisés, fichiers .env auto-documentés et connexions aux bases de données pré-configurées.
-
-> Version 0.2.4 : Amélioration majeure - Démo interactif avec flags, Authentification integré, templates professionnels (gitignore, README), code propre et maintenir par la communauté !
+> **Version 0.2.5 :** Mise à jour majeure — Génération interactive par flags, refonte de l'authentification avec gestionnaire de session, templates professionnels (.gitignore, README) et standards de code maintenus par la communauté !
 
 ---
 
 ## Sommaire
 
-- [Nouveautes v0.2.4](#nouveautes-v023)
+- [Nouveautes v0.2.5](#nouveautes-v025)
 - [Objectif du projet](#objectif-du-projet)
 - [Prérequis](#prérequis)
 - [Installation](#installation)
@@ -52,7 +50,7 @@ Fonctionnalités Clés :
 
 ---
 
-## Nouveautes v0.2.4
+## Nouveautes v0.2.5
 
 ### Deux Modes d'Architecture
 
@@ -286,7 +284,7 @@ nestcraftx info
 
 ✅ **TypeORM ➡️ (PostgreSQL)** - ORM complet avec decorateurs
 
-✅ **Mongoose ➡️ (MongoDB)** - ODM pour MongoDB (phase de test, peut generer des erreurs)
+✅ **Mongoose ➡️ (MongoDB)** - ODM pour MongoDB
 
 ✅ Configuration automatique du schéma
 
@@ -565,37 +563,33 @@ open http://localhost:3000/api/docs
 
 ---
 
-## Roadmap
+## Feuille de Route (Roadmap)
 
-### Version 0.2.x (Objectif Actuel)
+### Version 0.2.x — Stabilisation
 
-- [x] Moteurs d'architecture Light & Full.
+- [x] Architectures Light & Full
+- [x] CLI Interactif
+- [x] Support Multi-ORM (Prisma / TypeORM / Mongoose)
+- [ ] Amélioration de la documentation et des exemples
 
-- [x] Prompts interactifs avec Inquirer.js.
+### Version 0.3.0 — Expérience Développeur (DX)
 
-- [ ] Stabilité : Tests approfondis et stabilisation des intégrations Mongoose et TypeORM.
+- [ ] Commande `generate` (ajouter des modules/entités à un projet existant)
+- [ ] Support SQLite pour des démos et tests rapides sans config
+- [ ] Meilleure gestion des erreurs et logs terminaux colorés
 
-### Version 0.3.0 (Expansion)
+### Version 0.4.0 — Prêt pour la Production
 
-- [ ] Nouvelles bases de données : Support complet pour MySQL et SQLite.
+- [ ] Stratégies de session optionnelles (Map / Base de données / Redis)
+- [ ] Templates de seeding (peuplement de données) avancés
+- [ ] Presets de projet (API seule / Auth / CRUD complet)
 
-- [ ] Scaffolding : Commande `generate` pour ajouter des modules/entités à un projet existant.
+### Version 1.0.0 — Version Stable
 
-- [ ] Tests : Génération automatique des tests unitaires pour les services et contrôleurs.
-
-### Version 0.5.0 (Fonctionnalités Avancées)
-
-- [ ] Intégration Redis : Choix de la gestion de session (Redis, Map (dev), ou registre DB).
-- [ ] CI/CD : Templates prêts à l'emploi pour GitHub Actions et GitLab CI.
-- [ ] Seeding : Génération avancée de scripts de "seeding" pour la base de données.
-
-### Version 1.0.0
-
-- [ ] Microservices : Support pour les applications hybrides et les microservices.
-- [ ] Interface Web : Interface visuelle optionnelle pour configurer vos projets.
-- [ ] Communauté : Site de documentation officiel et système de plugins.
-
----
+- [ ] CLI nativement en TypeScript
+- [ ] Conventions strictes et contrats d'API stables
+- [ ] Site officiel de documentation
+- [ ] Garanties de support à long terme (LTS)
 
 ## Contribuer
 
@@ -650,7 +644,7 @@ Merci à tous les contributeurs et à la communauté NestJS !
 
 ---
 
-**NestCraftX v0.2.4** - Clean Architecture Made Simple
+**NestCraftX v0.2.5** - Clean Architecture Made Simple
 
 Pour plus d'informations:
 

@@ -10,7 +10,7 @@ async function generateEnvFile(inputs) {
   const jwtSecret = generateSecret(64);
   const jwtRefreshSecret = generateSecret(64);
 
-  // --- SECTION APPLICATION ---
+  // --- APPLICATION SECTION ---
   let content = `# ==============================================================================
 # APPLICATION CONFIGURATION
 # ==============================================================================
@@ -20,22 +20,22 @@ PORT=3000
 
 `;
 
-  // --- SECTION AUTHENTIFICATION ---
+  // --- AUTHENTICATION SECTION ---
   content += `# ------------------------------------------------------------------------------
 # AUTHENTICATION (JWT)
 # ------------------------------------------------------------------------------
-# Secrets auto-générés pour sécuriser les tokens.
-# Ne partagez jamais ces clés en production.
+# Auto-generated secrets to secure tokens.
+# Never share these keys in production.
 JWT_SECRET=${jwtSecret}
 JWT_REFRESH_SECRET=${jwtRefreshSecret}
 
-# Formats acceptés : 15m (minutes), 1h (heures), 7d (jours)
+# Accepted formats: 15m (minutes), 1h (hours), 7d (days)
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
 
 `;
 
-  // --- SECTION DATABASE ---
+  // --- DATABASE SECTION ---
   content += `# ------------------------------------------------------------------------------
 # DATABASE CONFIGURATION (${inputs.dbConfig.orm.toUpperCase()})
 # ------------------------------------------------------------------------------
@@ -44,7 +44,7 @@ JWT_REFRESH_EXPIRES_IN=7d
   if (inputs.dbConfig.orm === "mongoose") {
     const mongoUri = inputs.dbConfig.MONGO_URI || "mongodb://localhost:27017";
     const mongoDb = inputs.dbConfig.MONGO_DB || inputs.projectName;
-    content += `# URI de connexion MongoDB
+    content += `# MongoDB connection URI
 MONGO_URI=${mongoUri}
 MONGO_DB=${mongoDb}
 `;
@@ -64,14 +64,14 @@ MONGO_DB=${mongoDb}
       inputs.dbConfig.orm
     );
 
-    content += `# Variables individuelles (utiles pour Docker ou scripts tiers)
+    content += `# Individual variables (useful for Docker or third-party scripts)
 POSTGRES_USER=${user}
 POSTGRES_PASSWORD=${pass}
 POSTGRES_DB=${db}
 POSTGRES_HOST=${host}
 POSTGRES_PORT=${port}
 
-# URL de connexion complète utilisée par ${inputs.dbConfig.orm.toUpperCase()}
+# Full connection URL used by ${inputs.dbConfig.orm.toUpperCase()}
 DATABASE_URL=${dbUrl}
 `;
   }

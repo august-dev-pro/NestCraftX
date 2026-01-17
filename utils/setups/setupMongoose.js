@@ -9,54 +9,7 @@ const {
 const { logSuccess } = require("../loggers/logSuccess");
 const { logInfo } = require("../loggers/logInfo");
 const { updatePackageJson } = require("../file-utils/packageJsonUtils");
-const { logWarning } = require("../loggers/logWarning");
 
-/* async function setupMongoose(inputs) {
-  logInfo("📦 Installation de Mongoose et @nestjs/mongoose...");
-  runCommand(
-    "npm install @nestjs/mongoose mongoose",
-    "Mongoose inetaller avec succes !"
-  );
-
-  // Génération du fichier .env
-  const envContent = `
-MONGO_URI=${inputs.dbConfig.MONGO_URI}
-MONGO_DB=${inputs.dbConfig.MONGO_DB}
-  `.trim();
-  await createFile({ path: ".env", contente: envContent });
-
-  // Ajout de l'import et de la configuration Mongoose dans app.module.ts
-  const appModulePath = path.join("src", "app.module.ts");
-  const mongooseImport = `import { MongooseModule } from '@nestjs/mongoose';`;
-
-  // Ajoute l'import si absent
-  await updateFile({
-    path: appModulePath,
-    pattern: /import {[\s\S]*?} from '@nestjs\/config';/,
-    replacement: (match) => `${match}\n${mongooseImport}`,
-  });
-
-  // Ajoute la configuration MongooseModule dans les imports
-  const importsPattern =
-    /imports:\s*\[[\s\S]*?ConfigModule\.forRoot\([\s\S]*?\),/;
-  await updateFile({
-    path: appModulePath,
-    pattern: importsPattern,
-    replacement: (match) =>
-      `${match}
-    MongooseModule.forRoot(process.env.MONGO_URI || " ", {
-      dbName: process.env.MONGO_DB,
-    }),`,
-  });
-
-  if (inputs.isDemo) {
-    await setupMongooseSeeding(inputs);
-  }
-
-  logSuccess("Mongoose configuré et injecté dans app.module.ts !");
-} */
-
-// The utility function for mapping is necessary for setupMongoose
 /**
  * Maps generic entity types to Mongoose schema types.
  * @param {string} type - Generic type (e.g., 'string', 'number', 'Date', 'string[]', 'MonEnum')
@@ -101,9 +54,11 @@ function mapTypeToMongoose(type) {
 }
 
 async function setupMongoose(inputs) {
-  logWarning(
+  /*   logWarning(
     `Mongoose integration is currently in Beta (v0.2.x). \nSome manual import fixes and corrections might be required in the generated files.`
-  );
+  ); */
+
+  const isFull = inputs.mode === "full";
 
   logInfo("📦 Installing Mongoose and @nestjs/mongoose...");
 
@@ -144,7 +99,6 @@ async function setupMongoose(inputs) {
 
   // --- Generating Mongoose Entities (Schemas) ---
   logInfo("📁 Generating Mongoose schemas (src/schemas)...");
-  await createDirectory("src/schemas");
 
   let forFeatureImports = [];
 
@@ -156,30 +110,36 @@ async function setupMongoose(inputs) {
 
     let fieldsContent = "";
     let extraImports = "";
+    // On commence avec mongoose déjà importé pour éviter les erreurs "namespace not found"
     let mongooseImportCode =
-      "import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';\n";
+      "import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';\nimport * as mongoose from 'mongoose';\n";
 
-    // Conditional addition of import * as mongoose
-    if (
-      entity.fields.some(
-        (f) => mapTypeToMongoose(f.type) === "mongoose.Schema.Types.Mixed"
-      )
-    ) {
-      mongooseImportCode += "import * as mongoose from 'mongoose';\n";
-    }
-
-    // --- Base Data Fields --- // Adding the role field if it's the User entity (assuming a Role enum exists)
+    // --- Gestion du Role (Éviter le doublon) ---
+    // --- Gestion du Role (Éviter le doublon) ---
     if (entityNameLower === "user") {
-      extraImports += `import { Role } from 'src/user/domain/enums/role.enum';\n`;
+      extraImports += isFull
+        ? `import { Role } from 'src/user/domain/enums/role.enum';\n`
+        : `import { Role } from 'src/common/enums/role.enum';\n`;
+
       fieldsContent += `
-   @Prop({ type: String, enum: Role, default: Role.USER })
-   role: Role;
-  `;
+@Prop({ type: String, enum: Role, default: Role.USER })
+role: Role;
+    `;
     }
 
     for (const field of entity.fields) {
-      // We ignore fields if we know they are relationships
-      // (Exclusion logic should be done, but here we simplify Mongoose)
+      // 🛡️ CORRECTION : On saute le champ s'il a déjà été traité manuellement (ex: role)
+      if (entityNameLower === "user" && field.name.toLowerCase() === "role")
+        continue;
+
+      // 🛡️ CORRECTION : On évite de générer les champs de relations ici car ils sont gérés plus bas
+      // Si le champ se termine par 'Id' ou s'il a le même nom qu'une entité connue
+      const isRelationField = inputs.entitiesData.entities.some(
+        (e) =>
+          field.name.toLowerCase() === e.name.toLowerCase() ||
+          field.name.toLowerCase() === e.name.toLowerCase() + "id"
+      );
+      if (isRelationField) continue;
 
       const mongooseType = mapTypeToMongoose(field.type);
       const tsType = field.type;
@@ -189,6 +149,7 @@ async function setupMongoose(inputs) {
         field.name.toLowerCase() !== "password";
       const requiredOption = isRequired ? ", required: true" : "";
 
+      // Import des enums partagés si nécessaire
       if (
         mongooseType === "String" &&
         tsType.charAt(0) === tsType.charAt(0).toUpperCase() &&
@@ -198,87 +159,29 @@ async function setupMongoose(inputs) {
       }
 
       fieldsContent += `
-   @Prop({ type: ${mongooseType}${requiredOption} })
-   ${field.name}: ${tsType};
-  `;
+       @Prop({ type: ${mongooseType}${requiredOption} })
+       ${field.name}: ${tsType};
+      `;
     }
 
-    // --- Mongoose Relations (References) ---
-    for (const relation of inputs.entitiesData.relations) {
-      const relFrom = relation.from;
-      const relTo = relation.to;
+    // --- Final Generation ---
+    const content = `${mongooseImportCode}${extraImports}
+    export type ${interfaceName} = ${entityName} & mongoose.Document;
 
-      if (relTo.toLowerCase() === entityNameLower) {
-        const targetEntity = capitalize(relFrom);
-        mongooseImportCode += "import * as mongoose from 'mongoose';\n";
-        extraImports += `import { ${targetEntity} } from './${targetEntity}.schema';\n`;
-
-        if (
-          relation.type === "1-n" ||
-          relation.type === "1-1" ||
-          relation.type === "n-1"
-        ) {
-          const fkName = `${relFrom.toLowerCase()}Id`;
-          fieldsContent += `
-   // Reference to the ${targetEntity} entity
-   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: '${targetEntity}' })
-   ${fkName}: ${targetEntity};
-  `;
-        }
-
-        // n-n : array reference (non-standard Mongoose, but common)
-        else if (relation.type === "n-n") {
-          const collectionName = `${relFrom.toLowerCase()}s`;
-          fieldsContent += `
-   // Multiple references to the ${targetEntity} entity
-   @Prop({ type: [{ type: mongoose.Schema.Types.ObjectId, ref: '${targetEntity}' }] })
-   ${collectionName}: ${targetEntity}[];
-  `;
-        }
-      }
+    @Schema({ timestamps: true })
+    export class ${entityName} {
+    ${fieldsContent}
     }
 
-    // --- Final Generation of Schemas/Documents File ---
-    const content = `${mongooseImportCode}
-  ${extraImports}
-
-  export type ${interfaceName} = ${entityName} & mongoose.Document;
-
-  @Schema({ timestamps: true })
-  export class ${entityName} {
-   // Mongoose handles the ID (_id: ObjectId)
-  ${fieldsContent}
-  }
-
-  export const ${schemaName} = SchemaFactory.createForClass(${entityName});
-  `;
-
-    await createFile({
-      path: `src/schemas/${entityName}.schema.ts`,
-      contente: content,
-    });
+    export const ${schemaName} = SchemaFactory.createForClass(${entityName});
+    `;
 
     forFeatureImports.push(
       `{ name: ${entityName}.name, schema: ${schemaName} }`
     );
   }
-
   // --- Final Update of app.module.ts --- //
-  // 3. Adding entity (schema) imports at the beginning of app.module.ts
-  const schemaImports = inputs.entitiesData.entities
-    .map((entity) => {
-      const entityName = capitalize(entity.name);
-      const schemaName = `${entityName}Schema`;
-      return `import { ${entityName}, ${schemaName} } from './schemas/${entityName}.schema';`;
-    })
-    .join("\n");
-
-  await updateFile({
-    path: appModulePath,
-    pattern: new RegExp(mongooseImport, "g"), // Targets the existing Mongoose import
-    replacement: (match) => `${match}\n${schemaImports}`,
-  }); // 4. Adding MongooseModule.forFeature([...])
-
+  // 3. Adding MongooseModule.forFeature([...])
   const forFeatureBlock = `MongooseModule.forFeature([${forFeatureImports.join(
     ", "
   )}]),`;
@@ -320,8 +223,9 @@ async function setupMongooseSeeding(inputs) {
 
   // --- Creating seed.ts file ---
   await createDirectory("src/database");
-  const seedTsContent = generateMongooseSeedContent(
-    inputs.entitiesData.entities
+  const seedTsContent = await generateMongooseSeedContent(
+    inputs.entitiesData.entities,
+    inputs.mode
   );
 
   await createFile({
@@ -332,101 +236,142 @@ async function setupMongooseSeeding(inputs) {
   logSuccess("Mongoose seeding configured.");
 }
 
-function generateMongooseSeedContent(entities) {
-  return `/**
-  * 🚀 Mongoose Seeding Script
-  * Automatically generated by NestCraftX
-  * ------------------------------------
-  * This script inserts sample data into the MongoDB database.
-  * Command: npm run seed
-  */
+async function generateMongooseSeedContent(entities, mode) {
+  const hasUser = entities.some((e) => e.name.toLowerCase() === "user");
+  const hasPost = entities.some((e) => e.name.toLowerCase() === "post");
+  const hasComment = entities.some((e) => e.name.toLowerCase() === "comment");
 
-  import mongoose from 'mongoose';
-  import bcrypt from 'bcrypt';
-  ${entities
-    .map(
-      (e) =>
-        `import { ${
-          e.name
-        }Schema } from '../modules/${e.name.toLowerCase()}/${e.name.toLowerCase()}.schema';`
-    )
-    .join("\n")}
+  return `
+import mongoose from 'mongoose';
+import * as bcrypt from 'bcrypt';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
-  async function connectDB() {
-   const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/${
-     entities[0]?.name?.toLowerCase() || "app"
-   }_db';
-   await mongoose.connect(MONGO_URI);
-   console.log('✅ Connected to MongoDB');
-  }
+${entities
+  .map((e) => {
+    const name = capitalize(e.name);
+    const lowName = e.name.toLowerCase();
+    let path;
 
-  async function seed() {
-   try {
-    await connectDB();
+    if (lowName === "session") {
+      path =
+        mode === "full"
+          ? `../auth/infrastructure/persistence/mongoose/${lowName}.schema`
+          : `../auth/persistence/${lowName}.schema`;
+    } else {
+      path =
+        mode === "full"
+          ? `../${lowName}/infrastructure/persistence/mongoose/${lowName}.schema`
+          : `../${lowName}/entities/${lowName}.schema`;
+    }
 
-  ${entities
-    .map((entity) => {
-      const modelVar = `${entity.name}Model`;
-      const dataVar = `${entity.name.toLowerCase()}Data`;
-      return `
-    // --- ${entity.name} ---
-    const ${modelVar} = mongoose.model('${entity.name}', ${entity.name}Schema);
-    const ${dataVar} = [
-     ${generateSampleData(entity)}
-    ];
-    await ${modelVar}.insertMany(${dataVar});
-    console.log('✅ ${entity.name} data inserted');
-    `;
-    })
-    .join("\n")}
+    return `import { ${name}Schema } from '${path}';`;
+  })
+  .join("\n")}
 
-    console.log('🎉 Seeding finished successfully.');
+async function seed() {
+  const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/nestcraft_db';
+
+  try {
+    await mongoose.connect(MONGO_URI);
+    console.log('🌱 Starting Mongoose seeding...');
+
+    // --- MODELS ---
+    ${entities
+      .map(
+        (e) =>
+          `const ${capitalize(e.name)}Model = mongoose.model('${capitalize(
+            e.name
+          )}', ${capitalize(e.name)}Schema);`
+      )
+      .join("\n    ")}
+
+    // --- CLEANUP ---
+    await Promise.all([${entities
+      .map((e) => `${capitalize(e.name)}Model.deleteMany({})`)
+      .join(", ")}]);
+
+    // --- 1. ADMIN & DEMO USERS ---
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('password123', salt);
+
+    const users = await ${hasUser ? "UserModel" : "null"}.insertMany([
+      { email: 'admin@nestcraft.com', password: hashedPassword, username: 'NestCraftAdmin', role: 'SUPER_ADMIN', isActive: true },
+      { email: 'emma.jones@demo.com', password: hashedPassword, username: 'EmmaJones', isActive: true },
+      { email: 'lucas.martin@demo.com', password: hashedPassword, username: 'LucasMartin', isActive: true },
+      { email: 'sophia.bernard@demo.com', password: hashedPassword, username: 'SophiaBernard', isActive: true },
+      { email: 'alexandre.dubois@demo.com', password: hashedPassword, username: 'AlexandreDubois', isActive: true },
+      { email: 'chloe.moreau@demo.com', password: hashedPassword, username: 'ChloeMoreau', isActive: true },
+    ]);
+    console.log(\`👥 \${users.length} users created\`);
+
+    ${
+      hasPost
+        ? `
+    // --- 2. BLOG POSTS ---
+    const posts = await PostModel.insertMany([
+      {
+        title: 'The Basics of NestJS for Modern Developers',
+        content: 'Discover how to build a robust and maintainable API with NestJS...',
+        published: true,
+        userId: users[1]._id,
+      },
+      {
+        title: 'How to Secure Your API with JWT',
+        content: 'JWT authentication is a standard for securing APIs...',
+        published: true,
+        userId: users[2]._id,
+      },
+      {
+        title: 'Optimizing Node.js API Performance',
+        content: 'Discover best practices for improving performance...',
+        published: true,
+        userId: users[3]._id,
+      },
+      {
+        title: 'Introduction to Prisma ORM',
+        content: 'Prisma is a modern ORM that simplifies interactions with the database...',
+        published: true,
+        userId: users[4]._id,
+      },
+      {
+        title: 'Understanding Clean Architecture',
+        content: 'Clean Architecture helps separate business logic from the rest of the code...',
+        published: false,
+        userId: users[0]._id,
+      },
+    ]);
+    console.log('📝 5 Articles created');
+    `
+        : ""
+    }
+
+    ${
+      hasComment && hasPost
+        ? `
+    // --- 3. DEMO COMMENTS ---
+    await CommentModel.insertMany([
+      { content: 'Excellent article! I was able to apply these tips directly to my NestJS project.', postId: posts[0]._id, userId: users[2]._id },
+      { content: 'Very clear and well explained, thank you for sharing about Prisma 👏', postId: posts[3]._id, userId: users[0]._id },
+      { content: "I didn't know about JWT before this article, it's a real revelation.", postId: posts[1]._id, userId: users[4]._id },
+      { content: 'Clean Architecture always seemed blurry to me, this article finally enlightened me.', postId: posts[4]._id, userId: users[1]._id },
+      { content: 'Thanks for the content! I would like to see a complete tutorial with NestJS + Prisma.', postId: posts[2]._id, userId: users[3]._id },
+    ]);
+    console.log('💬 5 Comments created');
+    `
+        : ""
+    }
+
+    console.log('✅ Mongoose seeding finished successfully! 🚀');
+  } catch (err) {
+    console.error('❌ Seeding error:', err);
+  } finally {
     await mongoose.disconnect();
-   } catch (err) {
-    console.error('❌ Error during seeding:', err);
-    process.exit(1);
-   }
   }
-
-  seed();
-  `;
 }
 
-/**
- * Generates sample data for each entity, handling advanced types.
- */
-function generateSampleData(entity) {
-  const fields = entity.fields || [];
-  const sampleObj = fields
-    .map((f) => {
-      // For 'string[]', 'number[]', 'Date[]', etc. types
-      if (f.type.endsWith("[]")) {
-        const baseType = f.type.slice(0, -2);
-        if (baseType === "string" || baseType === "text")
-          return `${f.name}: ['${f.name}_item_1', '${f.name}_item_2']`;
-        if (baseType === "number" || baseType === "decimal")
-          return `${f.name}: [10, 20]`;
-        if (baseType === "Date") return `${f.name}: [new Date(), new Date()]`;
-        return `${f.name}: []`;
-      }
-
-      if (f.name.toLowerCase().includes("password")) {
-        return `${f.name}: await bcrypt.hash('password123', 10)`;
-      }
-      if (["string", "text", "uuid"].includes(f.type.toLowerCase()))
-        return `${f.name}: '${f.name}_example'`;
-      if (["number", "decimal", "int"].includes(f.type.toLowerCase()))
-        return `${f.name}: ${Math.floor(Math.random() * 100)}`;
-      if (f.type === "boolean") return `${f.name}: true`;
-      if (f.type === "date") return `${f.name}: new Date()`;
-      if (["json", "object"].includes(f.type.toLowerCase()))
-        return `${f.name}: { key: 'value', count: 42 }`;
-
-      return `${f.name}: null`;
-    })
-    .join(",\n   ");
-
-  return `{ ${sampleObj} }`;
+seed();
+`;
 }
 
 module.exports = { setupMongoose };

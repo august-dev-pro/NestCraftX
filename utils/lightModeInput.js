@@ -174,7 +174,7 @@ async function getOrmChoice(flags) {
       choices: [
         { name: "Prisma (PostgreSQL)", value: "prisma" },
         { name: "TypeORM (PostgreSQL)", value: "typeorm" },
-        { name: "Mongoose (MongoDB - Coming Soon)", value: "mongoose" },
+        { name: "Mongoose (MongoDB)", value: "mongoose" },
       ],
       default: "prisma",
     },
@@ -360,7 +360,7 @@ async function addRelations(entitiesData) {
 
     if (alreadyExists) {
       logWarning(
-        `A relationship already exists between ${selection.fromName} and ${selection.toName} (${alreadyExists.type}).`
+        `A relationship already exists between ${answers.fromName} and ${answers.toName} (${alreadyExists.type}).`
       );
 
       const { tryAgain } = await actualInquirer.prompt([
@@ -385,19 +385,19 @@ async function addRelations(entitiesData) {
         message: "What is the relationship type?",
         choices: [
           {
-            name: `1-1 (One-to-One)   : ${selection.fromName} is linked to exactly one ${selection.toName}`,
+            name: `1-1 (One-to-One)   : ${answers.fromName} is linked to exactly one ${answers.toName}`,
             value: "1-1",
           },
           {
-            name: `1-n (One-to-Many)  : ${selection.fromName} owns multiple ${selection.toName}s`,
+            name: `1-n (One-to-Many)  : ${answers.fromName} owns multiple ${answers.toName}s`,
             value: "1-n",
           },
           {
-            name: `n-1 (Many-to-One)  : Multiple ${selection.fromName}s belong to one ${selection.toName}`,
+            name: `n-1 (Many-to-One)  : Multiple ${answers.fromName}s belong to one ${answers.toName}`,
             value: "n-1",
           },
           {
-            name: `n-n (Many-to-Many) : Multiple ${selection.fromName}s are linked to multiple ${selection.toName}s`,
+            name: `n-n (Many-to-Many) : Multiple ${answers.fromName}s are linked to multiple ${answers.toName}s`,
             value: "n-n",
           },
         ],

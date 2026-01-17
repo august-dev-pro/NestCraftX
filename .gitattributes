@@ -1,0 +1,6 @@
+# Forcer tous les fichiers texte à utiliser LF (standard Linux/Unix)
+* text=auto eol=lf
+
+# S'assurer que les fichiers binaires ne sont pas touchés
+*.png binary
+*.jpg binary

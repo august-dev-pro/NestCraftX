@@ -1,8 +1,8 @@
-# NestCraftX Migration Guide: v0.1.x → v0.2.4
+# NestCraftX Migration Guide: v0.1.x → v0.2.5
 
 ## Overview
 
-Version **0.2.4** marks a major milestone in NestCraftX's maturity. We are moving from a simple generation script to a truly professional CLI tool with a completely redesigned User Experience (UX).
+Version **0.2.5** marks a major milestone in NestCraftX's maturity. We are moving from a simple generation script to a truly professional CLI tool with a completely redesigned User Experience (UX).
 
 **Update Key Points:**
 
@@ -20,7 +20,7 @@ Version **0.2.4** marks a major milestone in NestCraftX's maturity. We are movin
 While interactive mode remains accessible for compatibility, the recommended semantic command is now `new`.
 
 - **Old (v0.1.x):** `nestcraftx start`
-- **New (v0.2.4):** `nestcraftx new my-project`
+- **New (v0.2.5):** `nestcraftx new my-project`
 
 ### New Professional Flags
 
@@ -54,7 +54,7 @@ This is the robust architecture from v0.1.x, but refined. Services are now isola
 
 ---
 
-## 3. Package Manager (New in v0.2.4)
+## 3. Package Manager (New in v0.2.5)
 
 The `--pm` (or `--packageManager`) flag allows you to define your favorite tool. If you don't specify it, the CLI will provide an interactive list of choices.
 
@@ -71,7 +71,7 @@ The `--pm` (or `--packageManager`) flag allows you to define your favorite tool.
 The secret generation system has been strengthened to use more secure cryptographic algorithms.
 
 **Old behavior:** Manual input or short secrets.
-**New behavior (v0.2.4):** - `JWT_SECRET`: 64 unique hexadecimal characters.
+**New behavior (v0.2.5):** - `JWT_SECRET`: 64 unique hexadecimal characters.
 
 - `DATABASE_URL`: Auto-built based on the chosen ORM (Prisma/TypeORM/Mongoose).
 
@@ -121,4 +121,4 @@ Would you be interested in an automation script to update your environment varia
 
 ---
 
-**NestCraftX v0.2.4** — _Clean Architecture Made Simple._ [Access the GitHub Repository](https://github.com/august-dev-pro/NestCraftX)
+**NestCraftX v0.2.5** — _Clean Architecture Made Simple._ [Access the GitHub Repository](https://github.com/august-dev-pro/NestCraftX)
