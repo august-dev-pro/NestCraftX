@@ -63,7 +63,7 @@ export async function generateEntityFileContent(entity, mode = "full") {
   const constructorParams = allFields
     .map(
       (f) => `
-    private readonly ${f.name}: ${getFormattedType(f)},`
+    private readonly ${f.name}: ${getFormattedType(f)},`,
     )
     .join("");
 
@@ -77,7 +77,7 @@ export async function generateEntityFileContent(entity, mode = "full") {
   get${capitalize(f.name)}(): ${getFormattedType(f)}
  {
     return this.${f.name};
-  }`
+  }`,
     )
     .join("\n");
 
@@ -156,7 +156,7 @@ export async function generateMapper(entity) {
 
   const toUpdateFields = filteredFields
     .map(
-      (f) => `if (dto.${f.name} !== undefined) data.${f.name} = dto.${f.name};`
+      (f) => `if (dto.${f.name} !== undefined) data.${f.name} = dto.${f.name};`,
     )
     .join("\n   ");
 
@@ -172,10 +172,10 @@ export async function generateMapper(entity) {
 
 import { Injectable } from '@nestjs/common';
 import { ${entityName}Entity } from 'src/${decapitalize(
-    entity.name
+    entity.name,
   )}/domain/entities/${decapitalize(entity.name)}.entity';
 import { Create${entityName}Dto, Update${entityName}Dto } from 'src/${decapitalize(
-    entity.name
+    entity.name,
   )}/application/dtos/${decapitalize(entity.name)}.dto';
 
 @Injectable()
@@ -215,7 +215,7 @@ export async function generateDtox(
   entity,
   useSwagger,
   isAuthDto = false,
-  mode = "full"
+  mode = "full",
 ) {
   const entityName = capitalize(entity.name);
   const entityNameLower = entity.name.toLowerCase();
@@ -337,7 +337,7 @@ export async function generateDtox(
       validators.push("@IsEmail()");
     } else if (name.toLowerCase().includes("password")) {
       validators.push(
-        "@MinLength(8, { message: 'Password is too short (min 8 characters)' })"
+        "@MinLength(8, { message: 'Password is too short (min 8 characters)' })",
       );
     }
 
@@ -350,7 +350,7 @@ export async function generateDtox(
       case "number":
       case "float":
         validators.push(
-          isArray ? "@IsNumber({}, { each: true })" : "@IsNumber()"
+          isArray ? "@IsNumber({}, { each: true })" : "@IsNumber()",
         );
         break;
       case "int":
@@ -358,7 +358,7 @@ export async function generateDtox(
         break;
       case "boolean":
         validators.push(
-          isArray ? "@IsBoolean({ each: true })" : "@IsBoolean()"
+          isArray ? "@IsBoolean({ each: true })" : "@IsBoolean()",
         );
         break;
       case "uuid":
@@ -381,7 +381,7 @@ export async function generateDtox(
           description: getFieldDescription(f),
         },
         null,
-        2
+        2,
       ).replace(/"([^"]+)":/g, "$1:");
 
       swaggerDecorator = `${decorator}(${options})\n  `;
@@ -482,7 +482,7 @@ export async function generateDto(
   entity,
   useSwagger,
   isAuthDto = false,
-  mode = "full"
+  mode = "full",
 ) {
   const entityName = capitalize(entity.name);
   const entityNameLower = entity.name.toLowerCase();
@@ -563,7 +563,7 @@ export async function generateDto(
     if (name.toLowerCase().includes("email")) validators.push("@IsEmail()");
     else if (name.toLowerCase().includes("password"))
       validators.push(
-        "@MinLength(8, { message: 'Password is too short (min 8 characters)' })"
+        "@MinLength(8, { message: 'Password is too short (min 8 characters)' })",
       );
 
     switch (cleanType) {
@@ -577,12 +577,12 @@ export async function generateDto(
       case "int":
       case "float":
         validators.push(
-          isArray ? "@IsNumber({}, { each: true })" : "@IsNumber()"
+          isArray ? "@IsNumber({}, { each: true })" : "@IsNumber()",
         );
         break;
       case "boolean":
         validators.push(
-          isArray ? "@IsBoolean({ each: true })" : "@IsBoolean()"
+          isArray ? "@IsBoolean({ each: true })" : "@IsBoolean()",
         );
         break;
       case "uuid":
@@ -603,13 +603,13 @@ export async function generateDto(
           description: getFieldDescription(f),
         },
         null,
-        2
+        2,
       ).replace(/"([^"]+)":/g, "$1:");
       swaggerDecorator = `${decorator}(${options})\n  `;
     }
 
     return `${swaggerDecorator}${validators.join("\n  ")}\n  ${name}${
-      optional ? "?" : ""
+      optional ? "?" : "!"
     }: ${formatType(f.type)};`;
   };
 
@@ -821,7 +821,7 @@ export class ${entityNameCapitalized}Controller {
 
 export async function generateMiddlewares(orm = "global") {
   logInfo(
-    "\u2728 G\u00e9n\u00e9ration des middlewares, interceptors, guards et filters personnalis\u00e9s..."
+    "\u2728 G\u00e9n\u00e9ration des middlewares, interceptors, guards et filters personnalis\u00e9s...",
   );
 
   const basePath = "src/common";
@@ -998,7 +998,7 @@ import { ValidationPipe } from '@nestjs/common';`;
   });
 
   logSuccess(
-    "\u2705 Middlewares, filters, interceptors et guards g\u00e9n\u00e9r\u00e9s avec succ\u00e8s !"
+    "\u2705 Middlewares, filters, interceptors et guards g\u00e9n\u00e9r\u00e9s avec succ\u00e8s !",
   );
 }
 
@@ -1063,7 +1063,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ${entityNameCapitalized}Entity } from '${entityPath}/domain/entities/${entityNameLower}.entity';
 import { ${entityNameCapitalized} } from 'src/entities/${entityNameCapitalized}.entity';
-import { I${entityNameCapitalized}Repository } from '${entityPath}/domain/interfaces/${entityNameLower}.repository.interface';
+import type { I${entityNameCapitalized}Repository } from '${entityPath}/domain/interfaces/${entityNameLower}.repository.interface';
 import { Create${entityNameCapitalized}Dto, Update${entityNameCapitalized}Dto } from '${entityPath}/application/dtos/${entityNameLower}.dto';
 import { ${entityNameCapitalized}Mapper } from '${entityPath}/infrastructure/mappers/${entityNameLower}.mapper';
 
@@ -1315,7 +1315,7 @@ export class ${entityNameCapitalized}Repository implements I${entityNameCapitali
 export async function generateMongooseSchemaFileContentx(
   entity,
   entitiesData,
-  mode = "full"
+  mode = "full",
 ) {
   const entityName = capitalize(entity.name);
   const entityNameLower = entity.name.toLowerCase();
@@ -1330,7 +1330,7 @@ export async function generateMongooseSchemaFileContentx(
 
   // On retire les doublons et l'entité elle-même
   const uniqueRelated = [...new Set(relatedEntities)].filter(
-    (e) => e !== entityNameLower
+    (e) => e !== entityNameLower,
   );
 
   uniqueRelated.forEach((target) => {
@@ -1413,7 +1413,7 @@ export async function generateMongooseSchemaFileContentx(
       if (fieldNameLow.endsWith("id")) {
         const targetEntity = fieldNameLow.replace("id", "");
         const hasRelation = entitiesData.relations.some(
-          (r) => r.from === targetEntity || r.to === targetEntity
+          (r) => r.from === targetEntity || r.to === targetEntity,
         );
 
         if (hasRelation) {
@@ -1477,7 +1477,7 @@ export async function generateMongooseSchemaFileContentx(
     .filter(Boolean);
 
   const allFields = [...new Set([...directFields, ...dynamicRelations])].join(
-    "\n\n"
+    "\n\n",
   );
 
   return `
@@ -1500,7 +1500,7 @@ export const ${entityName}Schema = SchemaFactory.createForClass(${entityName});
 export async function generateMongooseSchemaFileContent(
   entity,
   entitiesData,
-  mode = "full"
+  mode = "full",
 ) {
   const entityName = capitalize(entity.name);
   const entityNameLower = entity.name.toLowerCase();
@@ -1512,7 +1512,7 @@ export async function generateMongooseSchemaFileContent(
     .map((rel) => (rel.from === entityNameLower ? rel.to : rel.from));
 
   const uniqueRelated = [...new Set(relatedEntities)].filter(
-    (e) => e !== entityNameLower
+    (e) => e !== entityNameLower,
   );
 
   let extraImports = "";
@@ -1604,7 +1604,7 @@ export async function generateMongooseSchemaFileContent(
       const nameLow = f.name.toLowerCase();
       // On dégage tout ce qui ressemble à une relation pour éviter les doublons avec dynamicRelations
       const isRelId = uniqueRelated.some(
-        (rel) => nameLow === rel + "id" || nameLow === rel
+        (rel) => nameLow === rel + "id" || nameLow === rel,
       );
       return scalarTypes.includes(f.type.toLowerCase()) && !isRelId;
     })
@@ -1651,7 +1651,7 @@ export async function generateMongooseSchemaFileContent(
     });
 
   const allFields = [...new Set([...directFields, ...dynamicRelations])].join(
-    "\n\n"
+    "\n\n",
   );
 
   return `import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';

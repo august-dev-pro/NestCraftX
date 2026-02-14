@@ -15,7 +15,7 @@ async function runCommand(command, errorMessage, spinnerText = null) {
     logError(errorMessage);
     fs.appendFileSync(
       "setup.log",
-      `[Erreur] ${errorMessage}: ${error.message}\n`
+      `[Erreur] ${errorMessage}: ${error.message}\n`,
     );
     process.exit(1);
   }

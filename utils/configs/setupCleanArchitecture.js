@@ -79,7 +79,7 @@ async function setupCleanArchitecture(inputs) {
         const mongooseSchemaContent = await generateMongooseSchemaFileContent(
           entity,
           entitiesData,
-          mode
+          mode,
         );
 
         const schemaPath = `src/${entity.name}/infrastructure/persistence/mongoose`;
@@ -141,7 +141,7 @@ async function setupCleanArchitecture(inputs) {
 
 import { Inject, Logger } from '@nestjs/common';
 import { Create${entityName}Dto } from 'src/${entity.name}/application/dtos/${entity.name}.dto';
-import { I${entityName}RepositoryName, I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
+import { I${entityName}RepositoryName, type I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
 export class Create${entityName}UseCase {
@@ -168,7 +168,7 @@ export class Create${entityName}UseCase {
  */
 
 import { Inject, Logger, NotFoundException } from '@nestjs/common';
-import { I${entityName}RepositoryName, I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
+import { I${entityName}RepositoryName, type I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
 export class GetById${entityName}UseCase {
@@ -201,7 +201,7 @@ export class GetById${entityName}UseCase {
  */
 
 import { Inject, Logger } from '@nestjs/common';
-import { I${entityName}RepositoryName, I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
+import { I${entityName}RepositoryName, type I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
 export class GetAll${entityName}UseCase {
@@ -229,7 +229,7 @@ export class GetAll${entityName}UseCase {
 
 import { Inject, Logger, NotFoundException } from '@nestjs/common';
 import { Update${entityName}Dto } from 'src/${entity.name}/application/dtos/${entity.name}.dto';
-import { I${entityName}RepositoryName, I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
+import { I${entityName}RepositoryName, type I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 import { ${entityName}Entity } from 'src/${entity.name}/domain/entities/${entityNameLower}.entity';
 
 export class Update${entityName}UseCase {
@@ -269,7 +269,7 @@ export class Update${entityName}UseCase {
  */
 
 import { Inject, Logger, NotFoundException } from '@nestjs/common';
-import { I${entityName}RepositoryName, I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
+import { I${entityName}RepositoryName, type I${entityName}Repository } from 'src/${entity.name}/domain/interfaces/${entity.name}.repository.interface';
 
 export class Delete${entityName}UseCase {
   private readonly logger = new Logger(Delete${entityName}UseCase.name);
@@ -419,7 +419,7 @@ export class ${entityNameCapitalized}Adapter {
       const controllerContente = await generateController(
         entity.name,
         entityPath,
-        useSwagger
+        useSwagger,
       );
       await createFile({
         path: `${entityPath}/presentation/controllers/${entityNameLower}.controller.ts`,
@@ -438,13 +438,13 @@ export class ${entityNameCapitalized}Adapter {
       } else if (dbConfig.orm === "typeorm") {
         extraImports = `import { ${entityNameCapitalized} } from 'src/entities/${entityNameCapitalized}.entity';\nimport { TypeOrmModule } from '@nestjs/typeorm';`;
         importsBlock.push(
-          `TypeOrmModule.forFeature([${entityNameCapitalized}])`
+          `TypeOrmModule.forFeature([${entityNameCapitalized}])`,
         );
       } else if (dbConfig.orm === "mongoose") {
         extraImports = `import { MongooseModule } from '@nestjs/mongoose';
 import { ${entityNameCapitalized}, ${entityNameCapitalized}Schema } from '${entityPath}/infrastructure/persistence/mongoose/${entityNameLower}.schema';`;
         importsBlock.push(
-          `MongooseModule.forFeature([{ name: ${entityNameCapitalized}.name, schema: ${entityNameCapitalized}Schema }])`
+          `MongooseModule.forFeature([{ name: ${entityNameCapitalized}.name, schema: ${entityNameCapitalized}Schema }])`,
         );
       }
 
@@ -460,7 +460,7 @@ import { ${entityNameCapitalized}, ${entityNameCapitalized}Schema } from '${enti
       // Always necessary providers
       providersBlock.push(
         `{
-        provide: 'I${entityNameCapitalized}Repository',
+        provide: I${entityNameCapitalized}RepositoryName,
         useClass: ${entityNameCapitalized}Repository,
         }`,
         `${entityNameCapitalized}Service`,
@@ -469,7 +469,7 @@ import { ${entityNameCapitalized}, ${entityNameCapitalized}Schema } from '${enti
         `GetById${entityNameCapitalized}UseCase`,
         `GetAll${entityNameCapitalized}UseCase`,
         `Delete${entityNameCapitalized}UseCase`,
-        `${entityNameCapitalized}Mapper`
+        `${entityNameCapitalized}Mapper`,
       );
 
       await createFile({
@@ -494,6 +494,8 @@ import { GetById${entityNameCapitalized}UseCase } from '${entityPath}/applicatio
 import { GetAll${entityNameCapitalized}UseCase } from '${entityPath}/application/use-cases/getAll-${entityNameLower}.use-case';
 import { Delete${entityNameCapitalized}UseCase } from '${entityPath}/application/use-cases/delete-${entityNameLower}.use-case';
 import { ${entityNameCapitalized}Mapper } from '${entityPath}/infrastructure/mappers/${entityNameLower}.mapper';
+import { I${entityNameCapitalized}RepositoryName } from './domain/interfaces/${entityNameLower}.repository.interface';
+
 
 @Module({
   imports: [
@@ -506,7 +508,7 @@ import { ${entityNameCapitalized}Mapper } from '${entityPath}/infrastructure/map
     ${providersBlock.join(",\n    ")}
   ],
   exports: [
-    ${entityNameCapitalized}Service, 'I${entityNameCapitalized}Repository'
+    ${entityNameCapitalized}Service, I${entityNameCapitalized}RepositoryName
   ]
 })
 export class ${entityNameCapitalized}Module {}
@@ -544,7 +546,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';`,
     logSuccess(`Structure generated successfully!`);
   } catch (error) {
     logError(
-      `Process encountered an error during Clean Architecture setup: ${error}`
+      `Process encountered an error during Clean Architecture setup: ${error}`,
     );
     throw error;
   }

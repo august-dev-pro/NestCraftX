@@ -19,6 +19,7 @@ const { generateEnvFile, writeEnvFile } = require("../utils/envGenerator");
 const readline = require("readline-sync");
 const { info, warning } = require("../utils/colors");
 const { logWarning } = require("../utils/loggers/logWarning");
+const { saveProjectConfig } = require("../utils/file-utils/saveProjectConfig");
 
 async function newCommand(projectName, flags = {}) {
   if (!projectName) {
@@ -28,7 +29,7 @@ async function newCommand(projectName, flags = {}) {
     let isValid = false;
 
     currentProjectName = readline.question(
-      `${info("[?]")} Project name [my-app] : `
+      `${info("[?]")} Project name [my-app] : `,
     ); // Boucle de validation
 
     while (!isValid) {
@@ -39,11 +40,11 @@ async function newCommand(projectName, flags = {}) {
         isValid = true;
       } else {
         logWarning(
-          "Invalid or missing name. Use letters, numbers, _ or - (must start with a letter)."
+          "Invalid or missing name. Use letters, numbers, _ or - (must start with a letter).",
         );
         currentProjectName = readline.question(
           `${info("[?]")} Project name : `,
-          { placeholder: "my-app" }
+          { placeholder: "my-app" },
         );
       }
     }
@@ -265,6 +266,8 @@ async function executeProjectSetup(inputs) {
     const envContent = await generateEnvFile(inputs);
     writeEnvFile(envContent);
 
+    await saveProjectConfig(inputs);
+
     printSuccessSummary(inputs);
   } catch (error) {
     // Erreur lors de la creation du projet: ${error.message}
@@ -322,7 +325,7 @@ function printSuccessSummary(inputs) {
   // --- ENDPOINTS / SWAGGER ---
   if (inputs.useSwagger) {
     console.log(
-      `  6. Open Swagger UI : http://localhost:3000/${inputs.swaggerInputs.endpoint}`
+      `  6. Open Swagger UI : http://localhost:3000/${inputs.swaggerInputs.endpoint}`,
     );
   }
 

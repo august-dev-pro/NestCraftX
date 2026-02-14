@@ -23,6 +23,26 @@ switch (command) {
     });
     break;
 
+  case "generate":
+  case "g":
+    require("../commands/generate")(
+      args.subCommand,
+      args.targetName,
+      args.flags,
+    ).catch((err) => {
+      console.error("❌ Erreur de génération:", err.message);
+      process.exit(1);
+    });
+    break;
+
+  case "generate-conf":
+  case "g-conf":
+    require("../commands/generateConf")().catch((err) => {
+      console.error("❌ Erreur de récupération:", err.message);
+      process.exit(1);
+    });
+    break;
+
   case "start":
     require("../commands/start")();
     break;

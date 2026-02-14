@@ -14,6 +14,7 @@ const { setupDatabase } = require("../utils/setups/setupDatabase");
 const { configureDocker } = require("../utils/configs/configureDocker");
 const { generateEnvFile, writeEnvFile } = require("../utils/envGenerator");
 const { setupBootstrapLogger } = require("../utils/setups/setupLogger");
+const { saveProjectConfig } = require("../utils/file-utils/saveProjectConfig");
 const actualInquirer = inquirer.default || inquirer;
 
 async function demoCommand(flags = {}) {
@@ -235,6 +236,8 @@ async function demoCommand(flags = {}) {
   const envContent = await generateEnvFile(demoInputs);
   writeEnvFile(envContent);
 
+  await saveProjectConfig(demoInputs);
+
   console.log("\n" + "=".repeat(60));
   logSuccess("Demonstration project created successfully!");
   console.log("=".repeat(60));
@@ -249,13 +252,13 @@ async function demoCommand(flags = {}) {
     orm === "prisma"
       ? "  ✅ Prisma ORM (PostgreSQL) configured"
       : orm === "typeorm"
-      ? "  ✅ TypeORM (PostgreSQL) configured"
-      : "  ✅ Mongoose (MongoDB) configured"
+        ? "  ✅ TypeORM (PostgreSQL) configured"
+        : "  ✅ Mongoose (MongoDB) configured",
   );
   console.log(
     isLight
       ? "  ✅ LIGHT Structure (Simplified MVP)"
-      : "  ✅ Complete Clean Architecture"
+      : "  ✅ Complete Clean Architecture",
   );
 
   console.log("\n🚀 To get started:");
@@ -266,11 +269,11 @@ async function demoCommand(flags = {}) {
   const run = pm === "yarn" ? "" : "run "; // yarn n'a pas besoin de 'run'
   if (orm === "prisma" || orm === "typeorm") {
     console.log(
-      "\n  2- Create a PostgreSQL database with the name specified in the .env (default 'blog_demo')."
+      "\n  2- Create a PostgreSQL database with the name specified in the .env (default 'blog_demo').",
     );
     console.log("    Example (psql) : createdb blog_demo");
     console.log(
-      "\n  3- Open the generated .env file and replace the values with your actual connection details:"
+      "\n  3- Open the generated .env file and replace the values with your actual connection details:",
     );
     console.log("   POSTGRES_USER=<your_user>");
     console.log("   POSTGRES_PASSWORD=<your_password>");
@@ -289,16 +292,16 @@ async function demoCommand(flags = {}) {
   } else if (orm === "mongoose") {
     console.log("\n  2- MongoDB: You can use either a local server or Docker.");
     console.log(
-      "    By default, the project uses: MONGO_URI=mongodb://localhost:27017/blog_demo"
+      "    By default, the project uses: MONGO_URI=mongodb://localhost:27017/blog_demo",
     );
     console.log(
-      "    The database will be created automatically upon first write operation."
+      "    The database will be created automatically upon first write operation.",
     );
     console.log(
-      "\n  3- Open the generated .env file and replace the MONGO_URI variable if necessary:"
+      "\n  3- Open the generated .env file and replace the MONGO_URI variable if necessary:",
     );
     console.log(
-      "     MONGO_URI=mongodb://<user>:<password>@localhost:27017/blog_demo"
+      "     MONGO_URI=mongodb://<user>:<password>@localhost:27017/blog_demo",
     );
     console.log("\n  4- Run the seed script (if present):");
     console.log(`   ${pm} ${run}seed`);
@@ -320,10 +323,10 @@ async function demoCommand(flags = {}) {
 
   console.log("\n💡 Tip:");
   console.log(
-    "  Modify the .env file to connect your own database (Postgres or Mongo)."
+    "  Modify the .env file to connect your own database (Postgres or Mongo).",
   );
   console.log(
-    "  Once configured and migrated/seeded, the project is ready to run immediately! 🚀\n"
+    "  Once configured and migrated/seeded, the project is ready to run immediately! 🚀\n",
   );
 }
 

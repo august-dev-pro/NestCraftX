@@ -6,7 +6,7 @@ const { generateDto } = require("../utils");
 
 async function setupAuth(inputs) {
   logInfo(
-    "🚀 Déploiement de l'architecture Auth Ultime (Mappers, DTOs, Multi-ORM)..."
+    "🚀 Déploiement de l'architecture Auth Ultime (Mappers, DTOs, Multi-ORM)...",
   );
 
   const { dbConfig, useSwagger, mode = "full" } = inputs;
@@ -15,11 +15,11 @@ async function setupAuth(inputs) {
   // 1. INSTALLATION DES DÉPENDANCES
   await runCommand(
     `npm install @nestjs/jwt @nestjs/passport passport passport-jwt bcrypt uuid`,
-    "Erreur install deps auth"
+    "Erreur install deps auth",
   );
   await runCommand(
     `npm install -D @types/passport-jwt @types/bcrypt @types/uuid`,
-    "Erreur install dev-deps auth"
+    "Erreur install dev-deps auth",
   );
 
   // 2. DÉFINITION DES CHEMINS (CLEAN ARCHITECTURE)
@@ -74,6 +74,8 @@ export class Session {
       contente: `
 import { Session } from '${paths.entities}/session.entity';
 import { CreateSessionPersistenceDto } from '${paths.appDtos}/create-session.dto';
+
+export const ISessionRepositoryName = 'ISessionRepository';
 
 export interface ISessionRepository {
   save(dto: CreateSessionPersistenceDto): Promise<Session>;
@@ -137,9 +139,9 @@ export interface CreateSessionPersistenceDto {
   // Définition dynamique des types et injections
   const repoType = isFull ? "ISessionRepository" : "SessionRepository";
   const repoImport = isFull
-    ? `import { ISessionRepository } from '${paths.interfaces}/session.repository.interface';`
+    ? `import { ISessionRepositoryName, type ISessionRepository } from '${paths.interfaces}/session.repository.interface';`
     : `import { SessionRepository } from '${paths.persistence}/session.repository';`;
-  const injectDecorator = isFull ? `@Inject('ISessionRepository') ` : "";
+  const injectDecorator = isFull ? `@Inject(ISessionRepositoryName) ` : "";
 
   await createFile({
     path: `${paths.services}/session.service.ts`,
@@ -247,11 +249,12 @@ import { SendOtpDto } from '${paths.appDtos}/sendOtp.dto';
 import { VerifyOtpDto } from '${paths.appDtos}/verifyOtp.dto';
 import { ForgotPasswordDto } from '${paths.appDtos}/forgotPassword.dto';
 import { ResetPasswordDto } from '${paths.appDtos}/resetPassword.dto';
+${enumImport}
  ${
    mode === "light"
      ? `import { UserRepository } from '${userRepoPath}';
   import { CreateUserDto } from '${userDtoPath}/user.dto';`
-     : `import { IUserRepository } from '${userRepoPath}';
+     : `import type { IUserRepository } from '${userRepoPath}';
   import { CreateUserDto } from '${userDtoPath}/user.dto';`
  }
 
@@ -329,27 +332,32 @@ export class AuthService {
   async refreshToken(token: RefreshTokenDto) {
     const session = await this.sessionService.validate(token.refreshToken);
     if (!session) throw new UnauthorizedException('Session expired or invalid');
-    const payload = this.jwtService.decode(token.refreshToken) as any;
+    const payload: {
+      sub: string;
+      email: string;
+      sid: string;
+      role: Role;
+    } = this.jwtService.decode(token.refreshToken) as any;
     return { accessToken: this.jwtService.sign({ sub: payload.sub, email: payload.email }, { expiresIn: '15m' }) };
   }
 
   // 📲 Send OTP
-   async sendOtp(dto: SendOtpDto) {
+  sendOtp(dto: SendOtpDto) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     this.otps.set(dto.email, otp);
     console.log(\`[OTP] for \${dto.email} is \${otp}\`);
     return { message: 'OTP sent' };
-   }
+  }
 
-   // Verify OTP
-   async verifyOtp(dto: VerifyOtpDto) {
+  // Verify OTP
+  verifyOtp(dto: VerifyOtpDto) {
     const valid = this.otps.get(dto.email);
     if (valid === dto.otp) {
      this.otps.delete(dto.email);
      return { message: 'OTP verified' };
     }
     throw new UnauthorizedException('Invalid OTP');
-   }
+  }
 
    // 📬 Forgot Password
    async forgotPassword(dto: ForgotPasswordDto) {
@@ -413,7 +421,7 @@ export class SessionMapper {
 
   // On prépare l'entête dynamiquement
   const interfaceImport = isFull
-    ? `import { ISessionRepository } from '${paths.interfaces}/session.repository.interface';`
+    ? `import type { ISessionRepository } from '${paths.interfaces}/session.repository.interface';`
     : "";
   const implementsClause = isFull ? "implements ISessionRepository " : "";
 
@@ -810,6 +818,7 @@ import { SessionService } from '${paths.services}/session.service';
 import { AuthController } from '${paths.controllers}/auth.controller';
 import { JwtStrategy } from '${paths.strategies}/jwt.strategy';
 import { SessionRepository } from '${paths.persistence}/session.repository';
+import { ISessionRepositoryName } from '${paths.interfaces}/session.repository.interface';
 
 @Module({
   imports: [
@@ -832,7 +841,7 @@ import { SessionRepository } from '${paths.persistence}/session.repository';
     JwtStrategy,
     ${
       isFull
-        ? "{ provide: 'ISessionRepository', useClass: SessionRepository }"
+        ? "{ provide: ISessionRepositoryName, useClass: SessionRepository }"
         : "SessionRepository"
     }
 
@@ -953,7 +962,7 @@ export class AuthModule {}`.trim(),
   });
 
   logSuccess(
-    ` Authentification Enterprise avec support ${dbConfig.orm.toUpperCase()} et Mappers terminée !`
+    ` Authentification Enterprise avec support ${dbConfig.orm.toUpperCase()} et Mappers terminée !`,
   );
 }
 

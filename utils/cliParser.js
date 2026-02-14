@@ -1,4 +1,4 @@
-function parseCliArgs(args) {
+/* function parseCliArgs(args) {
   const parsed = {
     command: null,
     projectName: null,
@@ -42,12 +42,63 @@ function parseCliArgs(args) {
 
   validateFlags(parsed);
   return parsed;
-}
+} */
 
+function parseCliArgs(args) {
+  const parsed = {
+    command: null,
+    projectName: null, // Pour 'new'
+    subCommand: null, // Pour 'generate' (module, auth, etc.)
+    targetName: null, // Pour 'generate' (User, Product, etc.)
+    flags: {},
+    positional: [],
+    errors: [],
+  };
+
+  for (let i = 2; i < args.length; i++) {
+    const arg = args[i];
+
+    // Commande principale (new, g, info...)
+    if (i === 2 && !arg.startsWith("--")) {
+      parsed.command = arg;
+      continue;
+    }
+
+    if (arg.startsWith("--")) {
+      const [key, value] = parseFlag(arg);
+      // ... logique des flags inchangée ...
+      const nextArg = args[i + 1];
+      if (value !== null) {
+        parsed.flags[key] = value;
+      } else if (nextArg && !nextArg.startsWith("--")) {
+        parsed.flags[key] = nextArg;
+        i++;
+      } else {
+        parsed.flags[key] = true;
+      }
+    } else {
+      parsed.positional.push(arg);
+    }
+  }
+
+  // Distribution des arguments selon la commande
+  if (parsed.command === "new") {
+    parsed.projectName = parsed.positional[0] || null;
+    if (parsed.projectName && !isValidProjectName(parsed.projectName)) {
+      parsed.errors.push(`Nom de projet invalide: "${parsed.projectName}".`);
+    }
+  } else if (parsed.command === "generate" || parsed.command === "g") {
+    parsed.subCommand = parsed.positional[0] || null; // ex: module
+    parsed.targetName = parsed.positional[1] || null; // ex: User
+  }
+
+  validateFlags(parsed);
+  return parsed;
+}
 function parseFlag(arg) {
-  if (arg.includes('=')) {
-    const [key, ...valueParts] = arg.slice(2).split('=');
-    return [key, valueParts.join('=')];
+  if (arg.includes("=")) {
+    const [key, ...valueParts] = arg.slice(2).split("=");
+    return [key, valueParts.join("=")];
   }
   return [arg.slice(2), null];
 }
@@ -57,19 +108,25 @@ function isValidProjectName(name) {
 }
 
 function validateFlags(parsed) {
-  const validOrms = ['prisma', 'typeorm', 'mongoose'];
-  const validModes = ['full', 'light'];
+  const validOrms = ["prisma", "typeorm", "mongoose"];
+  const validModes = ["full", "light"];
 
   if (parsed.flags.orm && !validOrms.includes(parsed.flags.orm)) {
-    parsed.errors.push(`ORM invalide: "${parsed.flags.orm}". Valeurs acceptées: ${validOrms.join(', ')}`);
+    parsed.errors.push(
+      `ORM invalide: "${parsed.flags.orm}". Valeurs acceptées: ${validOrms.join(", ")}`,
+    );
   }
 
   if (parsed.flags.mode && !validModes.includes(parsed.flags.mode)) {
-    parsed.errors.push(`Mode invalide: "${parsed.flags.mode}". Valeurs acceptées: ${validModes.join(', ')}`);
+    parsed.errors.push(
+      `Mode invalide: "${parsed.flags.mode}". Valeurs acceptées: ${validModes.join(", ")}`,
+    );
   }
 
   if (parsed.flags.full && parsed.flags.light) {
-    parsed.errors.push('Les flags --full et --light sont mutuellement exclusifs.');
+    parsed.errors.push(
+      "Les flags --full et --light sont mutuellement exclusifs.",
+    );
   }
 }
 

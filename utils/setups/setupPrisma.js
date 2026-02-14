@@ -1,4 +1,5 @@
 const fs = require("fs");
+const { execSync } = require("child_process");
 const { logInfo } = require("../loggers/logInfo");
 const { runCommand } = require("../shell");
 const { logSuccess } = require("../loggers/logSuccess");
@@ -9,6 +10,9 @@ const {
   capitalize,
 } = require("../userInput");
 const { updatePackageJson } = require("../file-utils/packageJsonUtils");
+const { success, warning, error, info } = require("../colors");
+
+const { logWarning } = require("../loggers/logWarning");
 
 async function setupPrisma(inputs) {
   logInfo("Configuring Prisma...");
@@ -20,7 +24,7 @@ async function setupPrisma(inputs) {
   logInfo(`Installing prisma and client...`);
   await runCommand(
     `${inputs.packageManager} add -D prisma@${prismaVersion} @prisma/client@${prismaVersion}`,
-    "❌ Prisma installation failed"
+    "❌ Prisma installation failed",
   );
 
   // Step 2: Initialize Prisma
@@ -56,7 +60,7 @@ async function setupPrisma(inputs) {
   logInfo("Adding entities");
   let schemaContent = "";
   const hasUserEntity = inputs.entitiesData.entities.some(
-    (entity) => entity.name.toLowerCase() === "user"
+    (entity) => entity.name.toLowerCase() === "user",
   );
 
   // Adding the Role enum block if User is present
@@ -165,7 +169,7 @@ async function setupPrisma(inputs) {
             return match.includes(fieldLine)
               ? match
               : `model ${from} {${content}\n${fieldLine}\n}`;
-          }
+          },
         );
 
         // "Many" side (target): adds the relation and the foreign key
@@ -179,7 +183,7 @@ async function setupPrisma(inputs) {
               : `${content}\n${relationLine}`;
             result = result.includes(fkLine) ? result : `${result}\n${fkLine}`;
             return `model ${to} {${result}\n}`;
-          }
+          },
         );
       }
 
@@ -197,7 +201,7 @@ async function setupPrisma(inputs) {
               : `${content}\n${relationLine}`;
             result = result.includes(fkLine) ? result : `${result}\n${fkLine}`;
             return `model ${from} {${result}\n}`;
-          }
+          },
         );
 
         // "One" side (target = to): adds the list (from[])
@@ -209,7 +213,7 @@ async function setupPrisma(inputs) {
             return match.includes(fieldLine)
               ? match
               : `model ${to} {${content}\n${fieldLine}\n}`;
-          }
+          },
         );
       }
 
@@ -226,7 +230,7 @@ async function setupPrisma(inputs) {
               : `${content}\n${relationLine}`;
             result = result.includes(fkLine) ? result : `${result}\n${fkLine}`;
             return `model ${from} {${result}\n}`;
-          }
+          },
         );
 
         // 'to' side (target): adds the inverse relation (optional)
@@ -238,7 +242,7 @@ async function setupPrisma(inputs) {
             return match.includes(fieldLine)
               ? match
               : `model ${to} {${content}\n${fieldLine}\n}`;
-          }
+          },
         );
       }
 
@@ -251,7 +255,7 @@ async function setupPrisma(inputs) {
             return match.includes(fieldLine)
               ? match
               : `model ${from} {${content}\n${fieldLine}\n}`;
-          }
+          },
         );
 
         // 'to' side (target): adds the list (from[])
@@ -262,7 +266,7 @@ async function setupPrisma(inputs) {
             return match.includes(fieldLine)
               ? match
               : `model ${to} {${content}\n${fieldLine}\n}`;
-          }
+          },
         );
       }
     }
@@ -339,7 +343,7 @@ async function setupPrisma(inputs) {
   logInfo("📦 Installing dotenv...");
   await runCommand(
     `${inputs.packageManager} add dotenv`,
-    "❌ Failed to install dotenv"
+    "❌ Failed to install dotenv",
   );
 
   // Creating prisma.config.ts file to load environment variables
@@ -429,11 +433,11 @@ async function setupPrismaSeeding(inputs) {
   ];
   await runCommand(
     `${inputs.packageManager} add -D ${prismaDevDeps.join(" ")}`,
-    "❌ Failed to install Prisma seeding dependencies"
+    "❌ Failed to install Prisma seeding dependencies",
   ); // Bcrypt is often a production dependency for hashing
   await runCommand(
     `${inputs.packageManager} install bcrypt`,
-    "❌ Failed to install bcrypt"
+    "❌ Failed to install bcrypt",
   );
 
   // --- Scripts in package.json ---
@@ -627,4 +631,169 @@ function generatePrismaSeedContent(entities) {
   `;
 }
 
-module.exports = { setupPrisma };
+async function updatePrismaSchema(entityData) {
+  const schemaPath = "prisma/schema.prisma";
+  const { name, fields, relation } = entityData;
+  const capitalizedName = capitalize(name);
+  const lowercasedName = name.toLowerCase();
+
+  // 1️⃣ Préparation des champs de relation pour le NOUVEAU modèle
+  let relationFields = "";
+  if (relation) {
+    const targetCap = capitalize(relation.target);
+    const targetLow = relation.target.toLowerCase();
+
+    switch (relation.type) {
+      case "n-1": // "Many to One" : Le nouveau module appartient à une cible
+        relationFields += `\n  ${targetLow}   ${targetLow} @relation(fields: [${targetLow}Id], references: [id])`;
+        relationFields += `\n  ${targetLow}Id String`;
+        break;
+      case "1-n": // "One to Many" : Le nouveau module possède plusieurs cibles
+        relationFields += `\n  ${targetLow}s  ${targetLow}[]`;
+        break;
+      case "1-1":
+        relationFields += `\n  ${targetLow}   ${targetLow}? @relation(fields: [${targetLow}Id], references: [id])`;
+        relationFields += `\n  ${targetLow}Id String? @unique`;
+        break;
+      case "n-n":
+        relationFields += `\n  ${targetLow}s  ${targetLow}[]`;
+        break;
+    }
+  }
+
+  // 2️⃣ Construction du bloc pour le nouveau modèle
+  let modelBlock = `\n/**
+ * ${capitalizedName} Model
+ */
+model ${lowercasedName} {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt${relationFields}`;
+
+  fields.forEach((field) => {
+    modelBlock += `\n  ${field.name} ${mapTypeToPrisma(field.type)}`;
+  });
+
+  modelBlock += `\n}\n`;
+
+  // 3️⃣ Injection du nouveau modèle
+  await updateFile({
+    path: schemaPath,
+    pattern: /$/,
+    replacement: modelBlock,
+  });
+
+  // 4️⃣ Injection de l'INVERSE dans le modèle cible (Target)
+  if (relation) {
+    const targetCap = capitalize(relation.target);
+    const targetLow = capitalize(relation.target);
+    const newCap = capitalizedName;
+    const newLow = name.toLowerCase();
+
+    let inverseField = "";
+    switch (relation.type) {
+      case "n-1": // Inverse d'un Many-to-One est un One-to-Many
+        inverseField = `  ${newLow}s ${newLow}[]`;
+        break;
+      case "1-n": // Inverse d'un One-to-Many est un Many-to-One
+        inverseField = `  ${newLow}   ${newLow} @relation(fields: [${newLow}Id], references: [id])\n  ${newLow}Id String`;
+        break;
+      case "1-1":
+        inverseField = `  ${newLow}   ${newLow}?`;
+        break;
+      case "n-n":
+        inverseField = `  ${newLow}s ${newLow}[]`;
+        break;
+    }
+
+    // On utilise une RegEx pour trouver le bloc du modèle cible et insérer avant la fermeture "}"
+    await updateFile({
+      path: schemaPath,
+      pattern: new RegExp(`model ${targetLow} \\{([\\s\\S]*?)\\}`, "g"),
+      replacement: `model ${targetLow} {$1\n${inverseField}\n}`,
+    });
+  }
+
+  // 3️⃣ Prisma Commands Sync (meilleur sur Windows)
+  try {
+    console.log(info("Running: prisma format..."));
+    execSync("npx prisma format", { stdio: "pipe" });
+
+    console.log(info("Running: prisma generate..."));
+    execSync("npx prisma generate", { stdio: "pipe" });
+
+    console.log(info("Running: prisma migrate dev..."));
+    execSync(`npx prisma migrate dev --name add_module_${entityData.name}`, {
+      stdio: "pipe",
+    });
+
+    // console.log(success("🎉 Prisma migration completed successfully!"));
+  } catch (err) {
+    // 4️⃣ Gestion spécifique Windows EPERM
+    if (
+      err.message.includes("operation not permitted") ||
+      err.message.includes("EPERM") ||
+      err.message.includes("EBUSY")
+    ) {
+      logWarning("System Lock Detected!");
+      console.log(
+        `${info("Prisma Client binary is locked because your server is running.")}`,
+      );
+      console.log(
+        `${info("ACTION:")} Stop NestJS (Ctrl+C) and run manually:\n`,
+      );
+      console.log(`${success("npx prisma generate")}`);
+      console.log(`${success("npx prisma migrate dev")}\n`);
+    } else {
+      console.log(error("❌ Prisma error: " + err.message));
+    }
+  }
+}
+
+/* async function updatePrismaSchema(entityData) {
+  const schemaPath = "prisma/schema.prisma";
+
+  // Construction du bloc modèle
+  let modelBlock = `\nmodel ${capitalize(entityData.name)} {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt`;
+
+  entityData.fields.forEach((field) => {
+    // Note: On réutilise ta fonction mapTypeToPrisma ici
+    modelBlock += `\n  ${field.name} ${mapTypeToPrisma(field.type)}`;
+  });
+
+  modelBlock += `\n}\n`;
+
+  // Injection à la fin du fichier
+  await updateFile({
+    path: schemaPath,
+    pattern: /$/, // On ajoute à la fin
+    replacement: modelBlock,
+  });
+
+  // ⚠️ IMPORTANT : On formate et on régénère le client pour supprimer les erreurs TS
+  try {
+    await runCommand("npx prisma format");
+    await runCommand("npx prisma generate");
+    await runCommand(
+      `npx prisma migrate dev --name add_module_${entityData.name}`,
+    );
+  } catch (err) {
+    if (err.message.includes("EPERM")) {
+      console.log(
+        `\n${warning("⚠️  System Lock:")} Could not update Prisma Client binary because your app is currently running.`,
+      );
+      console.log(
+        `${info("ACTION REQUIRED:")} Stop your dev server (Ctrl+C) and run: ${success("| npx prisma generate | and | npx prisma migrate dev |")}\n`,
+      );
+    } else {
+      logError("Prisma error: " + err.message);
+    }
+  }
+
+  throw new Error(err);
+} */
+
+module.exports = { setupPrisma, updatePrismaSchema };
