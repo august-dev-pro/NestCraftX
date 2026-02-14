@@ -8,7 +8,7 @@ const path = require("path");
  *
  */
 async function saveProjectConfig(inputs) {
-  const configDir = path.join(process.cwd(), inputs.projectName, ".nestcraftx");
+  const configDir = path.join(process.cwd(), ".nestcraftx");
   const configFile = path.join(configDir, ".nestcraftxrc");
 
   const configData = {
